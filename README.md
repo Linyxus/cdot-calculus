@@ -1,3 +1,5 @@
+![Extended pDOT Subtyping](assets/extended-pdot-subtyping.png)
+
 # Soundness Proof for Extended pDOT Calculus
 
 This repository contains type safety proof for the extended pDOT system,
