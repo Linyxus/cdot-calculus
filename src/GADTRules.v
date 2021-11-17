@@ -8,7 +8,6 @@ Require Import Coq.Program.Equality.
 Require Import Definitions TightTyping SemanticSubtyping PreciseTyping.
 Require Import Replacement Binding.
 
-
 Lemma subtyp_sngl_pq1_t : forall G p q S S' T U,
     G ⊢!!! p : {{ q }} ->
     G ⊢!!! q : U ->
@@ -22,7 +21,6 @@ Proof.
   eauto.
 Qed.
 
-
 Lemma subtyp_sngl_qp1_t : forall G p q S S' T U,
     G ⊢!!! p : {{ q }} ->
     G ⊢!!! q : U ->
@@ -35,7 +33,6 @@ Proof.
   apply repl_swap in Hr.
   eauto.
 Qed.
-
 
 Lemma invert_subtyp_typ_s : forall G A S1 T1 S2 T2,
     G ⊢{} typ_rcd {A >: S1 <: T1} <: typ_rcd {A >: S2 <: T2} ->
@@ -116,7 +113,6 @@ Proof.
         split; auto. destruct repl_swap as [Hs _]. eauto.
 Qed.
 
-
 Lemma invert_subtyp_typ_s_label : forall G A1 S1 T1 A2 S2 T2,
     G ⊢{} typ_rcd {A1 >: S1 <: T1} <: typ_rcd {A2 >: S2 <: T2} ->
     A1 = A2.
@@ -165,7 +161,6 @@ Proof.
   - (* all *)
     inversion Heq1.
 Qed.
-
 
 Theorem invert_subtyp_typ_t : forall G A S1 T1 S2 T2,
     inert G ->
@@ -247,7 +242,6 @@ Proof.
     inversion He.
 Qed.
 
-
 Lemma reduce_subtyp_rcd2_s : forall G U1 U2 A S T,
     G ⊢{} U1 <: U2 ->
     U2 ↘ typ_rcd {A >: S <: T} ->
@@ -268,7 +262,6 @@ Proof.
     eauto.
 Qed.
 
-
 Lemma rcd_with_unique_typ_in_label : forall U L A S T,
     rcd_with_unique_typ U L (typ_rcd {A >: S <: T}) ->
     A \in L.
@@ -285,7 +278,6 @@ Proof.
     specialize (IHrcd_with_unique_typ2 HeqT1).
     rewrite in_union. right. auto.
 Qed.
-
 
 Lemma subtyp_s_trm_typ_false : forall G a U A S T,
     ~ G ⊢{} typ_rcd {a ⦂ U} <: typ_rcd {A >: S <: T}.
@@ -329,7 +321,6 @@ Proof.
   - (* all *)
     inversion Heq1.
 Qed.
-
 
 Lemma invert_subtyp_and1_s_rcd : forall G U1 U2 D,
     G ⊢{} typ_and U1 U2 <: typ_rcd D ->
@@ -404,7 +395,6 @@ Proof.
     inversion He1.
 Qed.
 
-
 Lemma rcd_with_unique_typ_notin_labels : forall G U L T1 A S T,
     rcd_with_unique_typ U L T1 ->
     A \notin L ->
@@ -431,7 +421,6 @@ Proof.
     -- specialize (IHrcd_with_unique_typ1 Hn1 H0). contradiction.
     -- specialize (IHrcd_with_unique_typ2 Hn2 H0). contradiction.
 Qed.
-
 
 Lemma reduce_subtyp_rcd1_s : forall G U1 A S1 T1 S2 T2,
     G ⊢{} U1 <: typ_rcd {A >: S2 <: T2} ->
@@ -465,7 +454,6 @@ Proof.
     -- auto.
 Qed.
 
-
 Lemma reduce_subtyp_rcd_both_s : forall G U1 U2 A S1 T1 S2 T2,
     U1 ↘ typ_rcd {A >: S1 <: T1} ->
     U2 ↘ typ_rcd {A >: S2 <: T2} ->
@@ -478,7 +466,6 @@ Proof.
   auto.
 Qed.
 
-
 Lemma invert_subtyp_rcd_s : forall G U1 U2 A S1 T1 S2 T2,
     U1 ↘ typ_rcd {A >: S1 <: T1} ->
     U2 ↘ typ_rcd {A >: S2 <: T2} ->
@@ -489,7 +476,6 @@ Proof.
   pose proof (reduce_subtyp_rcd_both_s _ _ _ _ _ _ _ _ Hu1 Hu2 Hsub).
   pose proof (invert_subtyp_typ_s _ _ _ _ _ _ H). auto.
 Qed.
-
 
 Lemma invert_subtyp_rcd_t : forall G U1 U2 A S1 T1 S2 T2,
     inert G ->
