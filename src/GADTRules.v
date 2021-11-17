@@ -254,6 +254,8 @@ Proof.
     inversion Heqtyp; subst; clear Heqtyp. auto.
   - (* fld *)
     inversion Heqtyp.
+  - (* rec *)
+    inversion Heqtyp.
   - (* andl *)
     apply invert_subtyp_and2_s in Hs as [Hs1 Hs2].
     eauto.
@@ -271,6 +273,7 @@ Proof.
   induction H.
   - (* typ *) inversion HeqT1. subst. apply in_singleton_self.
   - (* fld *) inversion HeqT1.
+  - inversion HeqT1.
   - (* andl *)
     specialize (IHrcd_with_unique_typ1 HeqT1).
     rewrite in_union. left. auto.
@@ -320,6 +323,38 @@ Proof.
     inversion Heq1.
   - (* all *)
     inversion Heq1.
+Qed.
+
+Ltac inv_repl_typ_rcd :=
+  match goal with
+  | H : repl_typ _ _ _ (typ_rcd _) |- _ => inversion H; subst; clear H
+end.
+
+Ltac inv_repl_typ_rec :=
+  match goal with
+  | H : repl_typ _ _ _ (typ_bnd _) |- _ => inversion H; subst; clear H
+end.
+
+Ltac inv_repl_dec :=
+  match goal with
+  | H : repl_dec _ _ _ _ |- _ => inversion H; subst; clear H
+end.
+
+Ltac inv_repl_typ_rcd_full := inv_repl_typ_rcd; inv_repl_dec.
+
+Lemma subtyp_s_rec_typ_false : forall G U A S T,
+    ~ G ⊢{} μ U <: typ_rcd {A >: S <: T}.
+Proof.
+  introv Hs. remember (μ U) as t1. remember (typ_rcd {A >: S <: T}) as t2.
+  gen U S T.
+  induction Hs; introv Heq1; introv Heq2;
+    try inversion Heq1;
+    try inversion Heq2.
+  - subst T. inversion Heq2.
+  - subst; inv_repl_typ_rcd_full; apply* IHHs.
+  - subst; inv_repl_typ_rcd_full; apply* IHHs.
+  - subst. inv_repl_typ_rec. apply* IHHs.
+  - subst. inv_repl_typ_rec. apply* IHHs.
 Qed.
 
 Lemma invert_subtyp_and1_s_rcd : forall G U1 U2 D,
@@ -408,6 +443,7 @@ Proof.
     subst A0. apply Hn. trivial.
   - (* fld *)
     eapply subtyp_s_trm_typ_false. apply Ha.
+  - apply* subtyp_s_rec_typ_false.
   - (* andl *)
     apply notin_union in Hn. destruct Hn as [Hn1 Hn2].
     apply invert_subtyp_and1_s_rcd in Ha.
@@ -435,6 +471,7 @@ Proof.
     inversion He; subst. auto.
   - (* fld *)
     inversion He.
+  - inversion He.
   - (* andl *)
     apply invert_subtyp_and1_s_rcd in Hs as [Hs | Hs].
     -- auto.
