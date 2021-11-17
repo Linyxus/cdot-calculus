@@ -4,3 +4,5 @@ Makefile.coq-e
 Makefile.coq.conf
 .coqdeps.d
 doc/graph.png
+*.vos
+*.vok
