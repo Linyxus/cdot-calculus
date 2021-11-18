@@ -6,7 +6,29 @@
 
 Require Import Coq.Program.Equality.
 Require Import Definitions TightTyping SemanticSubtyping PreciseTyping.
-Require Import Replacement Binding.
+Require Import Replacement Binding Narrowing Subenvironments Weakening.
+
+Ltac inv_repl_typ_rcd :=
+  match goal with
+  | H : repl_typ _ _ _ (typ_rcd _) |- _ => inversion H; subst; clear H
+end.
+
+Ltac inv_repl_typ_rec :=
+  match goal with
+  | H : repl_typ _ _ _ (typ_bnd _) |- _ => inversion H; subst; clear H
+end.
+
+Ltac inv_repl_dec :=
+  match goal with
+  | H : repl_dec _ _ _ _ |- _ => inversion H; subst; clear H
+end.
+
+Ltac inv_repl_typ_rcd_full := inv_repl_typ_rcd; inv_repl_dec.
+
+Ltac inv_repl_typ_all :=
+  match goal with
+  | H : repl_typ _ _ _ (typ_all _ _) |- _ => inversion H; subst; clear H
+end.
 
 Lemma subtyp_sngl_pq1_t : forall G p q S S' T U,
     G ⊢!!! p : {{ q }} ->
@@ -21,6 +43,17 @@ Proof.
   eauto.
 Qed.
 
+Lemma subtyp_sngl_pq2_t : forall G p q S T T' U,
+    G ⊢!!! p : {{ q }} ->
+    G ⊢!!! q : U ->
+    G ⊢# S <: T ->
+    repl_typ p q T T' ->
+    G ⊢# S <: T'.
+Proof.
+  introv Hp Hq Hst Hr.
+  eapply subtyp_trans_t. apply Hst. eauto.
+Qed.
+
 Lemma subtyp_sngl_qp1_t : forall G p q S S' T U,
     G ⊢!!! p : {{ q }} ->
     G ⊢!!! q : U ->
@@ -32,6 +65,17 @@ Proof.
   destruct repl_swap as [repl_swap _].
   apply repl_swap in Hr.
   eauto.
+Qed.
+
+Lemma subtyp_sngl_qp2_t : forall G p q S T T' U,
+    G ⊢!!! p : {{ q }} ->
+    G ⊢!!! q : U ->
+    G ⊢# S <: T ->
+    repl_typ q p T T' ->
+    G ⊢# S <: T'.
+Proof.
+  introv Hp Hq Hst Hr.
+  eapply subtyp_trans_t. apply Hst. eauto.
 Qed.
 
 Lemma invert_subtyp_typ_s : forall G A S1 T1 S2 T2,
@@ -111,6 +155,127 @@ Proof.
           apply IHHsub with (S3 := S1) (T1 := T0) (S4 := S2) (T3 := T2); trivial.
         }
         split; auto. destruct repl_swap as [Hs _]. eauto.
+Qed.
+
+Lemma invert_subtyp_trm_s : forall G a T1 T2,
+    G ⊢{} typ_rcd {a ⦂ T1} <: typ_rcd {a ⦂ T2} ->
+    G ⊢{} T1 <: T2.
+Proof.
+  introv Hsub.
+  remember (typ_rcd {a ⦂ T1}) as typ1 in Hsub.
+  remember (typ_rcd {a ⦂ T2}) as typ2 in Hsub.
+  gen T1 T2.
+  induction Hsub; introv Heq1; introv Heq2;
+    inversion Heq1;
+    inversion Heq2;
+    subst; eauto;
+    try (subst T; inversion Heq2); eauto;
+    try (inversion Heq2; subst; eauto);
+    try (inv_repl_typ_rcd_full; eauto).
+Qed.
+
+Lemma invert_subtyp_all_s : forall G S1 T1 S2 T2,
+    inert G ->
+    G ⊢{} ∀(S1) T1 <: ∀(S2) T2 ->
+    G ⊢# S2 <: S1 /\ (exists L, forall x, x \notin L ->
+       G & x ~ S2 ⊢ open_typ x T1 <: open_typ x T2).
+Proof.
+  introv H0 Hsub.
+  match goal with
+  | H : G ⊢{} ?S <: ?T |- _ => remember S as typ1; remember T as typ2
+  end.
+  gen S1 S2 T1 T2.
+  induction Hsub; introv Heq1; introv Heq2;
+    try inversion Heq1;
+    try inversion Heq2;
+    subst; auto.
+  - inversion Heq2; subst. split; try constructor.
+    exists (\{} : fset var). eauto.
+  - inv_repl_typ_all.
+    -- split.
+       apply subtyp_sngl_pq1_t with (p := p) (q := q) (S := T0) (U := U); auto.
+       apply* IHHsub. specialize (IHHsub H0 S1 T0 T1 eq_refl T2 eq_refl) as [_ IH].
+       destruct IH as [L IH]. exists (L \u dom G). introv Hn.
+       apply* narrow_subtyping. eapply subenv_push.
+       + eauto.
+       + eauto.
+       + eauto.
+       + apply subtyp_trans with (T := T0); try constructor.
+         eapply subtyp_sngl_qp. apply* precise_to_general3.
+         apply* precise_to_general3. apply* repl_swap.
+    -- split.
+       apply* IHHsub. specialize (IHHsub H0 _ _ _ eq_refl _ eq_refl) as [_ [L IH]].
+       repeat (
+         match goal with
+         | H : G ⊢!!! _ : _ |- _ => apply precise_to_general3 in H
+         end
+       ).
+       exists (L \u dom G). introv Hn. eapply subtyp_trans.
+       + apply* IH.
+       + eapply subtyp_sngl_pq; try apply* weaken_ty_trm.
+         apply* repl_open_var; apply* typed_paths_named.
+  - inv_repl_typ_all.
+    -- split.
+       apply subtyp_sngl_qp1_t with (p := p) (q := q) (S := T0) (U := U); auto.
+       apply* IHHsub. specialize (IHHsub H0 S1 T0 T1 eq_refl T2 eq_refl) as [_ IH].
+       destruct IH as [L IH]. exists (L \u dom G). introv Hn.
+       apply* narrow_subtyping. eapply subenv_push.
+       + eauto.
+       + eauto.
+       + eauto.
+       + apply subtyp_trans with (T := T0); try constructor.
+         eapply subtyp_sngl_pq. apply* precise_to_general3.
+         apply* precise_to_general3. apply* repl_swap.
+    -- split.
+       apply* IHHsub. specialize (IHHsub H0 _ _ _ eq_refl _ eq_refl) as [_ [L IH]].
+       repeat (
+         match goal with
+         | H : G ⊢!!! _ : _ |- _ => apply precise_to_general3 in H
+         end
+       ).
+       exists (L \u dom G). introv Hn. eapply subtyp_trans.
+       + apply* IH.
+       + eapply subtyp_sngl_qp; try apply* weaken_ty_trm.
+         apply* repl_open_var; apply* typed_paths_named.
+  - inv_repl_typ_all.
+    -- specialize (IHHsub H0 _ _ _ eq_refl _ eq_refl).
+       split.
+       apply subtyp_sngl_pq2_t with (p := p) (T := T0) (q := q) (U := U); auto.
+       apply* IHHsub.
+       destruct IHHsub as [_ [L IH]]. exists (L \u dom G). introv Hn.
+       apply* IH.
+    -- specialize (IHHsub H0 _ _ _ eq_refl _ eq_refl).
+       split. apply* IHHsub. destruct IHHsub as [_ [L IH]].
+       exists (L \u dom G). introv Hn.
+       repeat (
+         match goal with
+         | H : G ⊢!!! _ : _ |- _ => apply precise_to_general3 in H
+         end
+       ).
+       apply subtyp_trans with (T := open_typ x T0).
+       + eapply subtyp_sngl_qp; try apply* weaken_ty_trm.
+         apply* repl_open_var; try apply* typed_paths_named. apply* repl_swap.
+       + apply* IH.
+  - inv_repl_typ_all.
+    -- specialize (IHHsub H0 _ _ _ eq_refl _ eq_refl).
+       split.
+       apply subtyp_sngl_qp2_t with (p := p) (T := T0) (q := q) (U := U); auto.
+       apply* IHHsub.
+       destruct IHHsub as [_ [L IH]]. exists (L \u dom G). introv Hn.
+       apply* IH.
+    -- specialize (IHHsub H0 _ _ _ eq_refl _ eq_refl).
+       split. apply* IHHsub. destruct IHHsub as [_ [L IH]].
+       exists (L \u dom G). introv Hn.
+       repeat (
+         match goal with
+         | H : G ⊢!!! _ : _ |- _ => apply precise_to_general3 in H
+         end
+       ).
+       apply subtyp_trans with (T := open_typ x T0).
+       + eapply subtyp_sngl_pq; try apply* weaken_ty_trm.
+         apply* repl_open_var; try apply* typed_paths_named. apply* repl_swap.
+       + apply* IH.
+  - split; eauto.
 Qed.
 
 Lemma invert_subtyp_typ_s_label : forall G A1 S1 T1 A2 S2 T2,
@@ -324,23 +489,6 @@ Proof.
   - (* all *)
     inversion Heq1.
 Qed.
-
-Ltac inv_repl_typ_rcd :=
-  match goal with
-  | H : repl_typ _ _ _ (typ_rcd _) |- _ => inversion H; subst; clear H
-end.
-
-Ltac inv_repl_typ_rec :=
-  match goal with
-  | H : repl_typ _ _ _ (typ_bnd _) |- _ => inversion H; subst; clear H
-end.
-
-Ltac inv_repl_dec :=
-  match goal with
-  | H : repl_dec _ _ _ _ |- _ => inversion H; subst; clear H
-end.
-
-Ltac inv_repl_typ_rcd_full := inv_repl_typ_rcd; inv_repl_dec.
 
 Lemma subtyp_s_rec_typ_false : forall G U A S T,
     ~ G ⊢{} μ U <: typ_rcd {A >: S <: T}.
