@@ -278,6 +278,15 @@ Proof.
   - split; eauto.
 Qed.
 
+Lemma invert_subtyp_all_t : forall G S1 T1 S2 T2,
+    inert G ->
+    G ⊢# ∀(S1) T1 <: ∀(S2) T2 ->
+    G ⊢# S2 <: S1 /\ (exists L, forall x, x \notin L ->
+       G & x ~ S2 ⊢ open_typ x T1 <: open_typ x T2).
+Proof.
+  introv H0 Hsub. apply* invert_subtyp_all_s. apply* tight_to_semantic.
+Qed.
+
 Lemma invert_subtyp_typ_s_label : forall G A1 S1 T1 A2 S2 T2,
     G ⊢{} typ_rcd {A1 >: S1 <: T1} <: typ_rcd {A2 >: S2 <: T2} ->
     A1 = A2.
