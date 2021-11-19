@@ -22,6 +22,10 @@ _________________
 G ⊢ T1 <: T2
 ```
 
+The relation `U ↘ {A: S..T}` states that `U` is an intersection type with all
+components being fields, type members or recursive types, the type labels are
+unique, and it has the type member `{A: S..T}`.
+
 The proof is modified from [pDOT soundness
 proof](https://github.com/amaurremi/dot-calculus/tree/master/src/extensions/paths).
 
