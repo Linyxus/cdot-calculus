@@ -253,4 +253,7 @@ Lemma tight_to_general:
      G ⊢ S <: U).
 Proof.
   apply ts_mutind_ts; intros; subst; eauto using precise_to_general3.
+  Unshelve.
+  all: solve_ex_typ_L.
 Qed.
+

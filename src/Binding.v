@@ -786,6 +786,7 @@ Proof.
     + apply binds_middle_eq_inv in b; subst*. rewrite open_var_typ_eq.
       apply ty_rec_elim. constructor. apply* binds_middle_eq. apply* ok_middle_inv_r.
     + constructor. apply binds_subst in b; auto. apply* binds_weaken. apply* ok_middle_change.
+  Unshelve. all: solve_ex_typ_L.
 Qed.
 
 (** the same for definition-typing only: *)

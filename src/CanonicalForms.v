@@ -177,6 +177,7 @@ Proof.
       + right. left. repeat eexists. rewrite concat_assoc. eauto.
         apply* weaken_ty_defs. all: eauto.
       + right. right. repeat eexists. rewrite concat_assoc. all: eauto.
+  Unshelve. all: solve_ex_typ_L.
 Qed.
 
 (** If [p] looks up to [t] in a value environment and [p]'s II-level precise type

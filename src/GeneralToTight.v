@@ -122,6 +122,7 @@ Proof.
     pose proof (invert_subtyp_rcd_t _ _ _ _ _ _ _ _ Hi e e0 H) as [Hg1 Hg2]. auto.
   - specialize (H eq_refl).
     pose proof (invert_subtyp_rcd_t _ _ _ _ _ _ _ _ Hi e e0 H) as [Hg1 Hg2]. auto.
+  - specialize (H eq_refl). apply* invert_subtyp_all_t.
   - destruct* (sngl_replacement Hi (H eq_refl) (H0 eq_refl) r).
   - apply repl_swap in r. destruct* (sngl_replacement Hi (H eq_refl) (H0 eq_refl) r).
 Qed.

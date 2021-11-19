@@ -1172,3 +1172,9 @@ Ltac destruct_notin :=
          | [ H: ?z \notin ?E1 \u ?E2 |- _ ] =>
            apply notin_union in H; destruct H
          end.
+
+Ltac solve_ex_typ_L :=
+  match goal with
+  | |- typ => exact typ_top
+  | |- fset var => exact \{}
+  end.
