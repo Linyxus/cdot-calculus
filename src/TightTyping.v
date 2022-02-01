@@ -235,6 +235,7 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
     (forall x, x \notin L ->
        G & x ~ S2 ⊢ open_typ x T1 <: open_typ x T2) ->
     G ⊢# ∀(S1) T1 <: ∀(S2) T2
+
 where "G '⊢#' T '<:' U" := (subtyp_t G T U).
 
 Hint Constructors ty_trm_t subtyp_t.
