@@ -216,3 +216,4 @@ Proof.
   destruct Ht as [Ht1 Ht2]. split; eauto 2.
   apply* tight_to_general.
 Qed.
+
