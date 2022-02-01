@@ -702,3 +702,156 @@ Qed.
   (* - (* fld *) *)
   (* - (* andl *) *)
   (* - (* andr *) *)
+
+Check trm_mutind.
+Check typ_mutind.
+
+Lemma open_typ_fv :
+  (forall T z i,
+    fv_typ (open_rec_typ i z T) = fv_typ T
+  \/ fv_typ (open_rec_typ i z T) = \{z} \u fv_typ T) /\
+  (forall D z i,
+    fv_dec (open_rec_dec i z D) = fv_dec D
+  \/ fv_dec (open_rec_dec i z D) = \{z} \u fv_dec D).
+Proof.
+  apply typ_mutind; intros; subst; simpl in *; eauto.
+  - specialize (H z i). specialize (H0 z i).
+    destruct H; destruct H0; rewrite H; rewrite H0;
+      eauto using union_assoc, union_comm, union_comm_assoc, union_empty_r.
+    rewrite union_comm_assoc. rewrite union_assoc. rewrite union_assoc. rewrite union_same.
+    eauto using union_assoc.
+  - destruct p; simpl. destruct a; simpl; repeat cases_if; simpl;
+      eauto using union_assoc, union_comm, union_comm_assoc, union_empty_r.
+  - specialize (H z i). specialize (H0 z (S i)).
+    destruct H; destruct H0; rewrite H; rewrite H0;
+      eauto using union_assoc, union_comm, union_comm_assoc, union_empty_r.
+    rewrite union_comm_assoc. rewrite union_assoc. rewrite union_assoc. rewrite union_same.
+    eauto using union_assoc.
+  - destruct p; simpl. destruct a; simpl; repeat cases_if; simpl;
+      eauto using union_assoc, union_comm, union_comm_assoc, union_empty_r.
+  - specialize (H z i). specialize (H0 z i).
+    destruct H; destruct H0; rewrite H; rewrite H0;
+      eauto using union_assoc, union_comm, union_comm_assoc, union_empty_r.
+    rewrite union_comm_assoc. rewrite union_assoc. rewrite union_assoc. rewrite union_same.
+    eauto using union_assoc.
+Qed.
+
+Lemma open_trm_fv :
+  (forall t z i,
+      fv_trm (open_rec_trm i z t) = fv_trm t
+    \/ fv_trm (open_rec_trm i z t) = \{z} \u fv_trm t) /\
+  (forall v z i,
+      fv_val (open_rec_val i z v) = fv_val v
+    \/ fv_val (open_rec_val i z v) = \{z} \u fv_val v) /\
+  (forall d z i,
+      fv_def (open_rec_def i z d) = fv_def d
+    \/ fv_def (open_rec_def i z d) = \{z} \u fv_def d) /\
+  (forall ds z i,
+      fv_defs (open_rec_defs i z ds) = fv_defs ds
+    \/ fv_defs (open_rec_defs i z ds) = \{z} \u fv_defs ds) /\
+  (forall d z i,
+      fv_defrhs (open_rec_defrhs i z d) = fv_defrhs d
+    \/ fv_defrhs (open_rec_defrhs i z d) = \{z} \u fv_defrhs d).
+Proof.
+  apply trm_mutind;
+    intros; subst; simpl in *; eauto.
+  - unfold open_rec_path. destruct p. simpl. destruct p0. simpl.
+    unfold open_rec_avar. destruct a; destruct a0; simpl; repeat cases_if; simpl;
+      repeat rewrite union_same; repeat rewrite union_empty_l; repeat rewrite union_empty_r; eauto using union_comm.
+  - specialize (H z i). specialize (H0 z (S i)).
+    destruct H; destruct H0; subst; simpl; rewrite H; rewrite H0;
+      eauto using union_comm, union_assoc, union_comm_assoc, union_same.
+    right. rewrite union_comm_assoc. rewrite union_assoc. rewrite union_assoc. rewrite union_same.
+    eauto using union_assoc.
+  - unfold open_rec_path. destruct p; simpl.
+    unfold open_rec_avar. destruct a; simpl; repeat cases_if; simpl.
+      repeat rewrite union_same; repeat rewrite union_empty_l; repeat rewrite union_empty_r; eauto using union_comm.
+      left. eauto. left. eauto.
+  - destruct open_typ_fv as [H0 _]. specialize (H0 t z (S i)).
+    specialize (H z (S i)).
+    destruct H; destruct H0; subst; simpl; rewrite H; rewrite H0;
+      eauto using union_comm, union_assoc, union_comm_assoc, union_same.
+    right. rewrite union_comm_assoc. rewrite union_assoc. rewrite union_assoc. rewrite union_same.
+    eauto using union_assoc.
+  - destruct open_typ_fv as [H0 _]. specialize (H0 t z i).
+    specialize (H z (S i)).
+    destruct H; destruct H0; subst; simpl; rewrite H; rewrite H0;
+      eauto using union_comm, union_assoc, union_comm_assoc, union_same.
+    right. rewrite union_comm_assoc. rewrite union_assoc. rewrite union_assoc. rewrite union_same.
+    eauto using union_assoc.
+  - destruct open_typ_fv as [H0 _]. specialize (H0 t0 z i). exact H0.
+  - specialize (H z i). specialize (H0 z i).
+    destruct H; destruct H0; subst; simpl; rewrite H; rewrite H0;
+      eauto using union_comm, union_assoc, union_comm_assoc, union_same.
+    right. rewrite union_comm_assoc. rewrite union_assoc. rewrite union_assoc. rewrite union_same.
+    eauto using union_assoc.
+  - destruct p; simpl. destruct a; simpl; repeat cases_if; simpl;
+      repeat rewrite union_same; repeat rewrite union_empty_l; repeat rewrite union_empty_r; eauto using union_comm.
+Qed.
+
+(** * Trivial types *)
+
+Inductive trivial_dec : dec -> Prop :=
+| td_typ_refl : forall A T, trivial_dec { A >: T <: T }
+| td_typ_bot : forall A T, trivial_dec { A >: ⊥ <: T }
+| td_typ_top : forall A T, trivial_dec { A >: T <: ⊤ }
+| td_trm : forall a T, trivial_typ T -> trivial_dec { a ⦂ T }
+| td_trm_sngl : forall a p, trivial_dec { a ⦂ {{ p }} }
+
+with trivial_record_typ : typ -> fset label -> Prop :=
+| trt_one : forall D l,
+  trivial_dec D ->
+  l = label_of_dec D ->
+  trivial_record_typ (typ_rcd D) \{l}
+| trt_cons: forall T ls D l,
+  trivial_record_typ T ls ->
+  trivial_dec D ->
+  l = label_of_dec D ->
+  l \notin ls ->
+  trivial_record_typ (T ∧ typ_rcd D) (union ls \{l})
+
+with trivial_typ : typ -> Prop :=
+  | trivial_typ_all : forall S T, trivial_typ (∀(S) T)
+  | trivial_typ_bnd : forall T ls,
+      trivial_record_typ T ls ->
+      trivial_typ (μ T).
+
+Lemma inv_weaken_ty_trm : forall G1 G2 x S t T,
+    ok (G1 & x ~ S & G2) ->
+    x \notin (fv_ctx_types G1 \u fv_ctx_types G2 \u fv_trm t \u fv_typ T) ->
+    trivial_typ S ->
+    G1 & x ~ S & G2 ⊢ t : T ->
+    G1 & G2 ⊢ t : T
+with inv_weaken_ty_def : forall y bs G1 G2 x S d D,
+    ok (G1 & x ~ S & G2) ->
+    x \notin (fv_ctx_types G1 \u fv_ctx_types G2 \u fv_def d \u fv_dec D) ->
+    trivial_typ S ->
+    y; bs; G1 & x ~ S & G2 ⊢ d : D ->
+    y; bs; G1 & G2 ⊢ d : D
+with inv_weaken_ty_defs : forall y bs G1 G2 x S ds T,
+    ok (G1 & x ~ S & G2) ->
+    x \notin (fv_ctx_types G1 \u fv_ctx_types G2 \u fv_defs ds \u fv_typ T) ->
+    trivial_typ S ->
+    y; bs; G1 & x ~ S & G2 ⊢ ds :: T ->
+    y; bs; G1 & G2 ⊢ ds :: T
+with inv_weaken_subtyp : forall G1 G2 x S T U,
+    ok (G1 & x ~ S & G2) ->
+    x \notin (fv_ctx_types G1 \u fv_ctx_types G2 \u fv_typ T \u fv_typ U) ->
+    trivial_typ S ->
+    G1 & x ~ S & G2 ⊢ T <: U ->
+    G1 & G2 ⊢ T <: U.
+Proof.
+  all: introv Hok Hx HS H.
+  - dependent induction H.
+    -- constructor. eapply binds_subst.
+       exact H. simpl in Hx. eauto.
+    -- fresh_constructor. rewrite <- concat_assoc.
+       apply H0 with (S0:=S) (x0:=x); eauto 5; try rewrite -> concat_assoc; eauto 2.
+       rewrite fv_ctx_types_push_eq. simpl in Hx.
+       destruct open_trm_fv as [Htv _].
+       destruct open_typ_fv as [HTv _].
+       unfold open_trm. unfold open_typ.
+       destruct (Htv t z 0); destruct (HTv U z 0);
+         rewrite H1; rewrite H2; eauto.
+    --
+
