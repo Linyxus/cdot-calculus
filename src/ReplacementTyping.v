@@ -293,13 +293,13 @@ Proof.
     -- eapply subtyp_trans_t. eauto.  eapply subtyp_sngl_qp_t; eauto.
   - Case "ty_all_r"%string.
     invert_repl.
-    -- eapply ty_all_r with (L:=L \u dom G); eauto.
+    -- eapply ty_all_r with (L:=L \u dom G); eauto 2.
        * apply repl_swap in H6. eapply subtyp_trans_t.
          eapply subtyp_sngl_pq_t; eauto. auto.
        * introv Hy. eapply narrow_subtyping. apply H0. auto. constructor; auto.
          apply tight_to_general. eapply subtyp_sngl_pq_t; eauto. apply repl_swap.
          auto.
-    -- eapply ty_all_r with (L:=L \u dom G); eauto.
+    -- eapply ty_all_r with (L:=L \u dom G); eauto 2.
        introv Hy. eapply subtyp_trans. apply H0. auto.
        eapply repl_open_var in H6; try solve_names.
        eapply subtyp_sngl_qp. apply* weaken_ty_trm. eapply precise_to_general.
@@ -550,7 +550,7 @@ Proof.
      * eapply subtyp_trans_t. apply repl_swap in H8. eapply subtyp_sngl_qp_t; eauto.
        auto.
      * eapply subtyp_trans_t; eauto.
-   - Case "ty_all_r"%string. invert_repl; eapply ty_all_r with (L:=L \u dom G); eauto.
+   - Case "ty_all_r"%string. invert_repl; eapply ty_all_r with (L:=L \u dom G); eauto 2.
      * eapply subtyp_trans_t. apply repl_swap in H6. eapply subtyp_sngl_qp_t; eauto.
        auto.
      * introv Hy. eapply narrow_subtyping. apply H0. eauto.
@@ -1019,13 +1019,13 @@ Proof.
     invert_repl; eauto.
   - Case "ty_all_rv"%string.
     invert_repl; eauto.
-    -- eapply ty_all_rv with (L:=L \u dom G); eauto.
-      + eapply subtyp_trans_t. eapply subtyp_sngl_pq_t; eauto.
-        apply repl_swap in H6. eauto. eauto.
+    -- eapply ty_all_rv with (L:=L \u dom G); eauto 2.
+      + eapply subtyp_trans_t. eapply subtyp_sngl_pq_t; eauto 4.
+        apply repl_swap in H6. eauto 2. eauto 2.
       + introv Hy. eapply narrow_subtyping. apply H0. auto. constructor; auto.
         apply tight_to_general. eapply subtyp_sngl_pq_t; eauto.
         apply repl_swap. auto.
-    -- eapply ty_all_rv with (L:=L \u dom G); eauto.
+    -- eapply ty_all_rv with (L:=L \u dom G); eauto 2.
        introv Hy. eapply subtyp_trans. apply H0. auto.
        eapply repl_open_var in H6; try solve_names.
        eapply subtyp_sngl_qp. apply* weaken_ty_trm. eapply precise_to_general.
@@ -1158,7 +1158,7 @@ Proof.
     rewrite <- H1. auto.
   - Case "ty_top_rv"%string. invert_repl.
   - Case "ty_all_rv"%string.
-    invert_repl; eapply ty_all_rv with (L:=L \u dom G); eauto.
+    invert_repl; eapply ty_all_rv with (L:=L \u dom G); eauto 2.
     * eapply subtyp_trans_t. apply repl_swap in H6. eapply subtyp_sngl_qp_t; eauto.
       auto.
     * introv Hy. eapply narrow_subtyping. apply H0. eauto.
