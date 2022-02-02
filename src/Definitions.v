@@ -590,6 +590,34 @@ Notation "U '↘' S" :=
   (exists ls, rcd_with_unique_typ U ls S) (at level 60).
 
 
+(** * Trivial types *)
+
+Inductive trivial_dec : dec -> Prop :=
+| td_typ_refl : forall A T, trivial_dec { A >: T <: T }
+| td_typ_bot : forall A T, trivial_dec { A >: ⊥ <: T }
+| td_typ_top : forall A T, trivial_dec { A >: T <: ⊤ }
+| td_trm : forall a T, trivial_typ T -> trivial_dec { a ⦂ T }
+| td_trm_sngl : forall a p, trivial_dec { a ⦂ {{ p }} }
+
+with trivial_record_typ : typ -> fset label -> Prop :=
+| trt_one : forall D l,
+  trivial_dec D ->
+  l = label_of_dec D ->
+  trivial_record_typ (typ_rcd D) \{l}
+| trt_cons: forall T ls D l,
+  trivial_record_typ T ls ->
+  trivial_dec D ->
+  l = label_of_dec D ->
+  l \notin ls ->
+  trivial_record_typ (T ∧ typ_rcd D) (union ls \{l})
+
+with trivial_typ : typ -> Prop :=
+  | trivial_typ_all : forall S T, trivial_typ (∀(S) T)
+  | trivial_typ_bnd : forall T ls,
+      trivial_record_typ T ls ->
+      trivial_typ (μ T).
+
+
 (** ** Typing Rules *)
 
 (** The [tight_bounds] function ensures that all type declarations nested inside a
@@ -957,6 +985,21 @@ G ⊢ S2 <: S1
 | subtyp_all_inv1 : forall G S1 T1 S2 T2,
     G ⊢ ∀(S1)T1 <: ∀(S2)T2 ->
     G ⊢ S2 <: S1
+
+(** [[
+G ⊢ ∀(S1)T1 <: ∀(S2)T2
+T1 and T2 is non-dependent
+S2 is a trivial type
+__________________________
+G ⊢ T1 <: T2
+]]
+*)
+(* | subtyp_all_inv2 : forall G S1 T1 S2 T2, *)
+(*     G ⊢ ∀(S1)T1 <: ∀(S2)T2 -> *)
+(*     (forall x, open_typ x T1 = T1) -> *)
+(*     (forall x, open_typ x T2 = T2) -> *)
+(*     trivial_typ S2 -> *)
+(*     G ⊢ T1 <: T2 *)
 
 (** [[
 G ⊢ p: q.type

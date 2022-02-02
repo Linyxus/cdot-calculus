@@ -225,6 +225,21 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
     G ⊢!!! p : typ_rcd { A >: T <: T } ->
     G ⊢# p↓A <: T
 
+(** [[
+G ⊢# ∀(S1)T1 <: ∀(S2)T2
+T1 and T2 is non-dependent
+S2 is a trivial type
+__________________________
+G ⊢# T1 <: T2
+]]
+*)
+(* | subtyp_all_inv2 : forall G S1 T1 S2 T2, *)
+(*     G ⊢# ∀(S1)T1 <: ∀(S2)T2 -> *)
+(*     (forall x, open_typ x T1 = T1) -> *)
+(*     (forall x, open_typ x T2 = T2) -> *)
+(*     trivial_typ S2 -> *)
+(*     G ⊢# T1 <: T2 *)
+
 (** [G ⊢# S2 <: S1]                #<br>#
     [G, x: S2 ⊢ T1^x <: T2^x]       #<br>#
     [x fresh]                       #<br>#
