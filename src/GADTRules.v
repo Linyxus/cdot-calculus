@@ -990,3 +990,18 @@ Admitted.
 (*          destruct open_typ_p_fv as [HTv _]. unfold open_typ_p in Hx. *)
 (*          specialize (HTv T q 0). destruct HTv. rewrite H1 in Hx. *)
 (* Admitted. *)
+
+Lemma inv_weaken_typ_inert : forall G x S p T,
+    inert (G & x ~ S) ->
+    x \notin (fv_ctx_types G \u fv_path p \u fv_typ T) ->
+    G & x ~ S ⊢ trm_path p : T ->
+    G ⊢ trm_path p : T
+with inv_weaken_subtyp_inert : forall G x S T U,
+    inert (G & x ~ S) ->
+    x \notin (fv_ctx_types G \u fv_typ T \u fv_typ U) ->
+    G & x ~ S ⊢ T <: U ->
+    G ⊢ T <: U.
+Admitted.
+
+
+
