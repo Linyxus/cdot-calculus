@@ -202,3 +202,18 @@ Proof.
   specialize (H2 y HL).
   eapply ty_sub; eauto. eapply narrow_typing in H2; eauto.
 Qed.
+
+Lemma invert_subtyp_all : forall G S1 T1 S2 T2,
+    inert G ->
+    G ⊢ ∀(S1) T1 <: ∀(S2) T2 ->
+    G ⊢ S2 <: S1 /\ (exists L, forall x, x \notin L ->
+       G & x ~ S2 ⊢ open_typ x T1 <: open_typ x T2).
+Proof.
+  introv H0 H.
+  lets Hgt: (general_to_tight H0). destruct Hgt as [_ Hgt].
+  apply Hgt in H; eauto 2.
+  lets Ht: (invert_subtyp_all_t _ _ _ _ _ H0 H).
+  destruct Ht as [Ht1 Ht2]. split; eauto 2.
+  apply* tight_to_general.
+Qed.
+

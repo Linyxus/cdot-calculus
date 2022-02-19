@@ -103,11 +103,8 @@ Proof.
       * repeat rewrite proj_rewrite. apply ty_new_elim.
         eapply ty_sngl; eauto.
       * apply ty_rec_intro. crush. apply ty_and_intro; eauto.
-        Unshelve.
-        ** exact ⊤.
-        ** exact \{}.
-        ** exact ⊤.
-        ** exact \{}.
+      Unshelve.
+      exact ⊤. exact \{}. exact ⊤. exact \{}.
 Qed.
 
 End SingletonTypeExample.
