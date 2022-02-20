@@ -56,6 +56,10 @@ Ltac invert_repl :=
            inversions H
          | [H: repl_typ _ _ _ {{ _ }} |- _ ] =>
            inversions H
+         | [H: repl_typ _ _ (typ_tag _) _ |- _ ] =>
+           inversions H
+         | [H: repl_typ _ _ _ (typ_tag _) |- _ ] =>
+           inversions H
     end.
 
 (** Precise typing is used to reason about the types of paths and values.
