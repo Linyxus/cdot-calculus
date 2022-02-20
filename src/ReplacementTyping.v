@@ -398,6 +398,7 @@ Proof.
   - invert_repl. left. assert (p •• bs = r0 •• bs0).
     eapply pf_sngl_sel_unique; eauto. rewrite H. auto.
   - invert_repl.
+  - invert_repl.
     * destruct (H _ _ _ _ H10 H1 H2 H3); subst; eauto.
       right. destruct H0 as [T4 [Hl Hr]]. exists (dec_typ A T4 U). split; auto.
     * right. exists (dec_typ A T1 T3). split; auto.
