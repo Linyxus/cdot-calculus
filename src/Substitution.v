@@ -242,6 +242,19 @@ Proof.
     eapply ty_path_elim; try (rewrite <- sel_fields_subst); auto.
   - Case "ty_rec_intro"%string.
     constructor. rewrite* <- subst_open_commut_typ_p.
+  - Case "ty_case"%string.
+    fresh_constructor.
+    assert (He1: {{subst_path x p r}} ∧ (subst_path x p q ↓ A) = (subst_typ x p ({{r}} ∧ (q ↓ A))))
+      by eauto. rewrite -> He1. clear He1.
+    assert (subst_ctx x p G2 & z ~ subst_typ x p ({{r}} ∧ (q ↓ A)) = subst_ctx x p (G2 & z ~ ({{r}} ∧ (q ↓ A)))) as B
+        by (unfold subst_ctx; rewrite map_concat, map_single; auto).
+    rewrite <- concat_assoc. rewrite B.
+    repeat subst_open_fresh.
+    rewrite* <- subst_open_commut_trm_p.
+    rewrite <- open_var_trm_eq.
+    apply~ H0; try rewrite* concat_assoc;
+    rewrite <- B, concat_assoc; unfold subst_ctx;
+    auto using weaken_ty_trm, ok_push, ok_concat_map.
   - Case "ty_def_new"%string.
     specialize (H _ _ _ eq_refl H1 H2 H3 H4).
     rewrite* subst_open_commut_defs_p in H.

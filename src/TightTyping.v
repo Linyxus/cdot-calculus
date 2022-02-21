@@ -154,7 +154,7 @@ G ⊢# case p of tag q.A y => t1 | else => t2 : T
 | ty_case_t : forall L G p r q A t1 t2 T,
     G ⊢# trm_path p : typ_tag r ->
     (forall y, y \notin L ->
-      G & y ~ ({{ r }} ∧ (q ↓ A)) ⊢ t1 : T) ->
+      G & y ~ ({{ r }} ∧ (q ↓ A)) ⊢ open_trm y t1 : T) ->
     G ⊢# t2 : T ->
     G ⊢# trm_case p q A t1 t2 : T
 where "G '⊢#' t ':' T" := (ty_trm_t G t T)
