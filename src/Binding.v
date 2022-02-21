@@ -106,12 +106,12 @@ Fixpoint subst_trm (z: var) (u: path) (t: trm) : trm :=
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
   | trm_case p q A t1 t2 =>
       trm_case (subst_path z u p) (subst_path z u q) A (subst_trm z u t1) (subst_trm z u t2)
+  | trm_tag p A q => trm_tag (subst_path z u p) A (subst_path z u q)
   end
 with subst_val (z: var) (u: path) (v: val) : val :=
   match v with
   | ν(T) ds  => ν(subst_typ z u T) subst_defs z u ds
   | λ(T) t   => λ(subst_typ z u T) subst_trm z u t
-  | val_tag p A q => val_tag (subst_path z u p) A (subst_path z u q)
   end
 with subst_def (z: var) (u: path) (d: def) : def :=
   match d with
@@ -797,6 +797,9 @@ Proof.
       apply ty_rec_elim. constructor. apply* binds_middle_eq. apply* ok_middle_inv_r.
     + constructor. apply binds_subst in b; auto. apply* binds_weaken. apply* ok_middle_change.
   Unshelve. all: solve_ex_typ_L.
+  - Case "ty_case"%string.
+    fresh_constructor. rewrite <- concat_assoc. apply* H0. assert (Hz: z \notin L) by eauto.
+    exact Hz. rewrite -> concat_assoc. trivial. eauto.
 Qed.
 
 (** the same for definition-typing only: *)

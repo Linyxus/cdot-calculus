@@ -71,6 +71,10 @@ Proof.
     induction H; auto. apply binds_push_inv in b; destruct_all; subst.
     apply ty_sub with (T:=T0); auto. apply* weaken_subtyp.
     apply* weaken_ty_trm.
+  - match goal with
+    | [ H : _ ⪯ _ |- _ ] => destruct (subenv_implies_ok H)
+    end.
+    fresh_constructor. apply* H0. eauto.
 Qed.
 
 (** The narrowing lemma, formulated only for term typing. *)
