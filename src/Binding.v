@@ -126,6 +126,7 @@ with subst_defs (z: var) (u: path) (ds: defs) : defs :=
 with subst_defrhs (z: var) (u: path) (drhs: def_rhs) : def_rhs :=
   match drhs with
   | defp p => defp (subst_path z u p)
+  | deft p A q => deft (subst_path z u p) A (subst_path z u q)
   | defv v => defv (subst_val z u v)
   end.
 
@@ -797,9 +798,6 @@ Proof.
       apply ty_rec_elim. constructor. apply* binds_middle_eq. apply* ok_middle_inv_r.
     + constructor. apply binds_subst in b; auto. apply* binds_weaken. apply* ok_middle_change.
   Unshelve. all: solve_ex_typ_L.
-  - Case "ty_case"%string.
-    fresh_constructor. rewrite <- concat_assoc. apply* H0. assert (Hz: z \notin L) by eauto.
-    exact Hz. rewrite -> concat_assoc. trivial. eauto.
 Qed.
 
 (** the same for definition-typing only: *)

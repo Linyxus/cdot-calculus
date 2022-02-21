@@ -77,6 +77,17 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
     G ⊢## r : {{ p •• bs }} ->
     G ⊢## r : {{ q •• bs }}
 
+(** [G ⊢! p: q.type ⪼ q.type]   #<br>#
+    [G ⊢!! q]                   #<br>#
+    [G ⊢## r: r'.type]          #<br>#
+    [――――――――――――――――――――]      #<br>#
+    [G ⊢## p: (r'.type)[q/p]]      *)
+| ty_tag_pq_inv : forall G p q r bs U,
+    G ⊢! p : {{ q }} ⪼ {{ q }} ->
+    G ⊢!! q: U ->
+    G ⊢## r : typ_tag p •• bs ->
+    G ⊢## r : typ_tag q •• bs
+
 where "G '⊢##' p ':' T" := (ty_path_inv G p T).
 
 Hint Constructors ty_path_inv.

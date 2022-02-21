@@ -422,6 +422,7 @@ Proof.
     unfold subst_path, subst_avar, subst_var_p in H. case_if.
     simpl in H. rewrite List.app_nil_r in H. simpl. auto.
   - pose proof (rename_ty_trm H0 t H1). econstructor; eauto.
+  - pose proof (rename_ty_trm H0 t H1). econstructor; eauto.
   - constructor*.
   - specialize (H0 _ _ _ _ eq_refl H2 H3). specialize (H _ _ _ _ eq_refl H2 H3).
     econstructor; eauto. apply* subst_defs_hasnt. rewrite* <- subst_label_of_def.

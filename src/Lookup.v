@@ -185,6 +185,13 @@ Proof.
          pose proof (named_lookup_step H0) as [? [? ->]].
          specialize (IHHl _ _ eq_refl). eapply star_trans. apply star_one.
          apply* lookup_step_weaken_one. eauto.
+    * destruct Hl.
+      ** apply* star_trans. apply star_one. apply* lookup_step_weaken_one.
+      ** apply* star_trans.
+         assert (exists q, a = defp q) as [q ->] by (inversions H0; eauto).
+         pose proof (named_lookup_step H0) as [? [? ->]].
+         specialize (IHHl _ _ eq_refl). eapply star_trans. apply star_one.
+         apply* lookup_step_weaken_one. eauto.
     * apply lookup_val_inv in Hl. subst. apply star_one. apply* lookup_step_weaken_one.
 Qed.
 
@@ -200,6 +207,7 @@ Proof.
     assert (t1 = t2 \/ exists y bs, t1 = defp (p_sel (avar_f y) bs)) as [-> | [y [bs ->]]].
     { inversions Hs; auto. right. destruct t1.
       - destruct (named_lookup_step H) as [? [? ->]]. eauto.
+      - inversion H.
       - inversion H.
     }
     + apply star_refl.

@@ -131,6 +131,7 @@ Proof.
   apply rcd_mutind; intros; invert_open; simpls.
   - apply open_fresh_typ_dec_injective in H4; auto. subst. constructor.
   - destruct t0; inversions H3. eauto.
+  - destruct t0; inversions H3. eauto.
   - constructor*. rewrite* <- open_dec_preserves_label.
   - invert_open. simpls. destruct_notin. constructor*. eauto. rewrite* <- open_dec_preserves_label.
 Qed.
@@ -154,6 +155,7 @@ Lemma record_open_tight:
           inert_typ T').
 Proof.
   apply rcd_mutind; intros; invert_open; simpls; subst; eauto.
+  - destruct t0; inversions H3. eauto.
   - destruct t0; inversions H3. eauto.
   - constructor*. rewrite* <- open_dec_preserves_label_p.
   - invert_open. simpls. destruct_notin. constructor*. eauto. rewrite* <- open_dec_preserves_label_p.
@@ -247,8 +249,10 @@ Qed.
 
 (** is [T] a singleton type? *)
 Definition is_sngl T := exists p, T = {{ p }}.
+(** is [T] a tagged singleton? *)
+Definition is_tag T := exists p, T = typ_tag p.
 (** is [T] an inert or singleton type? *)
-Definition inert_sngl T := inert_typ T \/ is_sngl T.
+Definition inert_sngl T := inert_typ T \/ is_sngl T \/ is_tag T.
 
 (** If [μ(...{a: U}...)] is inert then [U] is inert or a singleton type. *)
 Lemma inert_record_has T p a U :
@@ -258,7 +262,8 @@ Lemma inert_record_has T p a U :
 Proof.
   intros Hi Hr. dependent induction Hr.
   - destruct T; inversions x. destruct d; inversions H0. inversions Hi. inversions H0.
-    inversions H1. left. apply* open_record_p. right. eexists. simpl. eauto.
+    inversions H1. left. apply* open_record_p. right. left. eexists. simpl. eauto.
+    right. right. eexists. simpl. eauto.
   - destruct T; inversions x. inversions Hi. inversions H0. apply* IHHr.
   - destruct T; inversions x. inversions Hi. inversions H0.
     specialize (IHHr U a p (typ_rcd D)). eauto.

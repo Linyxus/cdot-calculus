@@ -264,6 +264,13 @@ Proof.
   introv Hr. inversions Hr. eauto.
 Qed.
 
+Lemma repl_prefixes_tag: forall p q p' q',
+    repl_typ p q (typ_tag p')  (typ_tag q') ->
+    exists bs, p' = p •• bs /\ q' = q •• bs.
+Proof.
+  introv Hr. inversions Hr. eauto.
+Qed.
+
 Lemma repl_prefixes_sel: forall p q p' q' A,
     repl_typ p q (p' ↓ A) (q' ↓ A) ->
     exists bs, p' = p •• bs /\ q' = q •• bs.
