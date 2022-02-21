@@ -115,6 +115,7 @@ with defs : Set :=
 
 with def_rhs : Set :=
   | defp : path -> def_rhs
+  | deft : path -> typ_label -> path -> def_rhs
   | defv : val -> def_rhs.
 
 (** *** Useful definitions and notations *)
@@ -158,6 +159,9 @@ Notation "'{' a ':=' t '}'" := (def_trm a t) (t at level 50).
 
 (** - field definition with a path on the right-handside [{a = p}] *)
 Notation "'{' a ':=p' p '}'" := (def_trm a (defp p)).
+
+(** - field definition with a tagged path on the right-handside [{a = tag p.A q}] *)
+(* Notation "'{' a ':=t' p ';' A ';' q '}'" := (def_trm a (deft p A q)). *)
 
 (** - field definition with a value on the right-handside [{a = v}] *)
 Notation "'{' a ':=v' v '}'" := (def_trm a (defv v)).
@@ -278,6 +282,7 @@ with open_rec_defs (k: nat) (u: var) (ds: defs): defs :=
 with open_rec_defrhs (k: nat) (u: var) (drhs: def_rhs) : def_rhs :=
   match drhs with
   | defp p => defp (open_rec_path k u p)
+  | deft p A q => deft (open_rec_path k u p) A (open_rec_path k u q)
   | defv v => defv (open_rec_val k u v)
   end.
 
@@ -367,6 +372,7 @@ with open_rec_defs_p (k: nat) (u: path) (ds: defs): defs :=
 with open_rec_defrhs_p (k: nat) (u: path) (drhs: def_rhs) : def_rhs :=
   match drhs with
   | defp p => defp (open_rec_path_p k u p)
+  | deft p A q => deft (open_rec_path_p k u p) A (open_rec_path_p k u q)
   | defv v => defv (open_rec_val_p k u v)
   end.
 
@@ -488,6 +494,7 @@ with fv_defs(ds: defs) : vars :=
 with fv_defrhs(drhs: def_rhs) : vars :=
   match drhs with
   | defp p => fv_path p
+  | deft p A q => fv_path p \u fv_path q
   | defv v => fv_val v
   end.
 
@@ -511,6 +518,7 @@ Inductive record_dec : dec -> Prop :=
 | rd_typ : forall A T, record_dec { A >: T <: T }
 | rd_trm : forall a T, inert_typ T -> record_dec { a ⦂ T }
 | rd_trm_sngl : forall a p, record_dec { a ⦂ {{ p }} }
+| rd_trm_tag : forall a p, record_dec { a ⦂ typ_tag p }
 
 (** Given a record declaration, a [record_typ] keeps track of the declaration's
     field member labels (i.e. names of fields) and type member labels
@@ -830,7 +838,7 @@ G ⊢ case p of tag q.A y => t1 | else => t2 : T
 | ty_case : forall L G p r q A t1 t2 T,
     G ⊢ trm_path p : typ_tag r ->
     (forall y, y \notin L ->
-      G & y ~ ({{ r }} ∧ (q ↓ A)) ⊢ t1 : T) ->
+      G & y ~ ({{ r }} ∧ (q ↓ A)) ⊢ open_trm y t1 : T) ->
     G ⊢ t2 : T ->
     G ⊢ trm_case p q A t1 t2 : T
 where "G '⊢' t ':' T" := (ty_trm G t T)
@@ -875,6 +883,16 @@ x.bs; G ⊢ {b = q}: {b: q.type}
  | ty_def_path : forall x bs G q b T,
     G ⊢ trm_path q: T ->
     x; bs; G ⊢ { b :=p q } : { b ⦂ {{ q }} }
+
+(** [[
+G ⊢ tag p.A q : Tag q
+_____________________________
+x.bs; G ⊢ {b = tag p.A q}: {b: Tag q}
+]]
+*)
+ | ty_def_tag : forall x bs G p A q b,
+    G ⊢ trm_tag p A q : typ_tag q ->
+    x; bs; G ⊢ { b := (deft p A q) } : { b ⦂ typ_tag q }
 
 where "x ';' bs ';' G '⊢' d ':' D" := (ty_def x bs G d D)
 
