@@ -132,6 +132,31 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     G ⊢# t : T ->
     G ⊢# T <: U ->
     G ⊢# t : U
+
+(** [[
+G ⊢# q: p.A
+_______________________
+G ⊢# tag p.A q : Tag q
+]]
+*)
+| ty_tag : forall G p q A,
+    G ⊢# trm_path q : p ↓ A ->
+    G ⊢# trm_tag p A q : typ_tag q
+
+(** [[
+G ⊢# p: Tag r
+G, y: r.type ∧ q.A ⊢ t1 : T
+G ⊢# t2 : T
+_______________________________________________
+G ⊢# case p of tag q.A y => t1 | else => t2 : T
+]]
+*)
+| ty_case_t : forall L G p r q A t1 t2 T,
+    G ⊢# trm_path p : typ_tag r ->
+    (forall y, y \notin L ->
+      G & y ~ ({{ r }} ∧ (q ↓ A)) ⊢ t1 : T) ->
+    G ⊢# t2 : T ->
+    G ⊢# trm_case p q A t1 t2 : T
 where "G '⊢#' t ':' T" := (ty_trm_t G t T)
 
 (** *** Tight subtyping [G ⊢# T <: U] *)
