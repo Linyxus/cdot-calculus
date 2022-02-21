@@ -20,8 +20,22 @@ Require Import Sequences.
 Definition deftrm t : trm :=
   match t with
   | defp p => trm_path p
+  | deft p A q => trm_tag p A q
   | defv v => trm_val v
   end.
+
+(** If a tag is typable, then its encapsulating path is typable. *)
+Lemma typable_tag : forall G p A q T,
+    inert G ->
+    G ⊢ trm_tag p A q : T ->
+    (exists U, G ⊢ trm_path q : U).
+Proof.
+  introv Hi Hg.
+  apply (general_to_tight_typing Hi) in Hg.
+  dependent induction Hg.
+  - specialize (IHHg _ _ _ Hi eq_refl). exact IHHg.
+  - apply tight_to_general in Hg. eexists. eauto.
+Qed.
 
 (** ** Type preservation for path lookup *)
 
@@ -39,13 +53,16 @@ Lemma object_typing G x bs ds T a t V :
             x; (a :: bs); G ⊢ open_defs_p (p_sel (avar_f x) (a :: bs)) ds' ::
                                  open_typ_p (p_sel (avar_f x) (a :: bs)) U /\
             V = μ U) \/
-  (exists q S, t = defp q /\ V = {{ q }} /\ G ⊢ trm_path q : S).
+  (exists q S, t = defp q /\ V = {{ q }} /\ G ⊢ trm_path q : S) \/
+  (exists p A q S, t = deft p A q /\ V = typ_tag q /\ G ⊢ trm_path q : S).
 Proof.
   intros Hi Hds Hdh Hr.
   destruct (record_has_ty_defs Hds Hr) as [? [Hdh' Hdt]].
   destruct (defs_invert_trm Hdt) as [t' ->].
-  pose proof (defs_has_inv Hdh Hdh') as <-. destruct t as [q | v]; simpl in *.
+  pose proof (defs_has_inv Hdh Hdh') as <-. destruct t as [q | p A q | v]; simpl in *.
   - inversion* Hdt.
+  - inversion* Hdt. subst. right. right. right.
+    destruct (typable_tag Hi H3). repeat eexists. eauto.
   - destruct v.
     * right. left. inversions Hdt.
       simpl in *. repeat eexists; auto.
@@ -145,11 +162,14 @@ Proof.
           destruct_all.
           split; apply weaken_subtyp; eauto.
         }
-        destruct (object_typing Hi Hds H' Hrh) as [[U' [u [Heq Ht']]] |
-                                                   [[U' [ds'' [Heq [Hds'' ->]]]] | [q [V' [Heq1 [-> Hq]]]]]].
+        lets Hot: (object_typing Hi Hds H' Hrh).
+        destruct Hot as [[U' [u [Heq Ht']]] |
+                         [[U' [ds'' [Heq [Hds'' ->]]]] |
+                          [[q [V' [Heq1 [-> Hq]]]] |
+                          [p [A [q [V' [Heq1 [-> Hq]]]]]]]]].
         ++ destruct t; inversions Heq. destruct v0; inversions H3.
            left. repeat eexists. eauto.
-        ++ destruct t as [|]; inversions Heq. destruct v0 as [X ds |]; inversions H3. fold open_rec_defs_p in Hds''.
+        ++ destruct t as [| |]; inversions Heq. destruct v0 as [X ds |]; inversions H3. fold open_rec_defs_p in Hds''.
            right. left.
            pose proof (repl_comp_bnd_inv1 Hrc1') as [Y ->]. pose proof (repl_comp_bnd_inv2 Hrc2') as [Z ->].
            repeat eexists; eauto.
@@ -166,6 +186,7 @@ Proof.
              pose proof (repl_comp_to_prec' Hi Hwf Hrc1' Hp3)
              as [<- | Hpr']; clear Hrc1' Hrc2';
                repeat eexists; try rewrite concat_empty_r; eauto.
+        ++ admit.
     * SCase "x <> x0"%string.
       apply pf_strengthen in Hp; auto. apply lookup_strengthen_one in Hs; auto.
       inversions Heq.
