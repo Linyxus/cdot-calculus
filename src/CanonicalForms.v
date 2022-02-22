@@ -20,14 +20,13 @@ Require Import Sequences.
 Definition deftrm t : trm :=
   match t with
   | defp p => trm_path p
-  | deft p A q => trm_tag p A q
   | defv v => trm_val v
   end.
 
 (** If a tag is typable, then its encapsulating path is typable. *)
 Lemma typable_tag : forall G p A q T,
     inert G ->
-    G ⊢ trm_tag p A q : T ->
+    G ⊢ trm_val (val_tag p A q) : T ->
     (exists U, G ⊢ trm_path q : U).
 Proof.
   introv Hi Hg.
