@@ -99,7 +99,7 @@ Lemma pt2_inertsngl : forall G p T,
 Proof.
   introv Hi Pf. induction Pf.
   - apply* pf_inertsngl.
-  - left. right. left. eexists. eauto.
+  - left. right. eexists. eauto.
 Qed.
 
 Lemma pt3_inertsngl : forall G p T,
@@ -174,12 +174,11 @@ Lemma pf_pt2: forall G p T U V,
 Proof.
   introv Hi Hp1 Hp2 His. gen T U. induction Hp2; introv Hp1.
   - lets Heq: (pf_T_unique Hi Hp1 H). subst. destruct His.
-    * destruct H0. apply* pf_forall_T. apply* pf_bnd_T.
+    * destruct H0. apply* pf_tag_T. apply* pf_forall_T. apply* pf_bnd_T.
     * destruct_all.
       inversions H0. destruct_all. apply* pf_sngl_T.
-      inversions H0. destruct_all. apply* pf_tag_T.
   - destruct (pf_path_sel _ _ Hi Hp1) as [V Hp].
-    assert (inert_sngl {{ q }}) as His'. { right. left. eexists. auto. }
+    assert (inert_sngl {{ q }}) as His'. { right. eexists. auto. }
     specialize (IHHp2_1 Hi His' _ _ Hp). inversion IHHp2_1.
 Qed.
 
@@ -189,7 +188,7 @@ Lemma pf_pt2_sngl: forall G p T U q,
     G ⊢!! p: {{ q }}->
     T = {{ q }}.
 Proof.
-  introv Hi Hp1 Hp2. apply* pf_pt2. right. left. eexists. auto.
+  introv Hi Hp1 Hp2. apply* pf_pt2. right. eexists. auto.
 Qed.
 
 Lemma field_elim_q0: forall G p q a T,
@@ -288,7 +287,7 @@ Proof.
     * unfold sel_fields in x. destruct p0, p. inversions x.
       lets Hxbs: (pt2_sngl_trans _ Hp Hq0).
       assert (inert_sngl {{ q }}) as His. {
-        right. left. eexists. eauto.
+        right. eexists. eauto.
       }
       simpl in *.
       lets Hu: (pt2_sngl_unique Hi Hpa1 Hxbs).
@@ -565,16 +564,16 @@ Proof.
   introv Hi Hpq Hp Hr. gen q. induction Hp; introv Hpq.
   - constructor.
     assert (inert_sngl {{ q }}) as His. {
-      right. left. eexists. eauto.
+      right. eexists. eauto.
     }
     lets ->: (pt2_sngl_unique' Hi Hpq H). destruct Hr.
     inversion His. inversion H1. inversion H0. inversion H0. inversion H1.
   - specialize (IHHp Hi Hr).
     assert (inert_sngl {{ q }}) as His1. {
-      right. left. eexists. eauto.
+      right. eexists. eauto.
     }
     assert (inert_sngl {{ q0 }}) as His2. {
-      right. left. eexists. eauto.
+      right. eexists. eauto.
     }
     lets Heq: (pt2_sngl_unique' Hi Hpq H). inversions Heq. eauto.
 Qed.
@@ -603,7 +602,7 @@ Proof.
     destruct (pf_bnd_T2 Hi H0) as [V Heq]. subst.
     apply* pf_dec_typ_unique.
   - clear IHHp3. apply pt2 in Hp1. assert (inert_sngl {{ q }}) as His. {
-      right. left. eexists. eauto.
+      right. eexists. eauto.
     }
     lets Hu: (pt2_sngl_unique' Hi H Hp1). inversion Hu.
 Qed.
@@ -814,22 +813,22 @@ Proof.
       apply inert_ok in Hi. intros ->. apply ok_push_inv in Hi as [_ Hq]. eapply binds_fresh_inv; eauto.
     }
     rewrite proj_rewrite in *.
-    pose proof (pt2_inertsngl Hi Ht2) as [[Hin | [Hin | Hin]] | Hr].
+    pose proof (pt2_inertsngl Hi Ht2) as [[Hin | Hin] | Hr].
     + pose proof (pt2_to_pf Ht2 (or_introl Hin)) as [? Hpr]. apply pf_strengthen in Hpr; auto; split*.
     + inversions Hin.
       specialize (IHHt2 _ _ _ _ _ _ Hi Hwf JMeq_refl eq_refl eq_refl Hn') as [IHqx [W IHq']].
       split.
       * rewrite proj_rewrite in *. eauto.
       * simpl. eexists; eauto.
-    + inversions Hin.
+    (* + inversions Hin. *)
       (* specialize (IHHt2 _ _ _ _ _ _ Hi Hwf JMeq_refl eq_refl eq_refl Hn') as [IHqx [W IHq']]. *)
-      split.
-      * eapply pt2_sngl_trans. apply IHy. eapply pt2_strengthen_one_helper_tag.
-        exact Hi. exact Hwf. exact Ht2. exact Hn'.
-      * simpl.
-        eexists; eauto.
-        eapply pt2_strengthen_one_helper_tag. exact Hi. exact Hwf.
-        exact Ht2. exact Hn'.
+      (* split. *)
+      (* * eapply pt2_sngl_trans. apply IHy. eapply pt2_strengthen_one_helper_tag. *)
+      (*   exact Hi. exact Hwf. exact Ht2. exact Hn'. *)
+      (* * simpl. *)
+      (*   eexists; eauto. *)
+      (*   eapply pt2_strengthen_one_helper_tag. exact Hi. exact Hwf. *)
+      (*   exact Ht2. exact Hn'. *)
     + pose proof (pt2_to_pf Ht2 (or_intror Hr)) as [? Hpr]. apply pf_strengthen in Hpr; auto; split*.
 Qed.
 
@@ -841,10 +840,10 @@ Lemma pt2_strengthen_one G y bs T x U :
   G ⊢!! p_sel (avar_f y) bs : U.
 Proof.
   intros Hi Hwf Ht Hn.
-  pose proof (pt2_inertsngl Hi Ht) as [[Hin | [Hin | Hin]] | Hr].
+  pose proof (pt2_inertsngl Hi Ht) as [[Hin | Hin] | Hr].
   - pose proof (pt2_to_pf Ht (or_introl Hin)) as [? Hpr]. apply pf_strengthen in Hpr; eauto.
   - inversions Hin. apply* pt2_strengthen_one_helper.
-  - inversions Hin. apply* pt2_strengthen_one_helper_tag.
+  (* - inversions Hin. apply* pt2_strengthen_one_helper_tag. *)
   - pose proof (pt2_to_pf Ht (or_intror Hr)) as [? Hpr]. apply pf_strengthen in Hpr; eauto.
 Qed.
 
