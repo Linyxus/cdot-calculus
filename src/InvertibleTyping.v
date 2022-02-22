@@ -274,6 +274,12 @@ Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
     repl_typ p q T T' ->
     G ⊢##v v : μ T'
 
+| ty_tag_pq_invv : forall G p q v bs U,
+    G ⊢! p : {{ q }} ⪼ {{ q }} ->
+    G ⊢!! q : U ->
+    G ⊢##v v : typ_tag p •• bs ->
+    G ⊢##v v : typ_tag q •• bs
+
 where "G '⊢##v' v ':' T" := (ty_val_inv G v T).
 
 Hint Constructors ty_val_inv.

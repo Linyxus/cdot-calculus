@@ -101,6 +101,10 @@ Inductive ty_val_p : ctx -> val -> typ -> Prop :=
        (forall x : var, x \notin L -> x; nil; G & x ~ open_typ x T ⊢ open_defs x ds :: open_typ x T) ->
        G ⊢!v ν(T)ds : μ T
 
+| ty_tag_p : forall G p A q,
+    G ⊢ trm_path q : p ↓ A ->
+    G ⊢!v val_tag p A q : typ_tag q
+
 where "G '⊢!v' v ':' T" := (ty_val_p G v T).
 
 Hint Constructors ty_val_p.
@@ -214,6 +218,7 @@ Proof.
       destruct_notin;
       apply* record_open
   end.
+  apply inert_typ_tag.
 Qed.
 
 (** If [p]'s environment type is a function type, then it's precise type is the same
@@ -238,23 +243,18 @@ Proof.
   - apply (binds_inert H0) in Hi. split; left*.
   - specialize (IHPf Hi). destruct IHPf as [HT [Hd | Hd]].
     * destruct_all; inversion H.
-      inversions H1. inversions H. inversions H1. inversion H1.
-      inversion H1. inversion H1. inversion H1.
+      inversions H1. inversions H. inversions H1.
+      (* inversion H1. inversion H1. inversion H1. inversion H1. *)
     * destruct HT as [HT | HT]; split; inversions Hd; inversions H; repeat inversions H1;
         try solve [left*; right*; eexists; auto];
         try solve [right*; left*; eexists; auto];
         try solve [right*; right*; eexists; auto];
         try solve [left*; right*; left*; eexists; auto].
-      -- left. right. right. eexists; auto.
-      -- left. right. right. eexists; auto.
+      -- right. eexists. auto.
+      -- right. eexists. auto.
   - split*. destruct (IHPf Hi) as [HT [Hd | Hd]]. destruct_all; try solve [inversion H].
     right. inversions H. eexists. apply* open_record_typ_p.
     subst. right. inversions H. eexists. apply* open_record_typ_p.
-    subst. right. inversions H. eexists. apply* open_record_typ_p.
-    inversion H. inversion H1.
-    inversion H. inversion H1.
-    inversion H. inversion H1.
-    inversion H. inversion H1.
     inversion H. inversion H1.
     inversion H. inversion H1.
     inversions Hd. inversions H.
@@ -283,7 +283,7 @@ Lemma pf_rcd_T : forall G p T U,
     record_type T.
 Proof.
   introv Hi Pf. apply pf_inert in Pf; inversions Pf; eauto. inversion* H. destruct_all. inversions H.
-  inversion H0. inversions H. inversions H0.
+  inversion H0. 
 Qed.
 
 (** If a path's environment type is recursive then its precise type is the same recursive type or
@@ -332,10 +332,10 @@ Proof.
   introv Hi Pf.
   lets HT: (pf_inert Hi Pf).
   inversions HT.
-  - inversions H. apply pf_forall_U in Pf. inversion Pf.
+  - inversions H. apply pf_tag_U in Pf. inversions Pf.
+    apply pf_forall_U in Pf. inversion Pf.
     apply (pf_rec_rcd_U Hi) in Pf. destruct Pf. inversion* H. inversion H. inversion H1.
-  - destruct_all. inversions H. apply pf_sngl_U in Pf. inversion Pf.
-    inversions H. apply pf_tag_U in Pf. inversion Pf.
+  - inversions H. apply pf_sngl_U in Pf. inversion Pf.
 Qed.
 
 (** If [p]'s precise type is a singleton type then its environment type is the same singleton type. *)
@@ -346,12 +346,11 @@ Lemma pf_sngl_T: forall G p q T,
 Proof.
   introv Hi Hp. dependent induction Hp; eauto.
   destruct U; inversions x. lets H: (pf_bnd_T Hi Hp). subst.
-  apply (pf_inert Hi) in Hp. inversion* Hp. inversions H. inversion H1. destruct_all.
-  inversion H. inversion H0. inversion H. inversion H0.
+  apply (pf_inert Hi) in Hp. inversion* Hp. inversions H. inversion H1.
+  inversion H. inversion H0.
   lets His: (pf_inertsngl Hi Hp). destruct_all; progress (repeat inversions H0); inversion H1; inversions H0.
-  inversion H2. inversion H2. inversion H3.
+  inversion H3.
   lets His: (pf_inertsngl Hi Hp). destruct_all; progress (repeat inversions H0); inversion H1; inversions H0.
-  inversion H2. inversion H2.
 Qed.
 
 (** If [p]'s precise type is a singleton type then its environment type is the same singleton type. *)
@@ -363,11 +362,10 @@ Proof.
   introv Hi Hp. dependent induction Hp; eauto.
   destruct U; inversions x. lets H: (pf_bnd_T Hi Hp). subst.
   apply (pf_inert Hi) in Hp. inversion* Hp. inversions H. inversion H1. destruct_all.
-  inversion H. inversion H0. inversion H. inversion H0.
+  inversion H. inversion H0.
   lets His: (pf_inertsngl Hi Hp). destruct_all; progress (repeat inversions H0); inversion H1; inversions H0.
-  inversion H2. inversion H2. inversion H3.
+  inversion H3.
   lets His: (pf_inertsngl Hi Hp). destruct_all; progress (repeat inversions H0); inversion H1; inversions H0.
-  inversion H2. inversion H2.
 Qed.
 
 (** If [p]'s precise type is a record, then its envirionment type is a recursive type. *)
@@ -383,17 +381,19 @@ Proof.
                 (destruct_all; subst; apply pf_sngl_U in Pf; inversion Pf)]).
   - inversion H1.
   - destruct U; inversions x. apply (pf_bnd_T Hi) in Pf. destruct_all; subst; eauto.
-  - inversions H. apply pf_forall_U in Pf. inversion* Pf. eauto.
-  - inversions H. apply pf_forall_U in Pf. destruct_all. inversion Pf. eauto.
-  - inversion H1. inversion H2. inversion H3. inversion H2. inversion H3.
-  - inversion H. inversion H0. inversion H1. inversion H0. inversion H1.
+  - inversions H.
+    apply pf_tag_U in Pf. inversions* Pf.
+    apply pf_forall_U in Pf. inversion* Pf. eauto.
+  - inversions H.
+    apply pf_tag_U in Pf. inversions Pf.
+    apply pf_forall_U in Pf. destruct_all. inversion Pf. eauto.
+  - inversion H1. inversion H2.
+  - inversion H. inversion H0.
   - destruct U; inversions x. apply pf_bnd_T in Pf. subst*. auto.
   - destruct_all; inversions H.
     apply pf_sngl_U in Pf. inversion Pf.
-    apply pf_tag_U in Pf. inversion Pf.
   - destruct_all.
     inversions H. apply pf_sngl_U in Pf. inversion Pf.
-    inversions H. apply pf_tag_U in Pf. inversion Pf.
 Qed.
 
 (** The following two lemmas express that if [p]'s precise type is a function type,
@@ -406,10 +406,11 @@ Proof.
   introv Hi Pf.
   lets Hiu: (pf_inert Hi Pf).
   inversions Hiu.
-  - inversions H. apply pf_forall_U in Pf. inversion* Pf.
+  - inversions H.
+    apply pf_tag_U in Pf. inversions Pf.
+    apply pf_forall_U in Pf. inversion* Pf.
     destruct (pf_rec_rcd_U Hi Pf) as [H1 | H1]; inversions H1. inversion H.
   - destruct_all. inversions H. apply pf_sngl_U in Pf. inversion Pf.
-    inversions H. apply pf_tag_U in Pf. inversion Pf.
 Qed.
 
 (** A variable [x]'s environment type is [T] then [G(x)=T]. *)
@@ -429,11 +430,11 @@ Lemma pf_bot : forall G p T,
 Proof.
   introv Hi Pf.
   lets HT: (pf_inert Hi Pf). inversions HT.
-  - inversions H. apply pf_forall_U in Pf. inversion Pf.
+  - inversions H. apply pf_tag_U in Pf. inversion Pf.
+    apply pf_forall_U in Pf. inversion Pf.
     destruct (pf_rec_rcd_U Hi Pf); inversion H0; inversion H. inversion H5. inversion H7.
   - destruct_all.
     inversions H. apply pf_sngl_U in Pf. inversion Pf.
-    inversions H. apply pf_tag_U in Pf. inversion Pf.
 Qed.
 
 (** In an inert context, the precise type of a path cannot be type selection. *)
@@ -445,11 +446,11 @@ Proof.
   introv Hi Pf.
   lets HT: (pf_inert Hi Pf). inversions HT.
   - inversions H.
+    * apply pf_tag_U in Pf. inversion Pf.
     * apply pf_forall_U in Pf. inversion Pf.
     * destruct (pf_rec_rcd_U Hi Pf); inversion H. inversion H1.
   - destruct_all.
     destruct H as [r Heq]. subst. apply pf_sngl_U in Pf. inversion Pf.
-    destruct H as [r Heq]. subst. apply pf_tag_U in Pf. inversion Pf.
 Qed.
 
 (** The following two lemmas say that if a path's precise type is [...∧ D ∧...]

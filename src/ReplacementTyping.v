@@ -978,6 +978,11 @@ Inductive ty_replv : ctx -> val -> typ -> Prop :=
     G ⊢//v v : r' ↓ A ->
     repl_typ q p (r' ↓ A) (r'' ↓ A) ->
     G ⊢//v v : r''↓A
+| ty_tag_qp_rv : forall G p q v bs U,
+    G ⊢! p : {{ q }} ⪼ {{ q }} ->
+    G ⊢!! q : U ->
+    G ⊢//v v : typ_tag q •• bs ->
+    G ⊢//v v : typ_tag p •• bs
 (** [G ⊢## p: T]   #<br>#
     [―――――――――――――] #<br>#
     [G ⊢## p: top]     *)

@@ -141,7 +141,7 @@ G ⊢# tag p.A q : Tag q
 *)
 | ty_tag : forall G p q A,
     G ⊢# trm_path q : p ↓ A ->
-    G ⊢# trm_tag p A q : typ_tag q
+    G ⊢# trm_val (val_tag p A q) : typ_tag q
 
 (** [[
 G ⊢# p: Tag r
