@@ -242,6 +242,7 @@ Proof.
        destruct (pt3_inertsngl Hi H) as [[Hit | Hs] | Hst].
        + SSCase "ty_precise_inv_1"%string.
          inversions Hit; invert_repl.
+         ++ apply* ty_tag_qp_r.
          ++ eapply ty_all_r with (L := \{}).
             apply ty_inv_r.
             apply* ty_precise_inv. apply repl_swap in H5.
@@ -254,10 +255,9 @@ Proof.
             eapply precise_to_general. apply Hq. apply* weaken_ty_trm. apply* precise_to_general2. apply H5.
          ++ apply* ty_rec_qp_r.
        + SSCase "ty_precise_inv_2"%string.
-         inversions Hs. inversions H0. invert_repl.
+         inversions Hs.
+         invert_repl.
          eapply ty_sngl_qp_r; eauto.
-         inversions H0. invert_repl.
-         eapply ty_tag_qp_r; eauto.
        + SSCase "ty_precise_inv_3"%string.
          inversion Hst as [x Hx].
          generalize dependent T'.
@@ -506,11 +506,12 @@ Proof.
   - Case "ty_precise_inv"%string.
     destruct (pt3_inertsngl Hi H) as [[Hin | Hs] | Hr].
     * inversions Hin.
+      ** invert_repl. eauto.
       ** apply* invertible_repl_closure_helper.
       ** invert_repl. eauto.
     * destruct_all.
-      inversions H0. invert_repl. eapply ty_inv_r. eapply ty_sngl_pq_inv; eauto.
-      inversions H0. invert_repl. eapply ty_inv_r. eapply ty_tag_pq_inv; eauto.
+      inversions Hs. invert_repl. eapply ty_inv_r. eapply ty_sngl_pq_inv; eauto.
+      (* inversions H0. invert_repl. eapply ty_inv_r. eapply ty_tag_pq_inv; eauto. *)
     * inversions Hr. eapply (proj32 invertible_repl_closure_helper); eauto.
   - Case "ty_rec_pq_inv"%string.
     invert_repl. eauto.
@@ -1032,6 +1033,7 @@ Proof.
     gen p q T' U. induction H; introv Hpq; introv Hr; introv Hq;
     try solve [invert_repl; eauto].
     -- destruct (pfv_inert H).
+      + invert_repl; eauto.
       + invert_repl.
         ++ eapply ty_all_rv with (L := \{}).
            eapply ty_inv_rv.
@@ -1048,6 +1050,9 @@ Proof.
            eapply subtyp_sngl_qp. apply* weaken_ty_trm.
            eapply precise_to_general. apply Hpq. apply weaken_ty_trm; auto. apply* precise_to_general2. apply H5.
       + invert_repl; eauto.
+    -- invert_repl; eauto.
+       eapply ty_tag_qp_rv. exact Hpq. exact Hq.
+       apply ty_inv_rv. rewrite -> H5. eapply ty_tag_pq_invv. exact H. exact H0. exact H1.
   - Case "ty_and_rv"%string.
     invert_repl; eauto.
   - Case "ty_sel_rv"%string.
@@ -1057,6 +1062,10 @@ Proof.
   - Case "ty_sel_qp_rv"%string.
     lets ?: (ty_sel_qp_rv H H0 Hv H1).
     invert_repl; eauto.
+  - Case "ty_tag_qp_rv"%string.
+    invert_repl; eauto.
+    eapply ty_tag_qp_rv. exact Hpq. exact Hq.
+    rewrite -> H4. eapply ty_tag_qp_rv. exact H. exact H0. exact Hv.
   - Case "ty_top_rv"%string.
     invert_repl; eauto.
   - Case "ty_all_rv"%string.
@@ -1163,10 +1172,16 @@ Proof.
   - Case "ty_precise_invv"%string.
     lets Ht: (pfv_inert H).
     inversions Ht.
+    * invert_repl; eauto.
     * apply* invertible_repl_closure_v_helper.
     * invert_repl; eauto.
   - Case "ty_rec_pq_invv"%string.
     invert_repl. eauto.
+  - Case "ty_tag_pq_invv"%string.
+    invert_repl. eauto.
+    apply ty_inv_rv.
+    eapply ty_tag_pq_invv. exact Hq. exact Hrep.
+    rewrite -> H4. eapply ty_tag_pq_invv. exact H. exact H0. exact Hv.
 Qed.
 
 Lemma replacement_repl_closure_pq_v : forall G v q r T T' U,
@@ -1198,6 +1213,10 @@ Proof.
   - Case "ty_sel_pq_rv"%string. invert_repl.
     specialize (IHHv Hi _ _ Hq).
     assert (q •• bs0 = r •• bs). eapply pf_sngl_sel_unique; eauto.
+    rewrite <- H1. auto.
+  - Case "ty_tag_qp_rv"%string. invert_repl.
+    specialize (IHHv Hi _ _ Hq).
+    assert (q •• bs = r •• bs0). eapply pf_sngl_sel_unique; eauto.
     rewrite <- H1. auto.
   - Case "ty_top_rv"%string. invert_repl.
   - Case "ty_all_rv"%string.
@@ -1321,6 +1340,7 @@ Proof.
   dependent induction Hty; eauto.
   specialize (IHHty v Hi eq_refl).
   apply* invertible_typing_closure_tight_v.
+  apply tight_to_general in Hty. eauto.
 Qed.
 
 Lemma repl_to_invertible_obj G U v :
