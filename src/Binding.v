@@ -106,12 +106,12 @@ Fixpoint subst_trm (z: var) (u: path) (t: trm) : trm :=
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
   | trm_case p q A t1 t2 =>
       trm_case (subst_path z u p) (subst_path z u q) A (subst_trm z u t1) (subst_trm z u t2)
-  | trm_tag p A q => trm_tag (subst_path z u p) A (subst_path z u q)
   end
 with subst_val (z: var) (u: path) (v: val) : val :=
   match v with
   | ν(T) ds  => ν(subst_typ z u T) subst_defs z u ds
   | λ(T) t   => λ(subst_typ z u T) subst_trm z u t
+  | val_tag p A q => val_tag (subst_path z u p) A (subst_path z u q)
   end
 with subst_def (z: var) (u: path) (d: def) : def :=
   match d with
@@ -126,7 +126,7 @@ with subst_defs (z: var) (u: path) (ds: defs) : defs :=
 with subst_defrhs (z: var) (u: path) (drhs: def_rhs) : def_rhs :=
   match drhs with
   | defp p => defp (subst_path z u p)
-  | deft p A q => deft (subst_path z u p) A (subst_path z u q)
+  (* | deft p A q => deft (subst_path z u p) A (subst_path z u q) *)
   | defv v => defv (subst_val z u v)
   end.
 
