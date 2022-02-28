@@ -53,19 +53,19 @@ Lemma object_typing G x bs ds T a t V :
                                  open_typ_p (p_sel (avar_f x) (a :: bs)) U /\
             V = μ U) \/
   (exists q S, t = defp q /\ V = {{ q }} /\ G ⊢ trm_path q : S) \/
-  (exists p A q S, t = deft p A q /\ V = typ_tag q /\ G ⊢ trm_path q : S).
+  (exists p A q S, t = defv (val_tag p A q) /\ V = typ_tag q /\ G ⊢ trm_path q : S).
 Proof.
   intros Hi Hds Hdh Hr.
   destruct (record_has_ty_defs Hds Hr) as [? [Hdh' Hdt]].
   destruct (defs_invert_trm Hdt) as [t' ->].
-  pose proof (defs_has_inv Hdh Hdh') as <-. destruct t as [q | p A q | v]; simpl in *.
+  pose proof (defs_has_inv Hdh Hdh') as <-. destruct t as [q | v]; simpl in *.
   - inversion* Hdt.
-  - inversion* Hdt. subst. right. right. right.
-    destruct (typable_tag Hi H3). repeat eexists. eauto.
   - destruct v.
     * right. left. inversions Hdt.
       simpl in *. repeat eexists; auto.
     * left. inversions Hdt. eauto.
+    * inversion* Hdt. subst. right. right. right.
+      destruct (typable_tag Hi H3). repeat eexists. eauto.
 Qed.
 
 (** If [p] looks up to [t] in a value environment, [p]'s environment type
@@ -110,11 +110,13 @@ Proof.
         apply binds_push_eq_inv in H1 as ->.
         lets Hb: (pf_binds Hi Hp). pose proof (binds_push_eq_inv Hb) as ->.
         apply binds_inert in Hb; auto.
-        destruct v as [S ds | S u].
+        destruct v as [S ds | S u | p A q].
         ++ (* v is an object *)
            right. left.
            lets Hi': (inert_prefix Hi). lets Hwf': (wf_prefix Hwf).
-           inversions Hb; proof_recipe. { inversion Hvpr. }
+           inversions Hb; proof_recipe.
+           { admit. }
+           { inversion Hvpr. }
            inversions Hv. pick_fresh z. assert (z \notin L) as Hz by auto.
            apply H4 in Hz. repeat eexists.
            +++ rewrite concat_empty_r. eauto.
@@ -132,6 +134,7 @@ Proof.
            +++ eauto.
            +++ eauto.
         ++ (* v is a function *) left. repeat eexists. apply* weaken_ty_trm.
+        ++ (* v is a tag *) admit.
       + SSCase "lookup_sel_p"%string.
         destruct (pf_path_sel _ _ Hi Hp) as [V Hp'].
         specialize (IHHs _ _ _ Hwt IHHwt _ H0 H JMeq_refl eq_refl _ Hwf Hi Hv _ _ Hp' _ _ eq_refl)
@@ -168,7 +171,7 @@ Proof.
                           [p [A [q [V' [Heq1 [-> Hq]]]]]]]]].
         ++ destruct t; inversions Heq. destruct v0; inversions H3.
            left. repeat eexists. eauto.
-        ++ destruct t as [| |]; inversions Heq. destruct v0 as [X ds |]; inversions H3. fold open_rec_defs_p in Hds''.
+        ++ destruct t as [|]; inversions Heq. destruct v0 as [X ds | |]; inversions H3. fold open_rec_defs_p in Hds''.
            right. left.
            pose proof (repl_comp_bnd_inv1 Hrc1') as [Y ->]. pose proof (repl_comp_bnd_inv2 Hrc2') as [Z ->].
            repeat eexists; eauto.
@@ -198,7 +201,7 @@ Proof.
         apply* weaken_ty_defs. all: eauto.
       + right. right. repeat eexists. rewrite concat_assoc. all: eauto.
   Unshelve. all: solve_ex_typ_L.
-Qed.
+Admitted.
 
 (** If [p] looks up to [t] in a value environment and [p]'s II-level precise type
     is [T], then either [t] is
@@ -294,9 +297,11 @@ Proof.
                                     [[S' [ds [W [U [G1 [G2 [pT [[= ->] [Hp' [-> [Hds [Hrc1 Hrc2]]]]]]]]]]]] |
                                      [q' [r [r' [G1 [G2 [pT [[= ->] [[= ->] [Heq' [Hrc1 Hrc2]]]]]]]]]]]]; simpl.
   - left. simpl in *. inversions Hit.
+    * apply (pf_tag_T Hi) in Hp' as ->. admit.
     * apply (pf_forall_T Hi) in Hp' as ->. repeat eexists; eauto.
     * apply (pf_bnd_T Hi) in Hp' as ->. proof_recipe. inversion Hv.
   - right. inversions Hit.
+    * apply (pf_tag_T Hi) in Hp' as [=].
     * apply (pf_forall_T Hi) in Hp' as [=].
     * apply (pf_bnd_T Hi) in Hp' as [= ->]. eexists. split*. left. repeat eexists; eauto;
       repeat apply* repl_composition_weaken; apply* inert_ok; apply* inert_prefix.
@@ -312,12 +317,15 @@ Proof.
     }
     lets Hok: (inert_ok Hi). rewrite Heq' in Hok.
     destruct Hrc1 as [-> | Hr]; destruct Hrc2 as [-> | Hr']; inversions Hit.
+    + admit.
     + left; repeat eexists; apply* precise_to_general3.
     + right. eexists. split*.
+    + admit.
     + left. repeat eexists. apply* precise_to_general3. apply* pt3_sngl_trans3.
       repeat apply* pt3_weaken.
     + right. eexists. split*. right. eexists. split*.
       apply* pt3_sngl_trans3. repeat apply* pt3_weaken.
+    + admit.
     + left. repeat eexists.
       do 2 eapply pt3_weaken in Hr.
       pose proof (pt3_inert_sngl_invert Hi Hp Hr (inert_typ_all _ _)) as Hr'.
@@ -326,13 +334,14 @@ Proof.
       do 2 eapply pt3_weaken in Hr.
       apply* (pt3_inert_sngl_invert Hi Hp Hr).
       all: eauto; apply* inert_ok. apply* inert_prefix.
+    + admit.
     + left. repeat eexists. apply precise_to_general3.
       eapply pt3_sngl_trans3. repeat apply* pt3_weaken.
       apply* pt3_inert_sngl_invert. repeat apply* pt3_weaken.
     + right. eexists. split*. right. eexists. split*.
       eapply pt3_sngl_trans3. repeat apply* pt3_weaken.
       apply* pt3_inert_sngl_invert. repeat apply* pt3_weaken.
-Qed.
+Admitted.
 
 (** If [p] looks up to [t] in a value environment and [p]'s III-level precise type
     is a function type, then [t] has the same function type *)
