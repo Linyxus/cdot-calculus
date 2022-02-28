@@ -159,7 +159,9 @@ Proof.
     pose proof (lft_typ_sngl_inv _ Hin Hl1 Hl2) as ->.
     rewrite app_nil_l in *.
     pose proof (lft_unique Hin Hl1 Hl2) as [=].
-Qed.
+  - Case "def_tag"%string.
+    admit.
+Admitted.
 
 (** The same applies to the case where we type multiple declarations that contain
     [{b: V}] as a record. *)
@@ -258,7 +260,8 @@ Proof.
     }
     apply pt3_exists in Hq as [? Hq'%pt2_exists]; auto.
   - specialize (IHHv _ Hi Hwf eq_refl Hx). destruct_all. eexists; split*.
-Qed.
+  - admit.
+Admitted.
 
 (** Helper tactics for proving Preservation *)
 
@@ -314,9 +317,9 @@ Proof.
   - Case "ty_all_elim"%string.
     match goal with
     | [Hp: _ ⊢ trm_path _ : ∀(_) _ |- _] =>
-        pose proof (canonical_forms_fun Hi Hwf Hwt Hp) as [L [T' [t [Hl [Hsub Hty]]]]];
-        invert_red
+        pose proof (canonical_forms_fun Hi Hwf Hwt Hp) as [L [T' [t [Hl [Hsub Hty]]]]]
     end.
+    invert_red.
     lookup_eq.
     exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
     pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
@@ -347,6 +350,7 @@ Proof.
       apply weaken_subtyp with (G2:=G') in Hs;
       eauto
     end.
+  - Case "ty_tag"%string.
 Qed.
 
 (** **** Progress (Lemma 5.3) *)

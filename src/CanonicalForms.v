@@ -91,7 +91,12 @@ Lemma lookup_step_preservation_prec1: forall G γ p px pbs t T U,
         t = defp q /\
         T = {{ r }} /\
         G = G1 & px ~ pT & G2 /\
-        (r = r' \/ G1 ⊢!!! r : {{ r' }}) /\ (q = r' \/ G1 ⊢!!! q : {{ r' }})).
+        (r = r' \/ G1 ⊢!!! r : {{ r' }}) /\ (q = r' \/ G1 ⊢!!! q : {{ r' }})) \/
+    (exists p1 A q r r' G1 G2 pT,
+        t = defv (val_tag p1 A q) /\
+        T = typ_tag r /\
+        G = G1 & px ~ pT & G2 /\
+        G1 ⊩ r ⟿' r' ⬳ q).
 Proof.
   introv Hi Hwf Hwt. gen p px pbs t T U.
   (* induction on well-formedness **)
@@ -115,7 +120,11 @@ Proof.
            right. left.
            lets Hi': (inert_prefix Hi). lets Hwf': (wf_prefix Hwf).
            inversions Hb; proof_recipe.
-           { admit. }
+           {
+              apply (repl_to_invertible_tag_v Hi') in Hv as [U' [Hrv Hrc]].
+              apply (invertible_to_precise_tag_v Hi') in Hrv as [U'' [Hrv Hrc']].
+              inversion Hrv.
+           }
            { inversion Hvpr. }
            inversions Hv. pick_fresh z. assert (z \notin L) as Hz by auto.
            apply H4 in Hz. repeat eexists.
@@ -134,74 +143,106 @@ Proof.
            +++ eauto.
            +++ eauto.
         ++ (* v is a function *) left. repeat eexists. apply* weaken_ty_trm.
-        ++ (* v is a tag *) admit.
+        ++ (* v is a tag *)
+           right. right. right.
+           lets Hi': (inert_prefix Hi). lets Hwf': (wf_prefix Hwf).
+           inversions Hb; proof_recipe.
+           2: { inversion Hvpr. }
+           2: { inversion Hv. }
+           apply (repl_to_invertible_tag_v Hi') in Hv as [p' [Hrv Hrc]].
+           apply (invertible_to_precise_tag_v Hi') in Hrv as [p'' [Hrv Hrc']].
+           inversions Hrv.
+           repeat eexists.
+           +++ rewrite concat_empty_r. eauto.
+           +++ eauto.
+           +++ eauto.
       + SSCase "lookup_sel_p"%string.
         destruct (pf_path_sel _ _ Hi Hp) as [V Hp'].
         specialize (IHHs _ _ _ Hwt IHHwt _ H0 H JMeq_refl eq_refl _ Hwf Hi Hv _ _ Hp' _ _ eq_refl)
           as [[? [? [[=] ?]]] |
               [[? [? [? [? [? [? [? [[=]]]]]]]]] |
-               [? [? [? [? [? [? [[= ->] [[=] ?]]]]]]]]]].
+               [[? [? [? [? [? [? [[= ->] [[=] ?]]]]]]]] | ]]].
+        right. right. right. destruct_all. subst.
+        inversions H2.
       + SSCase "lookup_sel_v"%string.
         destruct (pf_path_sel _ _ Hi Hp) as [V Hp'].
         specialize (IHHs _ _ _ Hwt IHHwt _ H0 H JMeq_refl eq_refl _ Hwf Hi Hv _ _ Hp' _ _ eq_refl)
           as [[? [? [[=] ?]]] |
               [[S [ds' [W [T'' [G1 [G2 [pT [[= -> ->] [[= ->] [Heq [Hds Hrc]]]]]]]]]]] |
-               [? [? [? [? [? [? [[= ->] [-> [[= ->] ?]]]]]]]]]]].
-        lets H': (defs_has_open (p_sel (avar_f px) f) H1). simpl in *.
-        lets Hr: (pf_record_has_U Hi Hp').
-        rewrite Heq in Hi, Hwf.
-        pose proof (repl_comp_trans_open (p_sel (avar_f px) f)
-                                         (inert_prefix (inert_prefix Hi))
-                                         Hrc) as Hrc_op.
-        pose proof (repl_comp_trans_record_has Hrc_op Hr) as [V [W' [Hrh [Hrc1' Hrc2']]]].
-        rewrite <- concat_empty_r in Heq at 1.
-        assert (G2 = empty) as ->. {
-          eapply env_ok_inv. eauto. rewrite concat_empty_r. rewrite <- Heq, concat_empty_r in Hi. auto.
-        }
-        repeat rewrite concat_empty_r in *. apply eq_push_inv in Heq as [_ [<- <-]].
-        assert (G & px ~ T0 ⊢ V <: T1 /\ G & px ~ T0 ⊢ T1 <: V) as [HVT HTV]. {
-          apply repl_composition_sub in Hrc2'. apply repl_composition_sub in Hrc1'.
-          destruct_all.
-          split; apply weaken_subtyp; eauto.
-        }
-        lets Hot: (object_typing Hi Hds H' Hrh).
-        destruct Hot as [[U' [u [Heq Ht']]] |
-                         [[U' [ds'' [Heq [Hds'' ->]]]] |
-                          [[q [V' [Heq1 [-> Hq]]]] |
-                          [p [A [q [V' [Heq1 [-> Hq]]]]]]]]].
-        ++ destruct t; inversions Heq. destruct v0; inversions H3.
-           left. repeat eexists. eauto.
-        ++ destruct t as [|]; inversions Heq. destruct v0 as [X ds | |]; inversions H3. fold open_rec_defs_p in Hds''.
-           right. left.
-           pose proof (repl_comp_bnd_inv1 Hrc1') as [Y ->]. pose proof (repl_comp_bnd_inv2 Hrc2') as [Z ->].
-           repeat eexists; eauto.
-           +++ apply repl_comp_bnd' in Hrc1'. rewrite concat_empty_r. eauto.
-           +++ apply repl_comp_bnd' in Hrc1'. apply Hrc1'.
-           +++ apply* repl_comp_bnd'.
-        ++ destruct t; inversions Heq1. right. right.
-           pose proof (repl_comp_sngl_inv1 Hrc1') as [r ->]. pose proof (repl_comp_sngl_inv2 Hrc2') as [r' ->].
-           pose proof (pf_sngl_U Hp) as ->.
-           pose proof (sngl_typed Hi Hwf Hp) as [V Hr'%pt3].
-           pose proof (pt3_exists Hi Hq) as [V'' Hp3].
-           pose proof (repl_comp_to_prec' Hi Hwf Hrc2' Hr')
-             as [-> | Hpr];
-             pose proof (repl_comp_to_prec' Hi Hwf Hrc1' Hp3)
-             as [<- | Hpr']; clear Hrc1' Hrc2';
-               repeat eexists; try rewrite concat_empty_r; eauto.
-        ++ admit.
+               [[? [? [? [? [? [? [[= ->] [-> [[= ->] ?]]]]]]]]]|]]].
+        {
+          lets H': (defs_has_open (p_sel (avar_f px) f) H1). simpl in *.
+          lets Hr: (pf_record_has_U Hi Hp').
+          rewrite Heq in Hi, Hwf.
+          pose proof (repl_comp_trans_open (p_sel (avar_f px) f)
+                                          (inert_prefix (inert_prefix Hi))
+                                          Hrc) as Hrc_op.
+          pose proof (repl_comp_trans_record_has Hrc_op Hr) as [V [W' [Hrh [Hrc1' Hrc2']]]].
+          rewrite <- concat_empty_r in Heq at 1.
+          assert (G2 = empty) as ->. {
+            eapply env_ok_inv. eauto. rewrite concat_empty_r. rewrite <- Heq, concat_empty_r in Hi. auto.
+          }
+          repeat rewrite concat_empty_r in *. apply eq_push_inv in Heq as [_ [<- <-]].
+          assert (G & px ~ T0 ⊢ V <: T1 /\ G & px ~ T0 ⊢ T1 <: V) as [HVT HTV]. {
+            apply repl_composition_sub in Hrc2'. apply repl_composition_sub in Hrc1'.
+            destruct_all.
+            split; apply weaken_subtyp; eauto.
+          }
+          lets Hot: (object_typing Hi Hds H' Hrh).
+          destruct Hot as [[U' [u [Heq Ht']]] |
+                          [[U' [ds'' [Heq [Hds'' ->]]]] |
+                            [[q [V' [Heq1 [-> Hq]]]] |
+                            [p [A [q [V' [Heq1 [-> Hq]]]]]]]]].
+          ++ (* lambda *)
+            destruct t; inversions Heq. destruct v0; inversions H3.
+            left. repeat eexists. eauto.
+          ++ destruct t as [|]; inversions Heq. destruct v0 as [X ds | |]; inversions H3. fold open_rec_defs_p in Hds''.
+            right. left.
+            pose proof (repl_comp_bnd_inv1 Hrc1') as [Y ->]. pose proof (repl_comp_bnd_inv2 Hrc2') as [Z ->].
+            repeat eexists; eauto.
+            +++ apply repl_comp_bnd' in Hrc1'. rewrite concat_empty_r. eauto.
+            +++ apply repl_comp_bnd' in Hrc1'. apply Hrc1'.
+            +++ apply* repl_comp_bnd'.
+          ++ destruct t; inversions Heq1. right. right. left.
+            pose proof (repl_comp_sngl_inv1 Hrc1') as [r ->]. pose proof (repl_comp_sngl_inv2 Hrc2') as [r' ->].
+            pose proof (pf_sngl_U Hp) as ->.
+            pose proof (sngl_typed Hi Hwf Hp) as [V Hr'%pt3].
+            pose proof (pt3_exists Hi Hq) as [V'' Hp3].
+            pose proof (repl_comp_to_prec' Hi Hwf Hrc2' Hr')
+              as [-> | Hpr];
+              pose proof (repl_comp_to_prec' Hi Hwf Hrc1' Hp3)
+              as [<- | Hpr']; clear Hrc1' Hrc2';
+                repeat eexists; try rewrite concat_empty_r; eauto.
+          ++ destruct t; inversions Heq1. destruct v0; inversions H3.  right. right. right.
+             pose proof (repl_comp_tag_inv1 Hrc1') as [Y ->].
+             pose proof (repl_comp_tag_inv2 Hrc2') as [Z ->].
+             repeat eexists; eauto.
+             +++ apply repl_comp_tag' in Hrc1'. rewrite concat_empty_r. eauto.
+             +++ apply repl_comp_tag' in Hrc2'. apply Hrc2'.
+             +++ apply* repl_comp_tag'.
+      }
+      {
+        destruct_all. inversion H2.
+      }
     * SCase "x <> x0"%string.
       apply pf_strengthen in Hp; auto. apply lookup_strengthen_one in Hs; auto.
       inversions Heq.
       specialize (IHHwt (inert_prefix Hi) (wf_prefix Hwf) _ _ _ _ _ _ Hs Hp eq_refl)
         as [[? [? [[= ->]]]] |
               [[? [? [? [? [? [? [? [-> [-> [-> [Hds [? ?]]]]]]]]]]]] |
-               [? [? [? [? [? [? [[= ->] [[= ->] [-> [? ?]]]]]]]]]]]].
+               [[? [? [? [? [? [? [[= ->] [[= ->] [-> [? ?]]]]]]]]]]|]]].
       + left. repeat eexists. apply* weaken_ty_trm.
       + right. left. repeat eexists. rewrite concat_assoc. eauto.
         apply* weaken_ty_defs. all: eauto.
-      + right. right. repeat eexists. rewrite concat_assoc. all: eauto.
+      + right. right. left. repeat eexists.
+        rewrite concat_assoc.
+        all: eauto.
+      + destruct_all. subst.
+        right. right. right. repeat eexists.
+        rewrite concat_assoc.
+        all: eauto.
   Unshelve. all: solve_ex_typ_L.
-Admitted.
+Qed.
 
 (** If [p] looks up to [t] in a value environment and [p]'s II-level precise type
     is [T], then either [t] is
@@ -226,17 +267,25 @@ Lemma lookup_step_preservation_prec2 G γ p px pbs t T :
         t = defp q /\
         T = {{ r }} /\
         G = G1 & px ~ pT & G2 /\
-        (r = r' \/ G1 ⊢!!! r : {{ r' }}) /\ (r' = q \/ G1 ⊢!!! q : {{ r' }})).
+        (r = r' \/ G1 ⊢!!! r : {{ r' }}) /\ (r' = q \/ G1 ⊢!!! q : {{ r' }})) \/
+    (exists p1 A q r r' G1 G2 pT,
+        t = defv (val_tag p1 A q) /\
+        T = typ_tag r /\
+        G = G1 & px ~ pT & G2 /\
+        G1 ⊩ r ⟿' r' ⬳ q).
 Proof.
   introv Hi Hwf Hwt Hs Hp Heq. gen γ t px pbs. induction Hp; introv Hwt; introv Hs; introv Heq.
   - destruct (lookup_step_preservation_prec1 Hi Hwf Hwt Hs H Heq)
       as [[? [? [[= ->]]]] |
           [[S [ds' [W [T'' [G1 [G2 [pT [-> [-> [-> [Hds [Hrc1 Hrc2]]]]]]]]]]]] |
-           [? [? [? [? [? [? [-> [-> [-> [? ?]]]]]]]]]]]].
+           [[? [? [? [? [? [? [-> [-> [-> [? ?]]]]]]]]]]|]]].
     * left. repeat eexists; eauto.
     * right. left. repeat eexists; eauto.
-    * pose proof (pf_sngl_U H) as ->. right. right. repeat eexists; eauto.
+    * pose proof (pf_sngl_U H) as ->. right. right. left. repeat eexists; eauto.
       destruct_all; eauto.
+    * right. right. right. remember H0 as H1. clear HeqH1.
+      destruct H0 as [_ [_ [_ [? [? [_ [_ [_ [_ [Heqt _]]]]]]]]]]. subst T.
+      apply pf_tag_U in H as Hx. subst U. auto.
   - clear IHHp2. simpl_dot. specialize (IHHp1 Hi Hwf _ Hwt).
     gen q U. dependent induction Hs; simpl_dot; introv Hp IHHp1 Hv.
     * specialize (IHHp1 _ Hs _ _ eq_refl) as [[? [? [? [[=] ?]]]] |

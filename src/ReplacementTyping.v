@@ -829,6 +829,40 @@ Proof.
       eapply pt2_field_trans; eauto.
 Qed.
 
+(** From replacement typing of tagged singleton types to invertible typing of tagged singleton types *)
+Lemma repl_to_invertible_tag_repl_comp: forall G p q,
+    inert G ->
+    G ⊢// p: typ_tag q ->
+    exists q', G ⊢ q ⟿' q' /\ G ⊢## p: typ_tag q'.
+Proof.
+  introv Hi Hp. dependent induction Hp.
+  - Case "ty_inv_r"%string.
+    exists q. split*. apply star_refl.
+  - Case "ty_sngl_qp_r"%string.
+    specialize (IHHp _ Hi eq_refl). destruct IHHp as [p' [Hr Hr']].
+    eexists. split*. eapply star_trans. apply Hr.  apply star_one. repeat eexists; eauto.
+Qed.
+
+(** If a path [p] has type [q.type] under replacement typing and [q] is well-typed,
+    then the invertible type of [p] has a singleton type [q'.type], and [q] and [q']
+    are aliases. *)
+Lemma repl_to_invertible_tag: forall G p q U,
+    inert G ->
+    G ⊢// p: typ_tag q ->
+    G ⊢!! q : U ->
+    exists q' S, G ⊢## p: typ_tag q' /\ G ⊢!! q' : S /\ (q = q' \/ G ⊢!!! q: {{ q' }}).
+Proof.
+  introv Hi Hp Hq. gen U. dependent induction Hp; introv Hq.
+  - repeat eexists; eauto.
+  - destruct (pt2_qbs_typed _ Hi H H0 Hq) as [T Hq0bs].
+    specialize (IHHp _ Hi eq_refl _ Hq0bs).
+    destruct IHHp as [q' [S [Hr [Hq' [Heq | Hq0']]]]]. subst.
+    + exists (q0 •• bs) T. split; auto. split; auto. right.
+      eapply pt3_trans_trans; eauto.
+    + exists q' S. split; auto. split; auto. right. eapply pt3_sngl_trans; eauto.
+      eapply pt2_field_trans; eauto.
+Qed.
+
 Lemma replacement_repl_closure_comp_typed_path: forall G p q q',
     inert G ->
     G ⊢// p: {{ q }} ->
@@ -1357,6 +1391,20 @@ Proof.
       apply H. eauto. eauto.
 Qed.
 
+Lemma repl_to_invertible_tag_v G q v :
+  inert G ->
+  G ⊢//v v : typ_tag q ->
+  exists q', G ⊢##v v : typ_tag q' /\ G ⊢ q ⟿' q'.
+Proof.
+  intros Hi Hv. dependent induction Hv.
+  - exists q. split*. constructor.
+  - specialize (IHHv _ Hi eq_refl) as [q' [Hinv Hrc]].
+    eexists. split.
+    * eauto.
+    * eapply star_trans. apply Hrc. apply star_one. econstructor. repeat eexists.
+      apply H. eauto.
+Qed.
+
 Lemma repl_val_to_precise_lambda: forall G v S T,
     G ⊢//v v : ∀(S) T ->
     inert G ->
@@ -1376,3 +1424,4 @@ Proof.
     * eapply narrow_subtyping. apply* Hst. apply subenv_last. apply* tight_to_general. auto.
     * apply* H0.
 Qed.
+

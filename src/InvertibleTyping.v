@@ -246,6 +246,35 @@ Proof.
   - right. eapply pt3_sngl_trans3; eauto. eapply pt3_field_trans; eauto.
 Qed.
 
+Lemma inv_to_precise_tag_repl_comp: forall G p q,
+    G ⊢## p: typ_tag q ->
+    exists r, G ⊢!!! p: typ_tag r /\ G ⊢ r ⟿' q.
+Proof.
+  introv Hp.
+  dependent induction Hp.
+  - exists q. split*. apply star_refl.
+  - specialize (IHHp _ eq_refl). destruct IHHp as [r'' [Hr' Hc']].
+    exists r''. split*. apply star_trans with (b:= p •• bs).
+    apply star_one. econstructor; eauto. apply Hc'.
+Qed.
+
+Lemma inv_to_precise_tag: forall G p q U,
+    inert G ->
+    G ⊢## p: typ_tag q ->
+    G ⊢!!! q : U ->
+    exists r, G ⊢!!! p: typ_tag r /\ (r = q \/ G ⊢!!! r: {{ q }}).
+Proof.
+  introv Hi Hp Hq. destruct (inv_to_precise_tag_repl_comp Hp) as [r [Hpr Hrc]].
+  exists r. split*. clear Hp.
+  gen p U. dependent induction Hrc; introv Hpr; introv Hq; auto.
+  inversions H.
+  assert (G ⊢!!! p0 •• bs : U).
+  { apply (pt3_field_trans' _ Hi (pt3 (pt2 H0)) Hq). }
+  destruct (IHHrc _ Hpr _ H).
+  - subst. right. eapply pt3_field_trans; eauto.
+  - right. eapply pt3_sngl_trans3; eauto. eapply pt3_field_trans; eauto.
+Qed.
+
 (** If a path has an invertible type it also has a III-level precise type. *)
 Lemma inv_to_prec G p T :
   G ⊢## p : T ->
@@ -327,6 +356,22 @@ Proof.
     * eauto.
     * eapply star_trans. apply star_one. econstructor. repeat eexists. apply H. eauto.
       apply* repl_swap.
+      apply Hrc.
+Qed.
+
+Lemma invertible_to_precise_tag_v G p v :
+  inert G ->
+  G ⊢##v v : typ_tag p ->
+  exists p', G ⊢!v v : typ_tag p' /\ G ⊢ p' ⟿' p.
+Proof.
+  intros Hi Hv. dependent induction Hv.
+  - Case "ty_precise_invv"%string.
+    inversions H. eexists. split*. constructor.
+  - Case "ty_rec_pq_invv"%string.
+    specialize (IHHv _ Hi eq_refl) as [T' [Hinv Hrc]].
+    eexists. split.
+    * eauto.
+    * eapply star_trans. apply star_one. econstructor. repeat eexists. apply H. eauto.
       apply Hrc.
 Qed.
 

@@ -1122,6 +1122,24 @@ Proof.
   specialize (IHHr _ eq_refl). destruct_all. eexists. eauto.
 Qed.
 
+Lemma repl_comp_tag_inv1 : forall G T p,
+    G ⊢ typ_tag p ⟿ T ->
+    exists q, T = typ_tag q.
+Proof.
+  introv Hr. dependent induction Hr; eauto.
+  specialize (IHHr _ eq_refl). destruct_all. subst.
+  inversions H. destruct_all. invert_repl. eexists. auto.
+Qed.
+
+Lemma repl_comp_tag_inv2 : forall G T p,
+    G ⊢ T ⟿ typ_tag p ->
+    exists q, T = typ_tag q.
+Proof.
+  introv Hr. dependent induction Hr; eauto.
+  inversions H. destruct_all. invert_repl.
+  specialize (IHHr _ eq_refl). destruct_all. eexists. eauto.
+Qed.
+
 Lemma repl_comp_bnd_inv1 G T U :
   G ⊢ μ U ⟿ T ->
   exists S, T = μ S.
@@ -1138,6 +1156,21 @@ Proof.
   introv Hr. dependent induction Hr; eauto.
   inversions H. destruct_all. invert_repl.
   specialize (IHHr _ eq_refl). destruct_all. eexists. eauto.
+Qed.
+
+Lemma repl_comp_tag': forall G p q,
+    G ⊢ typ_tag p ⟿ typ_tag q ->
+    G ⊢ p ⟿' q.
+Proof.
+  introv Hr. dependent induction Hr.
+  - apply star_refl.
+  - destruct H as [?[?[?[?[? Hr']]]]].
+    assert (exists V, b = typ_tag V) as [V ->]. {
+      invert_repl. eauto.
+    }
+    apply star_trans with (b:=V). apply star_one. inversions Hr'.
+    econstructor. apply H. apply H0.
+    invert_repl. apply* IHHr.
 Qed.
 
 Lemma repl_comp_bnd': forall G T T',
