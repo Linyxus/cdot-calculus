@@ -1333,15 +1333,7 @@ Proof.
   }
   destruct Hqu2 as [U' Hqu2].
   destruct (corresponding_types_tag Hin Hwf Hwt Hpq Hqu2) as [v [P Hv]].
-  destruct (val_typ_all_to_lambda Hin Hv) as [L' [S' [t [Heq [Hs1' Hs2']]]]].
+  destruct (val_typ_tag_to_tag Hin Hv) as [p0 [A [r' [r'' [Heq [Ht1 He1]]]]]].
   subst.
-  exists (L \u L' \u (dom G)) S' t. repeat split~.
-  - eapply subtyp_trans; eauto.
-  - intros.
-    assert (HL: y \notin L) by auto.
-    assert (HL': y \notin L') by auto.
-    specialize (Hs2 y HL).
-    specialize (Hs2' y HL').
-    apply narrow_typing with (G':=G & y ~ T) in Hs2'; auto.
-    eapply ty_sub; eauto.
+  eauto.
 Qed.
