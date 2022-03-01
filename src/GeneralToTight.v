@@ -228,31 +228,6 @@ Proof.
   + exists q''. split; try split; eauto 2.
     destruct Hrq'; destruct Hrq''; subst; eauto 2.
     exists q'. split*.
-    (* exact Hrq'. *)
-    (* destruct Hrq'; destruct Hrq''; subst; eauto 2. *)
-    (* * eapply subtyp_sngl_pq. eapply precise_to_general3. exact H0. apply* precise_to_general2. *)
-    (*   lets Hrp: rtag q'' q'. specialize (Hrp nil). *)
-    (*   replace (q'' •• nil) with q'' in Hrp. *)
-    (*   replace (q' •• nil) with q' in Hrp. auto. *)
-    (*   destruct q'; auto. destruct q''; auto. *)
-    (* * eapply subtyp_sngl_qp. apply* precise_to_general3. apply* precise_to_general2. *)
-    (*   lets Hrp: rtag q' r. specialize (Hrp nil). *)
-    (*   replace (q' •• nil) with q' in Hrp. *)
-    (*   replace (r •• nil) with r in Hrp. auto. *)
-    (*   destruct r; auto. *)
-    (*   destruct q'; auto. *)
-    (* * apply subtyp_trans with (T:=typ_tag q'). *)
-    (*   ** eapply subtyp_sngl_pq. eapply precise_to_general3. exact H0. apply* precise_to_general2. *)
-    (*     lets Hrp: rtag q'' q'. specialize (Hrp nil). *)
-    (*     replace (q'' •• nil) with q'' in Hrp. *)
-    (*     replace (q' •• nil) with q' in Hrp. auto. *)
-    (*     destruct q'; auto. destruct q''; auto. *)
-    (*   ** eapply subtyp_sngl_qp. apply* precise_to_general3. apply* precise_to_general2. *)
-    (*     lets Hrp: rtag q' r. specialize (Hrp nil). *)
-    (*     replace (q' •• nil) with q' in Hrp. *)
-    (*     replace (r •• nil) with r in Hrp. auto. *)
-    (*     destruct r; auto. *)
-    (*     destruct q'; auto. *)
 Qed.
 
 Lemma invert_subtyp_all : forall G S1 T1 S2 T2,
