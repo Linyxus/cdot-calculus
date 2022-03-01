@@ -958,6 +958,22 @@ Proof.
   lets Ht: (lookup_preservation_forall Hi Hwf Hwt Hs (precise_to_general3 Hp)). eauto.
 Qed.
 
+(** If a path has a III-level tag type then the path can be
+    looked up in the value environment in a finite number of steps
+    to a value of the same type. *)
+Lemma corresponding_types_tag: forall G γ p q,
+    inert G ->
+    wf G ->
+    γ ⫶ G ->
+    G ⊢!!! p: typ_tag q ->
+    (exists v, γ ⟦ defp p ⤳* defv v ⟧ /\
+            G ⊢ trm_val v : typ_tag q).
+Proof.
+  introv Hi Hwf Hwt Hp.
+  destruct (typed_path_lookup3 Hi Hwf Hwt Hp) as [v Hs].
+  lets Ht: (lookup_preservation_forall Hi Hwf Hwt Hs (precise_to_general3 Hp)). eauto.
+Qed.
+
 (** ** Canonical Forms for Functions (Lemma 5.5) *)
 (** If a path has a function type then it can be looked up in the value environment
     in a finite number of steps to a function that has the same function type. *)
