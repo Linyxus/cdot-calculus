@@ -11,7 +11,7 @@ Set Implicit Arguments.
 Require Import Sequences.
 Require Import Coq.Program.Equality.
 Require Import Definitions RecordAndInertTypes PreciseTyping TightTyping InvertibleTyping
-        Narrowing Replacement ReplacementTyping GADTRules.
+        Narrowing Replacement ReplacementTyping GADTRules Binding.
 
 (** ** Sel-<: Replacement *)
 
@@ -201,6 +201,58 @@ Proof.
   specialize (HS2 y HL0).
   specialize (H2 y HL).
   eapply ty_sub; eauto. eapply narrow_typing in H2; eauto.
+Qed.
+
+(** If a path has a function type then its III-level precise type is
+    also a function type that is a subtype of the former. *)
+Lemma path_typ_tag_to_precise: forall G p r U,
+    inert G ->
+    wf G ->
+    G ⊢ trm_path p : typ_tag r ->
+    G ⊢ trm_path r : U ->
+    (exists q,
+        G ⊢!!! p : typ_tag q /\
+        (exists S, G ⊢!!! q : S) /\
+        (exists q', (r = q' \/ G ⊢!!! r : {{ q' }}) /\
+               (q = q' \/ G ⊢!!! q : {{ q' }}))).
+Proof.
+  introv Hin Hwf Ht HrU.
+  apply pt3_exists in HrU as [U' Hu]; eauto 1.
+  apply pt2_exists in Hu as [U'' Hu1]; eauto 1.
+  apply (general_to_tight Hin) in Ht; eauto 1.
+  apply (replacement_closure Hin) in Ht; eauto 1.
+  eapply repl_to_invertible_tag in Ht; eauto 1.
+  destruct Ht as [q' [S [Hq' [HqS Hrq']]]].
+  eapply inv_to_precise_tag in Hq'; eauto 5.
+  destruct Hq' as [q'' [S' [Hq'' [HqS' Hrq'']]]].
+  + exists q''. split; try split; eauto 2.
+    destruct Hrq'; destruct Hrq''; subst; eauto 2.
+    exists q'. split*.
+    (* exact Hrq'. *)
+    (* destruct Hrq'; destruct Hrq''; subst; eauto 2. *)
+    (* * eapply subtyp_sngl_pq. eapply precise_to_general3. exact H0. apply* precise_to_general2. *)
+    (*   lets Hrp: rtag q'' q'. specialize (Hrp nil). *)
+    (*   replace (q'' •• nil) with q'' in Hrp. *)
+    (*   replace (q' •• nil) with q' in Hrp. auto. *)
+    (*   destruct q'; auto. destruct q''; auto. *)
+    (* * eapply subtyp_sngl_qp. apply* precise_to_general3. apply* precise_to_general2. *)
+    (*   lets Hrp: rtag q' r. specialize (Hrp nil). *)
+    (*   replace (q' •• nil) with q' in Hrp. *)
+    (*   replace (r •• nil) with r in Hrp. auto. *)
+    (*   destruct r; auto. *)
+    (*   destruct q'; auto. *)
+    (* * apply subtyp_trans with (T:=typ_tag q'). *)
+    (*   ** eapply subtyp_sngl_pq. eapply precise_to_general3. exact H0. apply* precise_to_general2. *)
+    (*     lets Hrp: rtag q'' q'. specialize (Hrp nil). *)
+    (*     replace (q'' •• nil) with q'' in Hrp. *)
+    (*     replace (q' •• nil) with q' in Hrp. auto. *)
+    (*     destruct q'; auto. destruct q''; auto. *)
+    (*   ** eapply subtyp_sngl_qp. apply* precise_to_general3. apply* precise_to_general2. *)
+    (*     lets Hrp: rtag q' r. specialize (Hrp nil). *)
+    (*     replace (q' •• nil) with q' in Hrp. *)
+    (*     replace (r •• nil) with r in Hrp. auto. *)
+    (*     destruct r; auto. *)
+    (*     destruct q'; auto. *)
 Qed.
 
 Lemma invert_subtyp_all : forall G S1 T1 S2 T2,

@@ -262,10 +262,10 @@ Lemma inv_to_precise_tag: forall G p q U,
     inert G ->
     G ⊢## p: typ_tag q ->
     G ⊢!!! q : U ->
-    exists r, G ⊢!!! p: typ_tag r /\ (r = q \/ G ⊢!!! r: {{ q }}).
+    exists r S, G ⊢!!! p: typ_tag r /\ G ⊢!!! q : S /\ (r = q \/ G ⊢!!! r: {{ q }}).
 Proof.
   introv Hi Hp Hq. destruct (inv_to_precise_tag_repl_comp Hp) as [r [Hpr Hrc]].
-  exists r. split*. clear Hp.
+  exists r U. split*. split. exact Hq. clear Hp.
   gen p U. dependent induction Hrc; introv Hpr; introv Hq; auto.
   inversions H.
   assert (G ⊢!!! p0 •• bs : U).
