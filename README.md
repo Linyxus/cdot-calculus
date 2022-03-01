@@ -10,7 +10,8 @@ mechanized in Coq.
 > branch.
 > The
 > [type-case](https://github.com/Linyxus/extended-pdot-calculus/tree/type-case)
-> is extended with tags and type cases. (WIP :construction:)
+> branch is a further-extended version of the calculus with tags and type cases.
+> (WIP :construction:)
 
 The calculus is extended with the following record subtyping inversion rules,
 which will facilitate the formalization of GADT reasoning in pDOT.
