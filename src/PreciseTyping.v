@@ -710,6 +710,15 @@ Proof.
   specialize (IHHp _ _ Hi eq_refl) as [Hq | [r [Hq Hr]]]; eauto.
 Qed.
 
+Lemma last_path_tag G p r :
+  inert G ->
+  G ⊢!!! p : typ_tag r ->
+  G ⊢!! p : typ_tag r \/ exists q, G ⊢!!! p: {{ q }} /\ G ⊢!! q : typ_tag r.
+Proof.
+  intros Hi Hp. dependent induction Hp; eauto.
+  specialize (IHHp _ Hi eq_refl). destruct_all; eauto.
+Qed.
+
 Lemma pt2_qbs_typed G p q T bs V:
   inert G ->
   G ⊢! p : {{ q }} ⪼ {{ q }} ->
@@ -739,6 +748,8 @@ Inductive wf : ctx -> Prop :=
     wf G ->
     x # G ->
     (forall bs q, G & x ~ T ⊢! p_sel (avar_f x) bs : {{ q }}⪼ {{ q }}->
+             exists U, G & x ~ T ⊢!! q : U) ->
+    (forall bs q, G & x ~ T ⊢! p_sel (avar_f x) bs : typ_tag q ⪼ typ_tag q ->
              exists U, G & x ~ T ⊢!! q : U) ->
     wf (G & x ~ T).
 
@@ -772,6 +783,22 @@ Lemma pf_strengthen_one_helper G y bs T x q :
   inert (G & x ~ T) ->
   wf G ->
   G & x ~ T ⊢! p_sel (avar_f y) bs : {{ q }}⪼ {{ q }}->
+  x <> y ->
+  exists U, G ⊢!! q : U.
+Proof.
+  intros Hi Hwf. gen y bs q x T. dependent induction Hwf; introv Hi Hy Hn.
+  - rewrite concat_empty_l in *. apply precise_to_general in Hy.
+    apply typing_implies_bound in Hy as [S Hb]. apply binds_single_inv in Hb as [-> _]. false*.
+  - apply pf_strengthen in Hy; auto.
+    destruct (classicT (x = y)) as [-> | Hn']; eauto.
+    specialize (IHHwf _ _ _ _ _ (inert_prefix Hi) Hy Hn') as [S Hq]. eexists. apply* pt2_weaken. apply inert_ok.
+    apply inert_prefix in Hi; auto.
+Qed.
+
+Lemma pf_strengthen_one_helper_tag G y bs T x q :
+  inert (G & x ~ T) ->
+  wf G ->
+  G & x ~ T ⊢! p_sel (avar_f y) bs : typ_tag q ⪼ typ_tag q ->
   x <> y ->
   exists U, G ⊢!! q : U.
 Proof.
@@ -884,6 +911,40 @@ Lemma sngl_typed3 : forall G p q,
 Proof.
   introv Hi Hwf Hp. dependent induction Hp; eauto.
   destruct* (sngl_typed2 Hi Hwf H).
+Qed.
+
+Lemma tag_typed G p q :
+    inert G ->
+    wf G ->
+    G ⊢! p: typ_tag q ⪼ typ_tag q ->
+    exists T, G ⊢!! q: T.
+Proof.
+  intros Hi Hwf Hp. gen p q.
+  induction Hwf; introv Hpq.
+  - apply precise_to_general in Hpq. false* typing_empty_false.
+  - pose proof (typed_paths_named (precise_to_general Hpq)) as [px [pbs ->]].
+    destruct (classicT (x = px)) as [-> | Hn]; eauto.
+    pose proof (pf_strengthen_one_helper_tag Hi Hwf Hpq Hn) as [U Hq]. eexists. apply* pt2_weaken.
+Qed.
+
+Lemma tag_typed2 : forall G p q,
+    inert G ->
+    wf G ->
+    G ⊢!! p: typ_tag q ->
+    exists T, G ⊢!! q: T.
+Proof.
+  introv Hi Hwf Hpq. dependent induction Hpq; eauto.
+  pose proof (pf_tag_T Hi H) as ->. apply* tag_typed.
+Qed.
+
+Lemma tag_typed3 : forall G p q,
+    inert G ->
+    wf G ->
+    G ⊢!!! p: typ_tag q ->
+    exists T, G ⊢!!! q: T.
+Proof.
+  introv Hi Hwf Hp. dependent induction Hp; eauto.
+  destruct* (tag_typed2 Hi Hwf H).
 Qed.
 
 Lemma pt2_fld_strengthen G p a T U G' :

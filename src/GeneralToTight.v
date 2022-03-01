@@ -230,6 +230,21 @@ Proof.
     exists q'. split*.
 Qed.
 
+(** If a value has a tag type then the value is a tag. *)
+Lemma val_typ_tag_to_tag: forall G v p,
+    inert G ->
+    G ⊢ trm_val v : typ_tag p ->
+    (exists p0 A q r,
+        v = val_tag p0 A q /\
+        G ⊢ trm_path q : p0 ↓ A /\
+        G ⊩ p ⟿' r ⬳ q).
+Proof.
+  introv Hin Ht. proof_recipe.
+  destruct (repl_to_invertible_tag_v Hin Ht) as [r [Hinvv Hpre]].
+  destruct (invertible_to_precise_tag_v Hin Hinvv) as [q [Hpv Hqre]].
+  inversions Hpv. repeat eexists; eauto.
+Qed.
+
 Lemma invert_subtyp_all : forall G S1 T1 S2 T2,
     inert G ->
     G ⊢ ∀(S1) T1 <: ∀(S2) T2 ->
