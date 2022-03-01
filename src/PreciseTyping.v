@@ -1289,6 +1289,19 @@ Proof.
     apply Hr'. apply* IHHr.
 Qed.
 
+Lemma repl_composition_p_weaken_one G x p q V :
+  ok G ->
+  x # G ->
+  G ⊢ p ⟿' q ->
+  G & x ~ V ⊢ p ⟿' q.
+Proof.
+  intros Hok Hn Hr. gen x V. dependent induction Hr; intros.
+  - constructor.
+  - destruct H.
+    eapply star_trans. apply star_one. econstructor. repeat eexists. apply* pf_weaken. apply* pt2_weaken.
+    apply* IHHr.
+Qed.
+
 Lemma repl_composition_weaken G G' T U :
   ok (G & G') ->
   G ⊢ T ⟿ U ->
@@ -1298,6 +1311,17 @@ Proof.
   - rewrite* concat_empty_r.
   - rewrite concat_assoc in *. apply ok_push_inv in Hok as [? ?].
     eapply repl_composition_weaken_one; eauto.
+Qed.
+
+Lemma repl_composition_p_weaken G G' p q :
+  ok (G & G') ->
+  G ⊢ p ⟿' q ->
+  G & G' ⊢ p ⟿' q.
+Proof.
+  intros Hok Hr. induction G' using env_ind.
+  - rewrite* concat_empty_r.
+  - rewrite concat_assoc in *. apply ok_push_inv in Hok as [? ?].
+    eapply repl_composition_p_weaken_one; eauto.
 Qed.
 
 Notation "G '⊩' T '⟿' U '⬳' V" := (G ⊢ T ⟿ U /\ G ⊢ V ⟿ U) (at level 40, T at level 59).
