@@ -8,10 +8,6 @@ mechanized in Coq.
 > The version used to encode the lambda-2Gmu calculus is on the
 > [lambda-2Gmu](https://github.com/Linyxus/extended-pdot-calculus/tree/lambda-2Gmu)
 > branch.
-> The
-> [type-case](https://github.com/Linyxus/extended-pdot-calculus/tree/type-case)
-> branch is a further-extended version of the calculus with tags and type cases.
-> (WIP :construction:)
 
 The calculus is extended with the following record subtyping inversion rules,
 which will facilitate the formalization of GADT reasoning in pDOT.
