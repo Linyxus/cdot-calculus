@@ -438,6 +438,24 @@ Proof.
   inversion Heq.
 Qed.
 
+Lemma subtyp_tag_equiv_path_qp_step: forall G p q,
+    typed_path_repl_comp_qp G q p ->
+    G ⊢ typ_tag q <: typ_tag p.
+Proof.
+  introv Hqp. inversions Hqp.
+  eapply subtyp_sngl_qp. apply* precise_to_general.
+  apply* precise_to_general2. eauto.
+Qed.
+
+Lemma subtyp_tag_equiv_path_pq_step: forall G p q,
+    typed_path_repl_comp_qp G q p ->
+    G ⊢ typ_tag p <: typ_tag q.
+Proof.
+  introv Hqp. inversions Hqp.
+  eapply subtyp_sngl_pq. apply* precise_to_general.
+  apply* precise_to_general2. eauto.
+Qed.
+
 Lemma ty_tag_equiv_path_qp_step: forall G t p q,
     typed_path_repl_comp_qp G q p ->
     G ⊢ t : typ_tag q ->
@@ -460,6 +478,26 @@ Proof.
   exact Hq.
   eapply subtyp_sngl_pq. apply* precise_to_general.
   apply* precise_to_general2. eauto.
+Qed.
+
+Lemma subtyp_tag_equiv_path_qp : forall G p q,
+    G ⊢ q ⟿' p ->
+    G ⊢ typ_tag q <: typ_tag p.
+Proof.
+  introv Hqp.
+  dependent induction Hqp; eauto 2.
+  apply subtyp_trans with (T:=typ_tag b); eauto 1.
+  apply* subtyp_tag_equiv_path_pq_step.
+Qed.
+
+Lemma subtyp_tag_equiv_path_pq : forall G p q,
+    G ⊢ q ⟿' p ->
+    G ⊢ typ_tag p <: typ_tag q.
+Proof.
+  introv Hqp.
+  dependent induction Hqp; eauto 2.
+  apply subtyp_trans with (T:=typ_tag b); eauto 1.
+  apply* subtyp_tag_equiv_path_qp_step.
 Qed.
 
 Lemma ty_tag_equiv_path_qp : forall G t p q,
@@ -568,51 +606,27 @@ Qed.
 (** If a stable term [t] has a function type and [t] can be looked
     up to [u] in a finite number of steps in the value environment,
     then [u] has the same function type. *)
-Lemma lookup_preservation_tag : forall G γ t u r U,
+Lemma lookup_preservation_tag : forall G γ t u r,
     inert G ->
     wf G ->
     γ ⫶ G ->
     γ ⟦ t ⤳* u ⟧ ->
     G ⊢ deftrm t : typ_tag r ->
-    G ⊢!! r : U ->
     G ⊢ deftrm u : typ_tag r.
 Proof.
-  introv Hi Hwf Hwt Hl Hp Hr. dependent induction Hl; auto.
+  introv Hi Hwf Hwt Hl Hp. dependent induction Hl; auto.
   assert (exists q, a = defp q) as [q ->] by (inversions H; eauto).
   proof_recipe.
-  eapply repl_to_invertible_tag in Hp; eauto 1.
-  destruct Hp as [q' [S [Hqi [Hq' Hqr']]]].
-  eapply inv_to_precise_tag in Hqi; eauto 5.
-  destruct Hqi as [r' [S' [Hqp [HqS Hrq']]]].
+  eapply repl_to_invertible_tag_repl_comp in Hp; eauto 1.
+  destruct Hp as [q' [Hrq' Hqi]].
+  eapply inv_to_precise_tag_repl_comp in Hqi; eauto 5.
+  destruct Hqi as [r' [Hqp Hrq'']].
   pose proof (lookup_step_preservation_prec3_tag Hi Hwf Hwt H Hqp) as Hb.
   apply IHHl; eauto 1.
   eapply ty_sub. apply Hb.
-  destruct Hrq'; destruct Hqr'; subst; eauto 2.
-  + eapply subtyp_sngl_qp. apply* precise_to_general3. apply* precise_to_general2.
-    lets: rtag q' r. specialize (H0 nil).
-    replace (q' •• nil) with q' in H0.
-    replace (r •• nil) with r in H0. exact H0.
-    destruct r; simpl; reflexivity.
-    destruct q'; simpl; reflexivity.
-  + eapply subtyp_sngl_pq. apply* precise_to_general3. apply* precise_to_general2.
-    lets: rtag r' q'. specialize (H1 nil).
-    replace (q' •• nil) with q' in H1.
-    replace (r' •• nil) with r' in H1. exact H1.
-    destruct r'; simpl; reflexivity.
-    destruct q'; simpl; reflexivity.
-  + apply subtyp_trans with (T:= typ_tag q').
-    ++ eapply subtyp_sngl_pq. eapply precise_to_general3. exact H0. apply* precise_to_general2.
-      lets: rtag r' q'. specialize (H2 nil).
-      replace (q' •• nil) with q' in H2.
-      replace (r' •• nil) with r' in H2. exact H2.
-      destruct r'; simpl; reflexivity.
-      destruct q'; simpl; reflexivity.
-    ++ eapply subtyp_sngl_qp. eapply precise_to_general3. exact H1. apply* precise_to_general2.
-      lets: rtag q' r. specialize (H2 nil).
-      replace (q' •• nil) with q' in H2.
-      replace (r •• nil) with r in H2. exact H2.
-      destruct r; simpl; reflexivity.
-      destruct q'; simpl; reflexivity.
+  apply subtyp_trans with (T:=typ_tag q').
+  + apply* subtyp_tag_equiv_path_qp.
+  + apply* subtyp_tag_equiv_path_pq.
 Qed.
 
 (** ** Looking up well-typed paths *)
@@ -1276,18 +1290,17 @@ Qed.
 (** If a path has a III-level tag type then the path can be
     looked up in the value environment in a finite number of steps
     to a value of the same type. *)
-Lemma corresponding_types_tag: forall G γ p q U,
+Lemma corresponding_types_tag: forall G γ p q,
     inert G ->
     wf G ->
     γ ⫶ G ->
     G ⊢!!! p: typ_tag q ->
-    G ⊢!! q : U ->
     (exists v, γ ⟦ defp p ⤳* defv v ⟧ /\
             G ⊢ trm_val v : typ_tag q).
 Proof.
-  introv Hi Hwf Hwt Hp Hq.
+  introv Hi Hwf Hwt Hp.
   destruct (typed_path_lookup3_tag Hi Hwf Hwt Hp) as [v Hs].
-  lets Ht: (lookup_preservation_tag Hi Hwf Hwt Hs (precise_to_general3 Hp) Hq). eauto.
+  lets Ht: (lookup_preservation_tag Hi Hwf Hwt Hs (precise_to_general3 Hp)). eauto.
 Qed.
 
 (** ** Canonical Forms for Functions (Lemma 5.5) *)
@@ -1318,22 +1331,19 @@ Proof.
     eapply ty_sub; eauto.
 Qed.
 
-Lemma canonical_forms_tag: forall G γ p r1 U,
+Lemma canonical_forms_tag: forall G γ p r1,
     inert G ->
     wf G ->
     γ ⫶ G ->
     G ⊢ trm_path p : typ_tag r1 ->
-    G ⊢ trm_path r1 : U ->
-    (exists q A r2, γ ⟦ defp p ⤳* defv (val_tag q A r2) ⟧).
+    (exists q A r2, γ ⟦ defp p ⤳* defv (val_tag q A r2) ⟧ /\
+               G ⊢ trm_path r2 : q↓A /\
+               (r1 = r2 \/ G ⊢ trm_path r2 : {{ r1 }})).
 Proof.
-  introv Hin Hwf Hwt Hty Hru.
-  destruct (path_typ_tag_to_precise Hin Hwf Hty Hru) as [q [Hpq [[S HqS] [q' [Hqe1 Hqe2]]]]].
-  assert (Hqu2: exists U, G ⊢!! q : U). {
-    apply* pt2_exists.
-  }
-  destruct Hqu2 as [U' Hqu2].
-  destruct (corresponding_types_tag Hin Hwf Hwt Hpq Hqu2) as [v [P Hv]].
+  introv Hin Hwf Hwt Hty.
+  destruct (path_typ_tag_to_precise Hin Hwf Hty) as [q [Hpq [q' Hrqq]]].
+  destruct (corresponding_types_tag Hin Hwf Hwt Hpq) as [v [P Hv]].
   destruct (val_typ_tag_to_tag Hin Hv) as [p0 [A [r' [r'' [Heq [Ht1 He1]]]]]].
   subst.
-  eauto.
-Qed.
+  repeat eexists; eauto 2.
+Admitted.

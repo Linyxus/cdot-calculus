@@ -205,29 +205,22 @@ Qed.
 
 (** If a path has a function type then its III-level precise type is
     also a function type that is a subtype of the former. *)
-Lemma path_typ_tag_to_precise: forall G p r U,
+Lemma path_typ_tag_to_precise: forall G p r,
     inert G ->
     wf G ->
     G ⊢ trm_path p : typ_tag r ->
-    G ⊢ trm_path r : U ->
     (exists q,
         G ⊢!!! p : typ_tag q /\
-        (exists S, G ⊢!!! q : S) /\
-        (exists q', (r = q' \/ G ⊢!!! r : {{ q' }}) /\
-               (q = q' \/ G ⊢!!! q : {{ q' }}))).
+        (exists q', G ⊩ r ⟿' q' ⬳ q)).
 Proof.
-  introv Hin Hwf Ht HrU.
-  apply pt3_exists in HrU as [U' Hu]; eauto 1.
-  apply pt2_exists in Hu as [U'' Hu1]; eauto 1.
+  introv Hin Hwf Ht.
   apply (general_to_tight Hin) in Ht; eauto 1.
   apply (replacement_closure Hin) in Ht; eauto 1.
-  eapply repl_to_invertible_tag in Ht; eauto 1.
-  destruct Ht as [q' [S [Hq' [HqS Hrq']]]].
-  eapply inv_to_precise_tag in Hq'; eauto 5.
-  destruct Hq' as [q'' [S' [Hq'' [HqS' Hrq'']]]].
-  + exists q''. split; try split; eauto 2.
-    destruct Hrq'; destruct Hrq''; subst; eauto 2.
-    exists q'. split*.
+  eapply repl_to_invertible_tag_repl_comp in Ht; eauto 1.
+  destruct Ht as [q' [Hrq' Hqi]].
+  eapply inv_to_precise_tag_repl_comp in Hqi; eauto 5.
+  destruct Hqi as [r' [Hqp Hrq'']].
+  eauto.
 Qed.
 
 (** If a value has a tag type then the value is a tag. *)

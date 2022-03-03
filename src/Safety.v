@@ -337,11 +337,6 @@ Proof.
       destruct bs as [|b bs].
       ++ apply pf_binds in Hp; auto. apply binds_push_eq_inv in Hp as [=].
       ++ apply pf_sngl in Hp as [? [? [=]%pf_binds%binds_push_eq_inv]]; auto.
-    + introv Hp.
-      assert (binds x (∀(T) U) (G & x ~ ∀(T) U)) as Hb by auto. apply pf_bind in Hb; auto.
-      destruct bs as [|b bs].
-      ++ apply pf_binds in Hp; auto. apply binds_push_eq_inv in Hp as [=].
-      ++ apply pf_sngl in Hp as [? [? [=]%pf_binds%binds_push_eq_inv]]; auto.
   - exists (μ T). assert (inert_typ (μ T)) as Hin. {
       apply ty_new_intro_p in H. apply* pfv_inert.
     }
@@ -374,32 +369,6 @@ Proof.
       }
       apply pt3_exists in Hq as [? Hq'%pt2_exists]; auto.
     }
-    {
-      introv Hp.
-      assert (exists W, G & x ~ (μ T) ⊢ trm_path q : W) as [W Hq]. {
-        assert (inert (G & x ~ μ T)) as Hi' by eauto.
-        pose proof (pf_sngl_to_lft Hi' Hp) as [-> | [b [c [bs' [bs'' [U [V [-> [Hl1 [Hl2 [Hr1 Hr2]]]]]]]]]]].
-        { apply pf_binds in Hp as [=]%binds_push_eq_inv; auto. }
-        assert (x; nil; G & x ~ open_typ x T ⊢ open_defs x ds :: open_typ x T)
-          as Hdx%open_env_last_defs. {
-          apply rename_defs with (x:=z); auto.
-        }
-        destruct bs'' as [|bs'h bs't].
-        + rewrite app_nil_l in *. inversions Hl1. inversions Hl2.
-          eapply defs_typing_tag_rhs. apply Hdx. exact Hi'. rewrite* open_var_typ_eq.
-        + rewrite <- app_comm_cons in Hl1. inversions Hl1.
-          eapply defs_typing_rhs_tag. exact Hi'.
-          apply Hdx.
-          apply Hin.
-          eauto.
-          rewrite open_var_typ_eq in Hr1. apply Hr1.
-          auto.
-          apply Hl2.
-          apply Hr2.
-        + auto.
-      }
-      apply pt3_exists in Hq as [? Hq'%pt2_exists]; auto.
-    }
   - specialize (IHHv _ Hi Hwf eq_refl Hx). destruct_all. eexists; split*.
   - exists (typ_tag q). repeat split; eauto 2.
     constructor; eauto.
@@ -408,12 +377,7 @@ Proof.
       destruct bs as [|b bs].
       ++ apply pf_binds in Hp; auto. apply binds_push_eq_inv in Hp as [=].
       ++ apply pf_sngl in Hp as [? [? [=]%pf_binds%binds_push_eq_inv]]; auto.
-    + introv Hp. assert (Hi': inert (G & x ~ typ_tag q)) by eauto.
-      assert (binds x (typ_tag q) (G & x ~ typ_tag q)) as Hb by auto. apply pf_bind in Hb; auto.
-      destruct bs as [|b bs].
-      ++ lets Heq: pf_T_unique Hi' Hp Hb. inversions Heq. admit.
-      ++ apply pf_sngl in Hp as [? [? [=]%pf_binds%binds_push_eq_inv]]; auto.
-Admitted.
+Qed.
 
 (** Helper tactics for proving Preservation *)
 
@@ -503,8 +467,18 @@ Proof.
       eauto
     end.
   - Case "ty_tag"%string.
-    pose proof (canonical_forms_tag Hi Hwf Hwt) as Hcn.
-Qed.
+    pose proof (canonical_forms_tag Hi Hwf Hwt Ht1) as Hcf.
+    destruct Hcf as [p0 [A0 [r1 [Hpd [Htr1 Htr2]]]]].
+    inversion Hred. subst.
+    + lookup_eq. exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+      (* pick_fresh y. assert (y \notin L) as FrL by eauto. specialize (H y FrL). *)
+      destruct Htr2.
+      ++ subst r0.
+      eapply subst_fresh_var_path. apply* inert_ok. exact H.
+      destruct Htr2; try subst r0. admit.
+      apply ty_and_intro. exact H1. exact Htr1.
+    + subst. lookup_eq. exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+Admitted.
 
 (** **** Progress (Lemma 5.3) *)
 (** Any well-typed term is either in normal form (i.e. a path or value) or can
