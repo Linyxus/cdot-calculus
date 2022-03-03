@@ -213,3 +213,62 @@ Proof.
     + apply star_refl.
     + apply* lookup_weaken_one.
 Qed.
+
+Reserved Notation "γ '⟦' t '⤳!' u '⟧'" (at level 40).
+
+Inductive dealias_path : sta -> path -> (def_rhs * path) -> Prop :=
+
+| dealias_var : forall γ x v,
+    binds x v γ ->
+    γ ⟦ pvar x ⤳! (defv v, pvar x) ⟧
+
+| dealias_sel_p : forall γ p p' T ds a q q0 v q',
+    γ ⟦ p ⤳! (defv (val_new T ds), p') ⟧ ->
+    defs_has ds { a :=p q0 } ->
+    q = open_path_p p' q0 ->
+    γ ⟦ q ⤳! (v, q') ⟧ ->
+    γ ⟦ p•a ⤳! (v, q') ⟧
+
+| dealias_sel_v : forall γ p p' T ds a v,
+    γ ⟦ p ⤳! (defv (val_new T ds), p') ⟧ ->
+    defs_has ds { a :=v v } ->
+    γ ⟦ p•a ⤳! (open_defrhs_p p' (defv v), p'•a) ⟧
+
+where "γ '⟦' t '⤳!' u '⟧'" := (dealias_path γ t u).
+
+Lemma lookup_sel_p_star : forall γ p q a,
+    γ ⟦ defp p ⤳* defp q ⟧ ->
+    γ ⟦ defp p•a ⤳* defp q•a ⟧.
+Proof.
+  introv Hl.
+  dependent induction Hl.
+  - apply star_refl.
+  - destruct b.
+    + specialize (IHHl _ _ eq_refl eq_refl).
+      apply star_step with (b:=defp p0•a); auto.
+    + inversion Hl; subst. inversion H0.
+Qed.
+
+(* Lemma lookup_sel_v_star : forall γ p T ds a t, *)
+(*     γ ⟦ defp p ⤳* defv (val_new T ds) ⟧ -> *)
+(*     defs_has ds { a := t } -> *)
+(*     γ ⟦ defp p•a ⤳* t ⟧. *)
+(* Proof. *)
+(*   introv Hl Hds. *)
+(*   dependent induction Hl. *)
+(*   destruct b. *)
+(*   - specialize (IHHl _ _ _ eq_refl eq_refl Hds). eauto. *)
+(*   - inversion Hl; subst. *)
+(*     + apply star_one. eapply lookup_sel_v. *)
+
+Lemma dealias_implies_lookup : forall γ p q v,
+    γ ⟦ p ⤳! (v, q) ⟧ ->
+    γ ⟦ defp p ⤳* defp q ⟧ /\ γ ⟦ defp q ⤳* v ⟧.
+Proof.
+  introv Hd. dependent induction Hd.
+  - split*.
+  - split*. specialize (IHHd1 _ _ eq_refl).
+    specialize (IHHd2 _ _ eq_refl).
+    + apply star_trans with (b:=defp (p'•a)).
+      ++ apply* lookup_sel_p_star.
+      ++
