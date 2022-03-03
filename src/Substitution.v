@@ -457,3 +457,199 @@ Proof.
   apply* rename_def_defs.
   rewrite concat_empty_r. auto.
 Qed.
+
+(** The proof is by mutual induction on term typing, definition typing, and subtyping. *)
+Lemma subst_rules_sngl: forall p S,
+  (forall G t T, G ⊢ t : T -> forall G1 G2 x,
+    G = G1 & x ~ {{ p }} ∧ S & G2 ->
+    ok (G1 & x ~ {{ p }} ∧ S & G2) ->
+    x \notin fv_ctx_types G1 ->
+    G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
+    G1 & (subst_ctx x p G2) ⊢ subst_trm x p t : subst_typ x p T) /\
+  (forall z bs G d D, z; bs; G ⊢ d : D -> forall G1 G2 x,
+    G = G1 & x ~ {{ p }} ∧ S & G2 ->
+    ok (G1 & x ~ {{ p }} ∧ S & G2) ->
+    x \notin fv_ctx_types G1 ->
+    G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
+    z <> x ->
+    z; bs; G1 & (subst_ctx x p G2) ⊢ subst_def x p d : subst_dec x p D) /\
+  (forall z bs G ds T, z; bs; G ⊢ ds :: T -> forall G1 G2 x,
+    G = G1 & x ~ S & G2 ->
+    ok (G1 & x ~ S & G2) ->
+    x \notin fv_ctx_types G1 ->
+    G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
+    z <> x ->
+    z; bs; G1 & (subst_ctx x p G2) ⊢ subst_defs x p ds :: subst_typ x p T) /\
+  (forall G T U, G ⊢ T <: U -> forall G1 G2 x,
+    G = G1 & x ~ S & G2 ->
+    ok (G1 & x ~ S & G2) ->
+    x \notin fv_ctx_types G1 ->
+    G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
+    G1 & (subst_ctx x p G2) ⊢ subst_typ x p T <: subst_typ x p U).
+Proof.
+  intros p S.
+  apply rules_mutind; intros; subst; simpl;
+  try (subst_fresh_solver || rewrite subst_open_commut_typ_p);
+  simpl in *; autounfold;
+  try assert (named_path p) as Hn by apply* typed_paths_named;
+  eauto 4.
+  - Case "ty_var"%string.
+    cases_if.
+    + apply binds_middle_eq_inv in b; subst*. destruct* p.
+    + eapply subst_fresh_ctx in H1.
+      apply binds_subst in b; auto.
+      constructor. rewrite <- H1.
+      unfold subst_ctx. rewrite <- map_concat.
+      apply binds_map; auto.
+  - Case "ty_all_intro"%string.
+    fresh_constructor.
+    subst_open_fresh.
+    destruct p as [p_x p_bs].
+    match goal with
+    | [ H: forall z, z \notin ?L -> forall G, _
+        |- context [_ & subst_ctx ?x ?p ?G2 & ?z ~ subst_typ ?x ?p ?V] ] =>
+      assert (subst_ctx x p G2 & z ~ subst_typ x p V = subst_ctx x p (G2 & z ~ V)) as B
+          by (unfold subst_ctx; rewrite map_concat, map_single; auto);
+        rewrite <- concat_assoc; rewrite B;
+          subst_open_fresh;
+          rewrite* <- subst_open_commut_trm_p;
+          rewrite* <- subst_open_commut_typ_p;
+          rewrite <- open_var_trm_eq, <- open_var_typ_eq;
+          apply* H; try rewrite* concat_assoc;
+            rewrite <- B, concat_assoc; unfold subst_ctx;
+              auto using weaken_ty_trm, ok_push, ok_concat_map
+    end.
+  - Case "ty_new_intro"%string.
+    fresh_constructor.
+    subst_open_fresh.
+    match goal with
+    | [ |- _; _; _ ⊢ _ _ _ :: _ ] =>
+      assert (pvar z = subst_var_p x p z) as Hxyz by (unfold subst_var_p; rewrite~ If_r);
+      rewrite Hxyz at 1
+    end.
+    rewrite <- Hxyz.
+    subst_open_fresh.
+    rewrite* <- subst_open_commut_typ_p.
+    rewrite* <- subst_open_commut_defs_p.
+    assert (subst_ctx x p G2 & z ~ subst_typ x p (open_typ_p (pvar z) T) =
+    subst_ctx x p (G2 & z ~ open_typ_p (pvar z) T)) as Heq
+    by (unfold subst_ctx; rewrite map_concat, map_single; auto).
+    rewrite <- concat_assoc. rewrite Heq.
+    destruct p as [p_x p_bs].
+    assert (exists p_x0, p_x = avar_f p_x0) as Heq'. {
+      inversions Hn. destruct_all. inversions H0. eauto.
+    }
+    destruct Heq' as [p_x0 Heq']; subst.
+    assert (z = subst_var x p_x0 z) as Heq'. {
+      unfolds subst_var; rewrite~ If_r.
+    }
+    rewrite <- open_var_typ_eq, <- open_var_defs_eq.
+    apply* H; try rewrite* concat_assoc.
+    unfolds subst_ctx. rewrite map_concat. rewrite concat_assoc.
+    apply* weaken_ty_trm.
+  - Case "ty_new_elim"%string.
+    asserts_rewrite (subst_path x p p0 • a = (subst_path x p p0) • a).
+    destruct p0. apply sel_fields_subst. auto.
+  - Case "ty_rcd_intro"%string.
+    assert (subst_path x p p0 • a = (subst_path x p p0) • a) as Heq. {
+      destruct p0. apply sel_fields_subst.
+    }
+    specialize (H _ _ _ eq_refl H1 H2 H3). rewrite Heq in H. eauto.
+  - Case "ty_let"%string.
+    fresh_constructor.
+    subst_open_fresh.
+    match goal with
+    | [ H: forall z, z \notin ?L -> forall G, _
+      |- context [_ & subst_ctx ?x ?p ?G2 & ?z ~ subst_typ ?x ?p ?V] ] =>
+      assert (subst_ctx x p G2 & z ~ subst_typ x p V = subst_ctx x p (G2 & z ~ V)) as B
+      by (unfold subst_ctx; rewrite map_concat, map_single; auto);
+      rewrite <- concat_assoc; rewrite B;
+        rewrite* <- subst_open_commut_trm_p;
+      rewrite <- open_var_trm_eq;
+        apply* H; try rewrite* concat_assoc;
+          rewrite <- B, concat_assoc; unfold subst_ctx;
+          auto using weaken_ty_trm, ok_push, ok_concat_map
+    end.
+  - Case "ty_path_elim"%string.
+    destruct p0, q.
+    rewrite sel_fields_subst.
+    rewrite sel_fields_subst.
+    eapply ty_path_elim; try (rewrite <- sel_fields_subst); auto.
+  - Case "ty_rec_intro"%string.
+    constructor. rewrite* <- subst_open_commut_typ_p.
+  - Case "ty_case"%string.
+    fresh_constructor.
+    assert (He1: {{subst_path x p r}} ∧ (subst_path x p q ↓ A) = (subst_typ x p ({{r}} ∧ (q ↓ A))))
+      by eauto. rewrite -> He1. clear He1.
+    assert (subst_ctx x p G2 & z ~ subst_typ x p ({{r}} ∧ (q ↓ A)) = subst_ctx x p (G2 & z ~ ({{r}} ∧ (q ↓ A)))) as B
+        by (unfold subst_ctx; rewrite map_concat, map_single; auto).
+    rewrite <- concat_assoc. rewrite B.
+    repeat subst_open_fresh.
+    rewrite* <- subst_open_commut_trm_p.
+    rewrite <- open_var_trm_eq.
+    apply~ H0; try rewrite* concat_assoc;
+    rewrite <- B, concat_assoc; unfold subst_ctx;
+    auto using weaken_ty_trm, ok_push, ok_concat_map.
+  - Case "ty_def_new"%string.
+    specialize (H _ _ _ eq_refl H1 H2 H3 H4).
+    rewrite* subst_open_commut_defs_p in H.
+    rewrite* subst_open_commut_typ_p in H.
+    unfolds subst_var.
+    eapply ty_def_new; eauto.
+    * replace (μ (subst_typ x0 p T)) with (subst_typ x0 p (μ T)) by auto.
+      apply tight_bounds_subst. eauto.
+    * simpl.
+      replace (p_sel (avar_f x) (b :: bs)) with (subst_path x0 p (p_sel (avar_f x) (b :: bs))); eauto.
+      simpl. unfold subst_var_p.
+      case_if*. simpl. rewrite app_nil_r. auto.
+  - Case "ty_defs_cons"%string.
+    apply ty_defs_cons.
+    * eapply H; eauto.
+    * eapply H0; eauto.
+    * eapply subst_defs_hasnt_label. apply d0.
+  - (* subtyp_rcd_inv1 *)
+    eapply subtyp_rcd_inv1.
+    -- apply* H.
+    -- pose proof (subst_typ_rcd_has_unique_typ x p _ _ e) as Hg.
+       exact Hg.
+    -- pose proof (subst_typ_rcd_has_unique_typ x p _ _ e0) as Hg.
+       exact Hg.
+  - (* subtyp_rcd_inv1 *)
+    eapply subtyp_rcd_inv2.
+    -- apply* H.
+    -- pose proof (subst_typ_rcd_has_unique_typ x p _ _ e) as Hg.
+       exact Hg.
+    -- pose proof (subst_typ_rcd_has_unique_typ x p _ _ e0) as Hg.
+       exact Hg.
+  - Case "subtyp_sngl_pq"%string.
+    subst_tydef_solver.
+    eapply subtyp_sngl_pq; eauto.
+    eapply repl_typ_subst. apply r.
+  - Case "subtyp_sngl_qp"%string.
+    subst_tydef_solver.
+    eapply subtyp_sngl_qp; eauto.
+    eapply repl_typ_subst. apply r.
+  - Case "subtyp_all"%string.
+    subst_tydef_solver.
+    eapply (@subtyp_all (L \u \{ x } \u (dom (G1 & (subst_ctx x p G2)) \u (dom (G1 & x ~ S & G2))))). eauto.
+    intros x0 Hx0.
+    assert (Hx0inL: x0 \notin L) by auto.
+    assert (Hxx0: x0 <> x) by auto.
+    assert (Hx0inG: x0 # (G1 & (subst_ctx x p G2))) by auto.
+    rewrite open_typ_subst; try assumption.
+    rewrite open_typ_subst; try assumption.
+    specialize (H0 x0 Hx0inL G1 (G2 & x0 ~ S2) x).
+    replace (G1 & subst_ctx x p G2 & x0 ~ subst_typ x p S2)
+    with (G1 & subst_ctx x p (G2 & x0 ~ S2)).
+    * eapply H0.
+      + rewrite concat_assoc. auto.
+      + rewrite concat_assoc. constructor.
+        apply H2. auto.
+      + apply H3.
+      + unfold subst_ctx. rewrite map_push.
+        rewrite concat_assoc. fold subst_ctx.
+        apply weaken_ty_trm.
+        apply H4. constructor; auto.
+    * unfold subst_ctx. rewrite map_push.
+      rewrite concat_assoc. auto.
+Qed.
