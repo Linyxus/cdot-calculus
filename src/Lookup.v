@@ -214,61 +214,131 @@ Proof.
     + apply* lookup_weaken_one.
 Qed.
 
+(** Looking up a path in a store (generalization of variable binding). *)
 Reserved Notation "γ '⟦' t '⤳!' u '⟧'" (at level 40).
 
-Inductive dealias_path : sta -> path -> (def_rhs * path) -> Prop :=
+Inductive dealias_step : sta -> path -> (def_rhs * path) -> Prop :=
 
+(** [γ(x) = v ]   #<br>#
+    [―――――――――]   #<br>#
+    [γ ⊢ x ⤳ v]   *)
 | dealias_var : forall γ x v,
     binds x v γ ->
     γ ⟦ pvar x ⤳! (defv v, pvar x) ⟧
 
-| dealias_sel_p : forall γ p p' T ds a q q0 v q',
-    γ ⟦ p ⤳! (defv (val_new T ds), p') ⟧ ->
-    defs_has ds { a :=p q0 } ->
-    q = open_path_p p' q0 ->
-    γ ⟦ q ⤳! (v, q') ⟧ ->
-    γ ⟦ p•a ⤳! (v, q') ⟧
+(** [γ ⊢ p ⤳ q ]              #<br>#
+    [――――――――――――――――――――――]    #<br>#
+    [γ ⊢ p.a ⤳ q.a ]          *)
+| dealias_sel_p : forall γ p q q0 a,
+    γ ⟦ p ⤳! (defp q, q0) ⟧ ->
+    γ ⟦ p•a ⤳! (defp (q•a), q0•a) ⟧
 
-| dealias_sel_v : forall γ p p' T ds a v,
-    γ ⟦ p ⤳! (defv (val_new T ds), p') ⟧ ->
-    defs_has ds { a :=v v } ->
-    γ ⟦ p•a ⤳! (open_defrhs_p p' (defv v), p'•a) ⟧
+(** [γ ⊢ p ⤳ ν(T)...{a = t}... ]   #<br>#
+    [――――――――――――――――――――――]         #<br>#
+    [γ ⊢ p.a ⤳ t ]                 *)
+| dealias_sel_v : forall γ p p0 a t T ds,
+    γ ⟦ p ⤳! (defv (val_new T ds), p0) ⟧ ->
+    defs_has ds { a := t } ->
+    γ ⟦ p•a ⤳! (open_defrhs_p p t, p•a) ⟧
 
-where "γ '⟦' t '⤳!' u '⟧'" := (dealias_path γ t u).
+where "γ '⟦' p '⤳!' t '⟧'" := (dealias_step γ p t).
 
-Lemma lookup_sel_p_star : forall γ p q a,
-    γ ⟦ defp p ⤳* defp q ⟧ ->
-    γ ⟦ defp p•a ⤳* defp q•a ⟧.
+(** Reflexive, transitive closure of path dealiasing *)
+Reserved Notation "γ '⟦' t '⤳!*' u '⟧'" (at level 40).
+
+Inductive dealias_path : sta -> path -> (def_rhs * path) -> Prop :=
+
+| dealias_path_refl : forall γ p,
+    γ ⟦ p ⤳!* (defp p, p) ⟧
+
+| dealias_path_step : forall γ p q q0 v q1,
+    γ ⟦ p ⤳!* (defp q, q0) ⟧ ->
+    γ ⟦ q ⤳! (v, q1) ⟧ ->
+    γ ⟦ p ⤳!* (v, q1) ⟧
+
+where "γ '⟦' p '⤳!*' t '⟧'" := (dealias_path γ p t).
+
+Hint Constructors dealias_step dealias_path.
+
+Lemma dealias_one : forall γ p v q,
+    γ ⟦ p ⤳! (v, q) ⟧ ->
+    γ ⟦ p ⤳!* (v, q) ⟧.
+Proof.
+  introv Hd. eapply dealias_path_step.
+  - apply dealias_path_refl.
+  - exact Hd.
+Qed.
+
+Lemma dealias_trans_p_aux : forall γ p q q0 r q1,
+    γ ⟦ p ⤳! (defp q, q0) ⟧ ->
+    γ ⟦ q ⤳!* (defp r, q1) ⟧ ->
+    exists q2, γ ⟦ p ⤳!* (defp r, q2) ⟧.
+Proof.
+  introv Hd1 Hd2. gen p q0.
+  dependent induction Hd2; introv Hd1.
+  - eexists; eauto.
+  - specialize (IHHd2 _ _ eq_refl _ _ Hd1).
+    destruct IHHd2 as [q3 Hd3].
+    repeat eexists; eauto.
+Qed.
+
+Lemma dealias_trans_p : forall γ p q q0 r q1,
+    γ ⟦ p ⤳!* (defp q, q0) ⟧ ->
+    γ ⟦ q ⤳!* (defp r, q1) ⟧ ->
+    exists q2, γ ⟦ p ⤳!* (defp r, q2) ⟧.
+Proof.
+  introv Hd1 Hd2. gen r q1.
+  dependent induction Hd1; introv Hd2.
+  - eexists; eauto.
+  - specialize (IHHd1 _ _ eq_refl).
+    lets Haux: dealias_trans_p_aux H Hd2. destruct Haux as [q4 Hd4].
+    apply* IHHd1.
+Qed.
+
+Lemma dealias_trans_v : forall γ p q q0 v q1,
+    γ ⟦ p ⤳!* (defp q, q0) ⟧ ->
+    γ ⟦ q ⤳!* (defv v, q1) ⟧ ->
+    γ ⟦ p ⤳!* (defv v, q1) ⟧.
+Proof.
+  introv Hd1 Hd2.
+  dependent induction Hd2.
+  lets Hp: (dealias_trans_p Hd1 Hd2). destruct Hp as [q4 Hd4].
+  eapply dealias_path_step. exact Hd4. auto.
+Qed.
+
+Lemma lookup_to_dealias_step : forall γ p t,
+    γ ⟦ p ⤳ t ⟧ ->
+    (exists q, γ ⟦ p ⤳! (t, q) ⟧).
+Proof.
+  introv Hpt.
+  dependent induction Hpt.
+  - eexists. eauto.
+  - specialize (IHHpt _ eq_refl).
+    destruct IHHpt as [q0 IH]. repeat eexists.
+    eauto.
+  - specialize (IHHpt _ eq_refl).
+    destruct IHHpt as [q0 IH].
+    eexists. eauto.
+Qed.
+
+Lemma lookup_to_dealias : forall γ p t,
+    γ ⟦ defp p ⤳* t ⟧ ->
+    (exists q, γ ⟦ p ⤳!* (t, q) ⟧).
 Proof.
   introv Hl.
   dependent induction Hl.
-  - apply star_refl.
+  - eauto.
   - destruct b.
-    + specialize (IHHl _ _ eq_refl eq_refl).
-      apply star_step with (b:=defp p0•a); auto.
-    + inversion Hl; subst. inversion H0.
+    + specialize (IHHl _ eq_refl).
+      apply lookup_to_dealias_step in H. destruct H as [q H].
+      destruct IHHl as [q0 IH].
+      apply dealias_one in H. destruct c.
+      * eapply dealias_trans_p. exact H. exact IH.
+      * eexists. eapply dealias_trans_v. exact H. exact IH.
+    + inversion Hl.
+      * subst. apply lookup_to_dealias_step in H.
+        destruct H as [q H].
+        eexists. apply* dealias_one.
+      * subst. false* lookup_irred.
 Qed.
 
-(* Lemma lookup_sel_v_star : forall γ p T ds a t, *)
-(*     γ ⟦ defp p ⤳* defv (val_new T ds) ⟧ -> *)
-(*     defs_has ds { a := t } -> *)
-(*     γ ⟦ defp p•a ⤳* t ⟧. *)
-(* Proof. *)
-(*   introv Hl Hds. *)
-(*   dependent induction Hl. *)
-(*   destruct b. *)
-(*   - specialize (IHHl _ _ _ eq_refl eq_refl Hds). eauto. *)
-(*   - inversion Hl; subst. *)
-(*     + apply star_one. eapply lookup_sel_v. *)
-
-Lemma dealias_implies_lookup : forall γ p q v,
-    γ ⟦ p ⤳! (v, q) ⟧ ->
-    γ ⟦ defp p ⤳* defp q ⟧ /\ γ ⟦ defp q ⤳* v ⟧.
-Proof.
-  introv Hd. dependent induction Hd.
-  - split*.
-  - split*. specialize (IHHd1 _ _ eq_refl).
-    specialize (IHHd2 _ _ eq_refl).
-    + apply star_trans with (b:=defp (p'•a)).
-      ++ apply* lookup_sel_p_star.
-      ++
