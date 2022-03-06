@@ -342,3 +342,21 @@ Proof.
       * subst. false* lookup_irred.
 Qed.
 
+Lemma dealias_to_lookup_step : forall γ p t q,
+    γ ⟦ p ⤳! (t, q) ⟧ ->
+    γ ⟦ p ⤳ t ⟧.
+Proof.
+  introv Hd.
+  dependent induction Hd; eauto.
+Qed.
+
+Lemma dealias_to_lookup_step_p : forall γ p t q,
+    γ ⟦ p ⤳! (t, q) ⟧ ->
+    p = q \/ γ ⟦ p ⤳ defp q ⟧.
+Proof.
+  introv Hd.
+  dependent induction Hd; eauto.
+  specialize (IHHd _ _ eq_refl). destruct IHHd; eauto.
+  left. f_equal. auto.
+Qed.
+
