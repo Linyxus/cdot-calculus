@@ -101,9 +101,10 @@ Inductive ty_val_p : ctx -> val -> typ -> Prop :=
        (forall x : var, x \notin L -> x; nil; G & x ~ open_typ x T ⊢ open_defs x ds :: open_typ x T) ->
        G ⊢!v ν(T)ds : μ T
 
-| ty_tag_p : forall G p A q,
+| ty_tag_p : forall G p A q r,
     G ⊢ trm_path q : p ↓ A ->
-    G ⊢!v val_tag p A q : typ_tag q
+    G ⊢ trm_path r : {{ q }} ->
+    G ⊢!v val_tag p A q r : typ_tag q
 
 where "G '⊢!v' v ':' T" := (ty_val_p G v T).
 

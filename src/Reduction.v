@@ -36,16 +36,16 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
 (** [γ ⊢ p ⤳* tag q.A r ]      #<br>#
     [―――――――――――――――――――――]      #<br>#
     [γ | case p of tag q.A y => t1 | else => t2 ⟼ γ | t1^r ]      *)
-| red_case_match : forall γ p q r A t1 t2,
-    γ ⟦ defp p ⤳* defv (val_tag q A r) ⟧ ->
-    (γ, trm_case p q A t1 t2) ⟼ (γ, open_trm_p r t1)
+| red_case_match : forall γ p q r r1 A t1 t2,
+    γ ⟦ defp p ⤳* defv (val_tag q A r r1) ⟧ ->
+    (γ, trm_case p q A t1 t2) ⟼ (γ, open_trm_p r1 t1)
 
 (** [γ ⊢ p ⤳* tag r1.A r2 ]      #<br>#
     [―――――――――――――――――――――]      #<br>#
     [γ | case p of tag q.A y => t1 | else => t2 ⟼ γ | t2 ]      *)
-| red_case_else : forall γ p q r1 r2 A t1 t2,
-    γ ⟦ defp p ⤳* defv (val_tag r1 A r2) ⟧ ->
-    (γ, trm_case p q A t1 t2) ⟼ (γ, t2)
+| red_case_else : forall γ p q r1 r2 r3 A1 A2 t1 t2,
+    γ ⟦ defp p ⤳* defv (val_tag r1 A1 r2 r3) ⟧ ->
+    (γ, trm_case p q A2 t1 t2) ⟼ (γ, t2)
 
 where "t1 '⟼' t2" := (red t1 t2).
 

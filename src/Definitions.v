@@ -98,7 +98,7 @@ Inductive trm : Set :=
 with val : Set :=
   | val_new  : typ -> defs -> val
   | val_lambda : typ -> trm -> val
-  | val_tag  : path -> typ_label -> path -> val
+  | val_tag  : path -> typ_label -> path -> path -> val
 (**
   - [def_typ A T] represents a type-member definition [{A = T}];
   - [def_trm a t] represents a field definition [{a = t}]; *)
@@ -267,7 +267,7 @@ with open_rec_val (k: nat) (u: var) (v: val): val :=
   match v with
   | ν(T)ds   => ν (open_rec_typ (S k) u T) open_rec_defs (S k) u ds
   | λ(T) e  => λ(open_rec_typ k u T) open_rec_trm (S k) u e
-  | val_tag p A q  => val_tag (open_rec_path k u p) A (open_rec_path k u q)
+  | val_tag p A q r  => val_tag (open_rec_path k u p) A (open_rec_path k u q) (open_rec_path k u r)
   end
 with open_rec_def (k: nat) (u: var) (d: def): def :=
   match d with
@@ -357,7 +357,7 @@ with open_rec_val_p (k: nat) (u: path) (v: val): val :=
   match v with
   | ν(T) ds => ν(open_rec_typ_p (S k) u T) open_rec_defs_p (S k) u ds
   | λ(T) e  => λ(open_rec_typ_p k u T) open_rec_trm_p (S k) u e
-  | val_tag p A q  => val_tag (open_rec_path_p k u p) A (open_rec_path_p k u q)
+  | val_tag p A q r  => val_tag (open_rec_path_p k u p) A (open_rec_path_p k u q) (open_rec_path_p k u r)
   end
 with open_rec_def_p (k: nat) (u: path) (d: def): def :=
   match d with
@@ -479,7 +479,7 @@ with fv_val (v: val) : vars :=
   match v with
   | ν(T) ds    => (fv_typ T) \u (fv_defs ds)
   | λ(T)t      => (fv_typ T) \u (fv_trm t)
-  | val_tag p A q => (fv_path p) \u (fv_path q)
+  | val_tag p A q r => (fv_path p) \u (fv_path q) \u (fv_path r)
   end
 with fv_def (d: def) : vars :=
   match d with
@@ -824,9 +824,10 @@ _______________________
 G ⊢ tag p.A q : Tag q
 ]]
 *)
-| ty_tag : forall G p q A,
+| ty_tag : forall G p q A r,
     G ⊢ trm_path q : p ↓ A ->
-    G ⊢ trm_val (val_tag p A q) : typ_tag q
+    G ⊢ trm_path r : {{ q }} ->
+    G ⊢ trm_val (val_tag p A q r) : typ_tag q
 
 (** [[
 G ⊢ p: Tag r
@@ -849,9 +850,9 @@ _______________________________________________
 G ⊢ p: q.type
 ]]
 *)
-| ty_tag_sngl : forall G p q,
-    G ⊢ trm_path p : typ_tag q ->
-    G ⊢ trm_path p : {{ q }}
+(* | ty_tag_sngl : forall G p q, *)
+(*     G ⊢ trm_path p : typ_tag q -> *)
+(*     G ⊢ trm_path p : {{ q }} *)
 where "G '⊢' t ':' T" := (ty_trm G t T)
 
 (** *** Single-definition typing [x; bs; G ⊢ d: D]
@@ -901,9 +902,9 @@ _____________________________
 x.bs; G ⊢ {b = tag p.A q}: {b: Tag q}
 ]]
 *)
- | ty_def_tag : forall x bs G p A q b,
-    G ⊢ trm_val (val_tag p A q) : typ_tag q ->
-    x; bs; G ⊢ { b :=v (val_tag p A q) } : { b ⦂ typ_tag q }
+ | ty_def_tag : forall x bs G p A q r b,
+    G ⊢ trm_val (val_tag p A q r) : typ_tag q ->
+    x; bs; G ⊢ { b :=v (val_tag p A q r) } : { b ⦂ typ_tag q }
 
 where "x ';' bs ';' G '⊢' d ':' D" := (ty_def x bs G d D)
 

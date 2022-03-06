@@ -24,16 +24,16 @@ Definition deftrm t : trm :=
   end.
 
 (** If a tag is typable, then its encapsulating path is typable. *)
-Lemma typable_tag : forall G p A q T,
+Lemma typable_tag : forall G p A q r T,
     inert G ->
-    G ⊢ trm_val (val_tag p A q) : T ->
+    G ⊢ trm_val (val_tag p A q r) : T ->
     (exists U, G ⊢ trm_path q : U).
 Proof.
   introv Hi Hg.
   apply (general_to_tight_typing Hi) in Hg.
   dependent induction Hg.
-  - specialize (IHHg _ _ _ Hi eq_refl). exact IHHg.
-  - apply tight_to_general in Hg. eexists. eauto.
+  - specialize (IHHg _ _ _ _ Hi eq_refl). exact IHHg.
+  - apply tight_to_general in Hg1. eexists. eauto.
 Qed.
 
 (** ** Type preservation for path lookup *)
@@ -53,7 +53,7 @@ Lemma object_typing G x bs ds T a t V :
                                  open_typ_p (p_sel (avar_f x) (a :: bs)) U /\
             V = μ U) \/
   (exists q S, t = defp q /\ V = {{ q }} /\ G ⊢ trm_path q : S) \/
-  (exists p A q S, t = defv (val_tag p A q) /\ V = typ_tag q /\ G ⊢ trm_path q : S /\ G ⊢ deftrm t : V).
+  (exists p A q q1 S, t = defv (val_tag p A q q1) /\ V = typ_tag q /\ G ⊢ trm_path q : S /\ G ⊢ deftrm t : V).
 Proof.
   intros Hi Hds Hdh Hr.
   destruct (record_has_ty_defs Hds Hr) as [? [Hdh' Hdt]].
@@ -92,8 +92,8 @@ Lemma lookup_step_preservation_prec1: forall G γ p px pbs t T U,
         T = {{ r }} /\
         G = G1 & px ~ pT & G2 /\
         (r = r' \/ G1 ⊢!!! r : {{ r' }}) /\ (q = r' \/ G1 ⊢!!! q : {{ r' }})) \/
-    (exists p1 A q r r' G1 G2 pT,
-        t = defv (val_tag p1 A q) /\
+    (exists p1 A q q1 r r' G1 G2 pT,
+        t = defv (val_tag p1 A q q1) /\
         T = typ_tag r /\
         G ⊢ deftrm t : (typ_tag q) /\
         G = G1 & px ~ pT & G2 /\
@@ -154,7 +154,9 @@ Proof.
            apply (invertible_to_precise_tag_v Hi') in Hrv as [p'' [Hrv Hrc']].
            inversions Hrv.
            repeat eexists.
-           +++ simpl. apply ty_tag. apply weaken_ty_trm. apply H3. apply* inert_ok.
+           +++ simpl. apply ty_tag.
+               apply weaken_ty_trm. assumption. apply* inert_ok.
+               apply weaken_ty_trm. assumption. apply* inert_ok.
            +++ rewrite concat_empty_r. eauto.
            +++ eauto.
            +++ eauto.
@@ -194,7 +196,7 @@ Proof.
           destruct Hot as [[U' [u [Heq Ht']]] |
                           [[U' [ds'' [Heq [Hds'' ->]]]] |
                             [[q [V' [Heq1 [-> Hq]]]] |
-                            [p [A [q [V' [Heq1 Hq]]]]]]]].
+                            [p [A [q [q1 [V' [Heq1 Hq]]]]]]]]].
           ++ (* lambda *)
             destruct t; inversions Heq. destruct v0; inversions H3.
             left. repeat eexists. eauto.
@@ -272,8 +274,8 @@ Lemma lookup_step_preservation_prec2 G γ p px pbs t T :
         T = {{ r }} /\
         G = G1 & px ~ pT & G2 /\
         (r = r' \/ G1 ⊢!!! r : {{ r' }}) /\ (r' = q \/ G1 ⊢!!! q : {{ r' }})) \/
-    (exists p1 A q r r' G1 G2 pT,
-        t = defv (val_tag p1 A q) /\
+    (exists p1 A q q1 r r' G1 G2 pT,
+        t = defv (val_tag p1 A q q1) /\
         T = typ_tag r /\
         G ⊢ deftrm t : (typ_tag q) /\
         G = G1 & px ~ pT & G2 /\
@@ -289,7 +291,7 @@ Proof.
     * pose proof (pf_sngl_U H) as ->. right. right. left. repeat eexists; eauto.
       destruct_all; eauto.
     * right. right. right. remember H0 as H1. clear HeqH1.
-      destruct H0 as [_ [_ [_ [? [? [_ [_ [_ [_ [Heqt _]]]]]]]]]]. subst T.
+      destruct H0 as [_ [_ [_ [_ [? [? [_ [_ [_ [_ [Heqt _]]]]]]]]]]]. subst T.
       apply pf_tag_U in H as Hx. subst U. auto.
   - clear IHHp2. simpl_dot. specialize (IHHp1 Hi Hwf _ Hwt).
     gen q U. dependent induction Hs; simpl_dot; introv Hp IHHp1 Hv.
@@ -348,7 +350,7 @@ Lemma lookup_step_preservation_inert_prec3: forall G γ p T t,
                                G ⊩ S ⟿ W ⬳ U) \/
            (exists q, t = defp q /\ G ⊢!!! q : T))) \/
     (exists r, T = typ_tag r /\
-        ((exists p1 A q r', t = defv (val_tag p1 A q) /\
+        ((exists p1 A q q1 r', t = defv (val_tag p1 A q q1) /\
                          G ⊢ deftrm t : (typ_tag q) /\
                          G ⊩ r ⟿' r' ⬳ q) \/
          (exists q, t = defp q /\ G ⊢!!! q : T))).
@@ -360,7 +362,7 @@ Proof.
                                 as [[S' [U [u [[= ->] [Hv Hp']]]]] |
                                     [[S' [ds [W [U [G1 [G2 [pT [[= ->] [Hp' [-> [Hds [Hrc1 Hrc2]]]]]]]]]]]] |
                                      [[q' [r [r' [G1 [G2 [pT [[= ->] [[= ->] [Heq' [Hrc1 Hrc2]]]]]]]]]] |
-                                      [p1 [A [q' [r [r' [G1 [G2 [pT [[= ->] [[= ->] [Hq' [Heq' Hrc]]]]]]]]]]]]]]]; simpl.
+                                      [p1 [A [q' [q'1 [r [r' [G1 [G2 [pT [[= ->] [[= ->] [Hq' [Heq' Hrc]]]]]]]]]]]]]]]]; simpl.
   - left. simpl in *. inversions Hit.
     * apply (pf_tag_T Hi) in Hp' as ->. proof_recipe.
       apply (repl_to_invertible_tag_v Hi) in Hv as [q' [Hrv Hrc]].
@@ -1336,14 +1338,15 @@ Lemma canonical_forms_tag: forall G γ p r1,
     wf G ->
     γ ⫶ G ->
     G ⊢ trm_path p : typ_tag r1 ->
-    (exists q A r2, γ ⟦ defp p ⤳* defv (val_tag q A r2) ⟧ /\
+    (exists q A r2 r3, γ ⟦ defp p ⤳* defv (val_tag q A r2 r3) ⟧ /\
                G ⊢ trm_path r2 : q↓A /\
+               G ⊢ trm_path r3 : {{ r2 }} /\
                (r1 = r2 \/ G ⊢ trm_path r2 : {{ r1 }})).
 Proof.
   introv Hin Hwf Hwt Hty.
   destruct (path_typ_tag_to_precise Hin Hwf Hty) as [q [Hpq [q' Hrqq]]].
   destruct (corresponding_types_tag Hin Hwf Hwt Hpq) as [v [P Hv]].
-  destruct (val_typ_tag_to_tag Hin Hv) as [p0 [A [r' [r'' [Heq [Ht1 He1]]]]]].
+  destruct (val_typ_tag_to_tag Hin Hv) as [p0 [A [r' [r'' [Heq [Ht1 [He1 [He2 He3]]]]]]]].
   subst.
   repeat eexists; eauto 2.
 Admitted.

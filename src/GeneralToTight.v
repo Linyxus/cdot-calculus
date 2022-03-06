@@ -227,9 +227,10 @@ Qed.
 Lemma val_typ_tag_to_tag: forall G v p,
     inert G ->
     G ⊢ trm_val v : typ_tag p ->
-    (exists p0 A q r,
-        v = val_tag p0 A q /\
+    (exists p0 A q q1 r,
+        v = val_tag p0 A q q1 /\
         G ⊢ trm_path q : p0 ↓ A /\
+        G ⊢ trm_path q1 : {{ q }} /\
         G ⊩ p ⟿' r ⬳ q).
 Proof.
   introv Hin Ht. proof_recipe.

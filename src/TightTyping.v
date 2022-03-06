@@ -139,9 +139,10 @@ _______________________
 G ⊢# tag p.A q : Tag q
 ]]
 *)
-| ty_tag_t : forall G p q A,
+| ty_tag_t : forall G p q A r,
     G ⊢# trm_path q : p ↓ A ->
-    G ⊢# trm_val (val_tag p A q) : typ_tag q
+    G ⊢# trm_path r : {{ q }} ->
+    G ⊢# trm_val (val_tag p A q r) : typ_tag q
 
 (** [[
 G ⊢# p: Tag r
@@ -293,7 +294,7 @@ Lemma tight_to_general:
      G ⊢# S <: U ->
      G ⊢ S <: U).
 Proof.
-  apply ts_mutind_ts; intros; subst; eauto using precise_to_general3.
+  apply ts_mutind_ts; intros; subst; eauto 4 using precise_to_general3.
   Unshelve.
   all: solve_ex_typ_L.
 Qed.

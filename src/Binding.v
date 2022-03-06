@@ -111,7 +111,7 @@ with subst_val (z: var) (u: path) (v: val) : val :=
   match v with
   | ν(T) ds  => ν(subst_typ z u T) subst_defs z u ds
   | λ(T) t   => λ(subst_typ z u T) subst_trm z u t
-  | val_tag p A q => val_tag (subst_path z u p) A (subst_path z u q)
+  | val_tag p A q r => val_tag (subst_path z u p) A (subst_path z u q) (subst_path z u r)
   end
 with subst_def (z: var) (u: path) (d: def) : def :=
   match d with

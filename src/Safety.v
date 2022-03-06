@@ -41,12 +41,12 @@ Proof.
   induction 1; intros Hin Hr.
   - destruct D; inversions Hr. inversions H.
     proof_recipe.
-    destruct (repl_to_invertible_tag_v Hin H5) as [r [Hinvv Hpre]].
+    destruct (repl_to_invertible_tag_v Hin H5) as [r' [Hinvv Hpre]].
     destruct (invertible_to_precise_tag_v Hin Hinvv) as [q' [Hpv Hqre]].
     inversions Hpv. eauto.
   - inversions Hr; auto. inversions H5. inversions H0.
     proof_recipe.
-    destruct (repl_to_invertible_tag_v Hin H7) as [r [Hinvv Hpre]].
+    destruct (repl_to_invertible_tag_v Hin H7) as [r'' [Hinvv Hpre]].
     destruct (invertible_to_precise_tag_v Hin Hinvv) as [q' [Hpv Hqre]].
     inversions Hpv. eauto.
 Qed.
@@ -231,7 +231,7 @@ Proof.
     pose proof (record_has_ty_defs Hds' Hr) as [d [Hdh Hd]].
     inversions Hd.
     proof_recipe.
-    destruct (repl_to_invertible_tag_v Hi H5) as [r [Hinvv Hpre]].
+    destruct (repl_to_invertible_tag_v Hi H5) as [r0 [Hinvv Hpre]].
     destruct (invertible_to_precise_tag_v Hi Hinvv) as [q' [Hpv Hqre]].
     inversions Hpv. eauto.
   - Case "def_path"%string.
@@ -472,13 +472,15 @@ Proof.
     inversion Hred. subst.
     + lookup_eq. exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
       (* pick_fresh y. assert (y \notin L) as FrL by eauto. specialize (H y FrL). *)
-      destruct Htr2.
+      destruct Htr2 as [Htr21 [Htr22 Htr23]].
+      destruct Htr23.
       ++ subst r0.
-      eapply subst_fresh_var_path. apply* inert_ok. exact H.
-      destruct Htr2; try subst r0. admit.
-      apply ty_and_intro. exact H1. exact Htr1.
+         eapply subst_fresh_var_path. apply* inert_ok. exact H.
+         eauto 3.
+      ++ eapply subst_fresh_var_path. apply* inert_ok. exact H.
+         eauto 3.
     + subst. lookup_eq. exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
-Admitted.
+Qed.
 
 (** **** Progress (Lemma 5.3) *)
 (** Any well-typed term is either in normal form (i.e. a path or value) or can
@@ -501,6 +503,13 @@ Proof.
       { inversion Hn. } eauto.
     + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
       { inversion Hn. } eauto.
+    + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
+      { inversion Hn. } eauto.
+  - Case "ty_case"%string.
+    right.
+    pose proof (canonical_forms_tag Hi Hwf Hwt Ht1) as Hcf.
+    destruct Hcf as [p0 [A0 [r1 [Hpd [Htr1 Htr2]]]]].
+    eauto.
 Qed.
 
 (** *** Safety *)

@@ -1373,8 +1373,9 @@ Proof.
   introv Hi Hty.
   dependent induction Hty; eauto.
   specialize (IHHty v Hi eq_refl).
-  apply* invertible_typing_closure_tight_v.
-  apply tight_to_general in Hty. eauto.
+  - apply* invertible_typing_closure_tight_v.
+  - apply ty_inv_rv. apply ty_precise_invv.
+    constructor. apply* tight_to_general. apply* tight_to_general.
 Qed.
 
 Lemma repl_to_invertible_obj G U v :
