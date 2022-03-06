@@ -461,28 +461,28 @@ Qed.
 (** The proof is by mutual induction on term typing, definition typing, and subtyping. *)
 Lemma subst_rules_sngl: forall p S,
   (forall G t T, G ⊢ t : T -> forall G1 G2 x,
-    G = G1 & x ~ {{ p }} ∧ S & G2 ->
-    ok (G1 & x ~ {{ p }} ∧ S & G2) ->
-    x \notin fv_ctx_types G1 ->
+    G = G1 & x ~ ({{ p }} ∧ S) & G2 ->
+    ok (G1 & x ~ ({{ p }} ∧ S) & G2) ->
+    x \notin fv_ctx_types G1 \u fv_typ T ->
     G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
     G1 & (subst_ctx x p G2) ⊢ subst_trm x p t : subst_typ x p T) /\
   (forall z bs G d D, z; bs; G ⊢ d : D -> forall G1 G2 x,
-    G = G1 & x ~ {{ p }} ∧ S & G2 ->
-    ok (G1 & x ~ {{ p }} ∧ S & G2) ->
+    G = G1 & x ~ ({{ p }} ∧ S) & G2 ->
+    ok (G1 & x ~ ({{ p }} ∧ S) & G2) ->
     x \notin fv_ctx_types G1 ->
     G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
     z <> x ->
     z; bs; G1 & (subst_ctx x p G2) ⊢ subst_def x p d : subst_dec x p D) /\
   (forall z bs G ds T, z; bs; G ⊢ ds :: T -> forall G1 G2 x,
-    G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
+    G = G1 & x ~ ({{ p }} ∧ S) & G2 ->
+    ok (G1 & x ~ ({{ p }} ∧ S) & G2) ->
     x \notin fv_ctx_types G1 ->
     G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
     z <> x ->
     z; bs; G1 & (subst_ctx x p G2) ⊢ subst_defs x p ds :: subst_typ x p T) /\
   (forall G T U, G ⊢ T <: U -> forall G1 G2 x,
-    G = G1 & x ~ S & G2 ->
-    ok (G1 & x ~ S & G2) ->
+    G = G1 & x ~ ({{ p }} ∧ S) & G2 ->
+    ok (G1 & x ~ ({{ p }} ∧ S) & G2) ->
     x \notin fv_ctx_types G1 ->
     G1 & (subst_ctx x p G2) ⊢ trm_path p : subst_typ x p S ->
     G1 & (subst_ctx x p G2) ⊢ subst_typ x p T <: subst_typ x p U).
@@ -495,7 +495,9 @@ Proof.
   eauto 4.
   - Case "ty_var"%string.
     cases_if.
-    + apply binds_middle_eq_inv in b; subst*. destruct* p.
+    + apply binds_middle_eq_inv in b; subst*. simpl.
+      destruct p. simpl.
+      destruct* p.
     + eapply subst_fresh_ctx in H1.
       apply binds_subst in b; auto.
       constructor. rewrite <- H1.
