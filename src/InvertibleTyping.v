@@ -77,6 +77,17 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
     G ⊢## r : {{ p •• bs }} ->
     G ⊢## r : {{ q •• bs }}
 
+(** [G ⊢! p: q.type ⪼ q.type]   #<br>#
+    [G ⊢!! q]                   #<br>#
+    [G ⊢## r: r'.type]          #<br>#
+    [――――――――――――――――――――]      #<br>#
+    [G ⊢## p: (r'.type)[q/p]]      *)
+| ty_tag_pq_inv : forall G p q r bs U,
+    G ⊢! p : {{ q }} ⪼ {{ q }} ->
+    G ⊢!! q: U ->
+    G ⊢## r : typ_tag p •• bs ->
+    G ⊢## r : typ_tag q •• bs
+
 where "G '⊢##' p ':' T" := (ty_path_inv G p T).
 
 Hint Constructors ty_path_inv.
@@ -206,6 +217,23 @@ Proof.
     specialize (IHHq _ _ Hi Hh eq_refl). eauto.
 Qed.
 
+Lemma path_sel_inv': forall G p A q,
+    inert G ->
+    G ⊢## q : p↓A ->
+    exists T, G ⊢!!! p : typ_rcd {A >: T <: T} /\
+    G ⊢## q : T.
+Proof.
+  introv Hi Hq. dependent induction Hq.
+  - Case "ty_precise_inv"%string.
+    false* pt3_psel.
+  - Case "ty_sel_pq_inv"%string.
+    specialize (IHHq _ _ Hi eq_refl).
+    destruct IHHq as [T [Hp Hr]].
+    eexists. split.
+    + apply* pf_pt3_trans_inv_mult'.
+    + exact Hr.
+Qed.
+
 Lemma inv_to_precise_sngl_repl_comp: forall G p q,
     G ⊢## p: {{ q }} ->
     exists r, G ⊢!!! p: {{ r }} /\ G ⊢ r ⟿' q.
@@ -226,6 +254,35 @@ Lemma inv_to_precise_sngl: forall G p q U,
 Proof.
   introv Hi Hp Hq. destruct (inv_to_precise_sngl_repl_comp Hp) as [r [Hpr Hrc]].
   exists r. split*. clear Hp.
+  gen p U. dependent induction Hrc; introv Hpr; introv Hq; auto.
+  inversions H.
+  assert (G ⊢!!! p0 •• bs : U).
+  { apply (pt3_field_trans' _ Hi (pt3 (pt2 H0)) Hq). }
+  destruct (IHHrc _ Hpr _ H).
+  - subst. right. eapply pt3_field_trans; eauto.
+  - right. eapply pt3_sngl_trans3; eauto. eapply pt3_field_trans; eauto.
+Qed.
+
+Lemma inv_to_precise_tag_repl_comp: forall G p q,
+    G ⊢## p: typ_tag q ->
+    exists r, G ⊢!!! p: typ_tag r /\ G ⊢ r ⟿' q.
+Proof.
+  introv Hp.
+  dependent induction Hp.
+  - exists q. split*. apply star_refl.
+  - specialize (IHHp _ eq_refl). destruct IHHp as [r'' [Hr' Hc']].
+    exists r''. split*. apply star_trans with (b:= p •• bs).
+    apply star_one. econstructor; eauto. apply Hc'.
+Qed.
+
+Lemma inv_to_precise_tag: forall G p q U,
+    inert G ->
+    G ⊢## p: typ_tag q ->
+    G ⊢!!! q : U ->
+    exists r S, G ⊢!!! p: typ_tag r /\ G ⊢!!! q : S /\ (r = q \/ G ⊢!!! r: {{ q }}).
+Proof.
+  introv Hi Hp Hq. destruct (inv_to_precise_tag_repl_comp Hp) as [r [Hpr Hrc]].
+  exists r U. split*. split. exact Hq. clear Hp.
   gen p U. dependent induction Hrc; introv Hpr; introv Hq; auto.
   inversions H.
   assert (G ⊢!!! p0 •• bs : U).
@@ -262,6 +319,12 @@ Inductive ty_val_inv : ctx -> val -> typ -> Prop :=
     G ⊢##v v : μ T ->
     repl_typ p q T T' ->
     G ⊢##v v : μ T'
+
+| ty_tag_pq_invv : forall G p q v bs U,
+    G ⊢! p : {{ q }} ⪼ {{ q }} ->
+    G ⊢!! q : U ->
+    G ⊢##v v : typ_tag p •• bs ->
+    G ⊢##v v : typ_tag q •• bs
 
 where "G '⊢##v' v ':' T" := (ty_val_inv G v T).
 
@@ -310,6 +373,22 @@ Proof.
     * eauto.
     * eapply star_trans. apply star_one. econstructor. repeat eexists. apply H. eauto.
       apply* repl_swap.
+      apply Hrc.
+Qed.
+
+Lemma invertible_to_precise_tag_v G p v :
+  inert G ->
+  G ⊢##v v : typ_tag p ->
+  exists p', G ⊢!v v : typ_tag p' /\ G ⊢ p' ⟿' p.
+Proof.
+  intros Hi Hv. dependent induction Hv.
+  - Case "ty_precise_invv"%string.
+    inversions H. eexists. split*. constructor.
+  - Case "ty_rec_pq_invv"%string.
+    specialize (IHHv _ Hi eq_refl) as [T' [Hinv Hrc]].
+    eexists. split.
+    * eauto.
+    * eapply star_trans. apply star_one. econstructor. repeat eexists. apply H. eauto.
       apply Hrc.
 Qed.
 

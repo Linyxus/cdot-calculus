@@ -131,6 +131,7 @@ Proof.
   apply rcd_mutind; intros; invert_open; simpls.
   - apply open_fresh_typ_dec_injective in H4; auto. subst. constructor.
   - destruct t0; inversions H3. eauto.
+  - destruct t0; inversions H3. eauto.
   - constructor*. rewrite* <- open_dec_preserves_label.
   - invert_open. simpls. destruct_notin. constructor*. eauto. rewrite* <- open_dec_preserves_label.
 Qed.
@@ -154,6 +155,7 @@ Lemma record_open_tight:
           inert_typ T').
 Proof.
   apply rcd_mutind; intros; invert_open; simpls; subst; eauto.
+  - destruct t0; inversions H3. eauto.
   - destruct t0; inversions H3. eauto.
   - constructor*. rewrite* <- open_dec_preserves_label_p.
   - invert_open. simpls. destruct_notin. constructor*. eauto. rewrite* <- open_dec_preserves_label_p.
@@ -259,6 +261,7 @@ Proof.
   intros Hi Hr. dependent induction Hr.
   - destruct T; inversions x. destruct d; inversions H0. inversions Hi. inversions H0.
     inversions H1. left. apply* open_record_p. right. eexists. simpl. eauto.
+    left. apply* open_record_p.
   - destruct T; inversions x. inversions Hi. inversions H0. apply* IHHr.
   - destruct T; inversions x. inversions Hi. inversions H0.
     specialize (IHHr U a p (typ_rcd D)). eauto.

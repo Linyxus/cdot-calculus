@@ -88,6 +88,7 @@ Fixpoint subst_typ (z: var) (p: path) (T: typ) { struct T } : typ :=
   | μ T            => μ (subst_typ z p T)
   | ∀(T) U         => ∀ (subst_typ z p T) subst_typ z p U
   | {{ q }}        => {{ subst_path z p q }}
+  | typ_tag q      => typ_tag (subst_path z p q)
   end
 with subst_dec (z: var) (p: path) (D: dec) { struct D } : dec :=
   match D with
@@ -103,11 +104,14 @@ Fixpoint subst_trm (z: var) (u: path) (t: trm) : trm :=
   | trm_path p       => trm_path (subst_path z u p)
   | trm_app x1 x2    => trm_app (subst_path z u x1) (subst_path z u x2)
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
+  | trm_case p q A t1 t2 =>
+      trm_case (subst_path z u p) (subst_path z u q) A (subst_trm z u t1) (subst_trm z u t2)
   end
 with subst_val (z: var) (u: path) (v: val) : val :=
   match v with
   | ν(T) ds  => ν(subst_typ z u T) subst_defs z u ds
   | λ(T) t   => λ(subst_typ z u T) subst_trm z u t
+  | val_tag p A q r => val_tag (subst_path z u p) A (subst_path z u q) (subst_path z u r)
   end
 with subst_def (z: var) (u: path) (d: def) : def :=
   match d with
@@ -122,6 +126,7 @@ with subst_defs (z: var) (u: path) (ds: defs) : defs :=
 with subst_defrhs (z: var) (u: path) (drhs: def_rhs) : def_rhs :=
   match drhs with
   | defp p => defp (subst_path z u p)
+  (* | deft p A q => deft (subst_path z u p) A (subst_path z u q) *)
   | defv v => defv (subst_val z u v)
   end.
 
@@ -228,9 +233,8 @@ Lemma open_var_typ_dec_eq: forall x,
           open_rec_dec n x D = open_rec_dec_p n (pvar x) D).
 Proof.
   intros. apply typ_mutind; unfold open_typ, open_typ_p; simpl; intros; auto;
-            try solve [rewrite* H; rewrite* H0].
-  unfold open_rec_avar, open_rec_avar_p. rewrite* open_var_path_eq.
-  f_equal. apply open_var_path_eq.
+            try solve [rewrite* H; rewrite* H0];
+    try solve [f_equal; apply* open_var_path_eq].
 Qed.
 
 Lemma open_var_typ_eq: forall x T,
@@ -365,6 +369,13 @@ Proof.
     case_if; subst.
     + destruct y, a; simpl; eauto.
     + simpl. intros Hin. rewrite in_singleton in Hin. false*.
+  - destruct p. destruct y. simpl. destruct a.
+    + simpl. apply notin_empty.
+    + simpl. destruct a0; simpl; eauto. unfold subst_var_p.
+      cases_if; subst. simpl in *. eauto.
+      simpl in *. eauto.
+      simpl in *. unfold subst_var_p.
+      cases_if; simpl in *; eauto.
 Qed.
 
 Definition subst_fresh_typ x p := proj1 (subst_fresh_typ_dec x p).
@@ -780,7 +791,7 @@ Lemma open_env_rules:
     G1 & x ~ (μ S) & G2 ⊢ T <: U).
 Proof.
   apply rules_mutind; intros; subst; simpl; auto;
-    try solve [fresh_constructor; rewrite <- concat_assoc; (apply* H || apply* H0); rewrite* concat_assoc]; eauto.
+    try solve [fresh_constructor; rewrite <- concat_assoc; (apply* H || apply* H0 || apply* H1); rewrite* concat_assoc]; eauto.
   - Case "ty_var"%string.
     destruct (classicT (x=x0)) as [-> | Hn].
     + apply binds_middle_eq_inv in b; subst*. rewrite open_var_typ_eq.

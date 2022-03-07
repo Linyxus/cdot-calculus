@@ -7,7 +7,7 @@ Set Implicit Arguments.
 Require Import Coq.Program.Equality List String.
 Require Import Sequences.
 Require Import Binding CanonicalForms Definitions GeneralToTight InvertibleTyping Lookup Narrowing
-        Reduction PreciseTyping RecordAndInertTypes ReplacementTyping
+        Reduction PreciseTyping RecordAndInertTypes ReplacementTyping Replacement
         Subenvironments Substitution TightTyping Weakening.
 
 Close Scope string_scope.
@@ -28,6 +28,27 @@ Proof.
   induction 1; intros Hr.
   - destruct D; inversions Hr. inversions H. eauto.
   - inversions Hr; auto. inversions H5. inversions H0. eauto.
+Qed.
+
+(** If the rhs of a type declaration is a signleton type [q.type] then
+    [q] is well-typed *)
+Lemma defs_typing_tag_rhs z bs G ds T a q :
+  z; bs; G ⊢ ds :: T ->
+  inert G ->
+  record_has T {a ⦂ typ_tag q} ->
+  exists T, G ⊢ trm_path q : T.
+Proof.
+  induction 1; intros Hin Hr.
+  - destruct D; inversions Hr. inversions H.
+    proof_recipe.
+    destruct (repl_to_invertible_tag_v Hin H5) as [r' [Hinvv Hpre]].
+    destruct (invertible_to_precise_tag_v Hin Hinvv) as [q' [Hpv Hqre]].
+    inversions Hpv. eauto.
+  - inversions Hr; auto. inversions H5. inversions H0.
+    proof_recipe.
+    destruct (repl_to_invertible_tag_v Hin H7) as [r'' [Hinvv Hpre]].
+    destruct (invertible_to_precise_tag_v Hin Hinvv) as [q' [Hpv Hqre]].
+    inversions Hpv. eauto.
 Qed.
 
 (** The [lookup_fields_typ] notation [x ==> T =bs=> U] denotes that
@@ -108,6 +129,21 @@ Proof.
   pose proof (lft_unique Hin Hl1 H3) as [= <-].
 Qed.
 
+(** If looking up a path in [T] yields a tag type then we cannot
+    look up a longer path in [T] *)
+Lemma lft_typ_tag_inv x S bs p cs V :
+  inert_typ S ->
+  x ==> S =bs=> typ_tag p ->
+  x ==> S =cs++bs=> V ->
+  cs = nil.
+Proof.
+  gen x S bs p V. induction cs; introv Hin Hl1 Hl2; auto.
+  rewrite <- app_comm_cons in Hl2.
+  inversions Hl2. specialize (IHcs _ _ _ _ _ Hin Hl1 H3) as ->.
+  rewrite app_nil_l in H3.
+  pose proof (lft_unique Hin Hl1 H3) as [= <-].
+Qed.
+
 (** If the definitions [ds] that correspond to a path [p] (here, [z.bs])
     have a type [Tᵖ], and looking up the path [x.cs] for some [x]
     in [Tᵖ] yields a type [μ(U)] then nested in [ds] are some definitions
@@ -159,6 +195,55 @@ Proof.
     pose proof (lft_typ_sngl_inv _ Hin Hl1 Hl2) as ->.
     rewrite app_nil_l in *.
     pose proof (lft_unique Hin Hl1 Hl2) as [=].
+  - Case "def_tag"%string.
+    eapply lft_cons in Hl1; eauto.
+    pose proof (lft_typ_tag_inv _ Hin Hl1 Hl2) as ->.
+    rewrite app_nil_l in *.
+    pose proof (lft_unique Hin Hl1 Hl2) as [=].
+Qed.
+
+(** Suppose the declaration [d] corresponding to a path [z.bs]
+    has type [{b: V}], and that [V=...∧ {a: q.type} ∧...].
+    Then [q] is well-typed.
+    *)
+Lemma def_typing_rhs_tag z bs G d a q U S cs T b V :
+  inert G ->
+  z; bs; G ⊢ d : {b ⦂ V} ->
+  inert_typ S ->
+  z ==> S =bs=> μ T ->
+  record_has (open_typ_p (p_sel (avar_f z) bs) T) {b ⦂ V} ->
+  z ==> S =cs++b::bs=> μ U ->
+  record_has (open_typ_p (p_sel (avar_f z) (cs++b::bs)) U) {a ⦂ typ_tag q} ->
+  exists W, G ⊢ trm_path q : W.
+Proof.
+  intros Hi Hds Hin Hl1 Hrd Hl2 Hr. inversions Hds.
+  - Case "def_all"%string.
+    eapply lft_cons in Hl1; eauto.
+    pose proof (lft_typ_all_inv _ Hin Hl1 Hl2) as ->.
+    rewrite app_nil_l in *.
+    pose proof (lft_unique Hin Hl1 Hl2) as [=].
+  - Case "def_new"%string.
+    pose proof (ty_def_new _ _ eq_refl H6 H7).
+    assert (z ==> S =b::bs=> μ T0) as Hl1'. {
+        eapply lft_cons. eauto. eauto.
+    }
+    pose proof (lfs_defs_typing _ H7 Hin Hl1' Hl2) as [ds' Hds'].
+    pose proof (record_has_ty_defs Hds' Hr) as [d [Hdh Hd]].
+    inversions Hd.
+    proof_recipe.
+    destruct (repl_to_invertible_tag_v Hi H5) as [r0 [Hinvv Hpre]].
+    destruct (invertible_to_precise_tag_v Hi Hinvv) as [q' [Hpv Hqre]].
+    inversions Hpv. eauto.
+  - Case "def_path"%string.
+    eapply lft_cons in Hl1; eauto.
+    pose proof (lft_typ_sngl_inv _ Hin Hl1 Hl2) as ->.
+    rewrite app_nil_l in *.
+    pose proof (lft_unique Hin Hl1 Hl2) as [=].
+  - Case "def_tag"%string.
+    eapply lft_cons in Hl1; eauto.
+    pose proof (lft_typ_tag_inv _ Hin Hl1 Hl2) as ->.
+    rewrite app_nil_l in *.
+    pose proof (lft_unique Hin Hl1 Hl2) as [=].
 Qed.
 
 (** The same applies to the case where we type multiple declarations that contain
@@ -180,6 +265,28 @@ Proof.
     inversions Hr2; auto.
     inversions H4. clear IHHds.
     eapply def_typing_rhs; eauto.
+Qed.
+
+(** The same applies to the case where we type multiple declarations that contain
+    [{b: V}] as a record. *)
+Lemma defs_typing_rhs_tag z bs G ds T a q U S cs T' b V :
+  inert G ->
+  z; bs; G ⊢ ds :: T ->
+  inert_typ S ->
+  z ==> S =bs=> μ T' ->
+  record_has (open_typ_p (p_sel (avar_f z) bs) T') {b ⦂ V} ->
+  record_has T {b ⦂ V} ->
+  z ==> S =cs++b::bs=> μ U ->
+  record_has (open_typ_p (p_sel (avar_f z) (cs++b::bs)) U) {a ⦂ typ_tag q} ->
+  exists V, G ⊢ trm_path q : V.
+Proof.
+  intros Hi Hds Hin Hl1 Hr1 Hr2 Hl2 Hr.
+  gen S a q U cs T' b V. dependent induction Hds; introv Hin; introv Hl1; introv Hl2; introv Hr Hr1 Hr2.
+  - inversions Hr2. eapply def_typing_rhs_tag; eauto.
+  - specialize (IHHds Hi _ Hin _ _ _ _ _ Hl1 _ Hl2 Hr _ Hr1).
+    inversions Hr2; auto.
+    inversions H4. clear IHHds.
+    eapply def_typing_rhs_tag; eauto.
 Qed.
 
 (** Looking up a path inside of a variable [x]'s environment type,
@@ -223,41 +330,53 @@ Lemma val_typing G x v T :
         wf (G & x ~ T').
 Proof.
   intros Hi Hwf Hv Hx. dependent induction Hv; eauto.
-  - exists (∀(T) U). repeat split*. constructor; eauto. introv Hp.
-    assert (binds x (∀(T) U) (G & x ~ ∀(T) U)) as Hb by auto. apply pf_bind in Hb; auto.
-    destruct bs as [|b bs].
-    + apply pf_binds in Hp; auto. apply binds_push_eq_inv in Hp as [=].
-    + apply pf_sngl in Hp as [? [? [=]%pf_binds%binds_push_eq_inv]]; auto.
+  - exists (∀(T) U). repeat split*.
+    constructor; eauto.
+    + introv Hp.
+      assert (binds x (∀(T) U) (G & x ~ ∀(T) U)) as Hb by auto. apply pf_bind in Hb; auto.
+      destruct bs as [|b bs].
+      ++ apply pf_binds in Hp; auto. apply binds_push_eq_inv in Hp as [=].
+      ++ apply pf_sngl in Hp as [? [? [=]%pf_binds%binds_push_eq_inv]]; auto.
   - exists (μ T). assert (inert_typ (μ T)) as Hin. {
       apply ty_new_intro_p in H. apply* pfv_inert.
     }
     repeat split*. pick_fresh z. assert (z \notin L) as Hz by auto.
     specialize (H z Hz). assert (z # G) as Hz' by auto.
-    constructor*. introv Hp.
-    assert (exists W, G & x ~ (μ T) ⊢ trm_path q : W) as [W Hq]. {
-      assert (inert (G & x ~ μ T)) as Hi' by eauto.
-      pose proof (pf_sngl_to_lft Hi' Hp) as [-> | [b [c [bs' [bs'' [U [V [-> [Hl1 [Hl2 [Hr1 Hr2]]]]]]]]]]].
-      { apply pf_binds in Hp as [=]%binds_push_eq_inv; auto. }
-      assert (x; nil; G & x ~ open_typ x T ⊢ open_defs x ds :: open_typ x T)
-        as Hdx%open_env_last_defs. {
-        apply rename_defs with (x:=z); auto.
+    constructor*.
+    {
+      introv Hp.
+      assert (exists W, G & x ~ (μ T) ⊢ trm_path q : W) as [W Hq]. {
+        assert (inert (G & x ~ μ T)) as Hi' by eauto.
+        pose proof (pf_sngl_to_lft Hi' Hp) as [-> | [b [c [bs' [bs'' [U [V [-> [Hl1 [Hl2 [Hr1 Hr2]]]]]]]]]]].
+        { apply pf_binds in Hp as [=]%binds_push_eq_inv; auto. }
+        assert (x; nil; G & x ~ open_typ x T ⊢ open_defs x ds :: open_typ x T)
+          as Hdx%open_env_last_defs. {
+          apply rename_defs with (x:=z); auto.
+        }
+        destruct bs'' as [|bs'h bs't].
+        + rewrite app_nil_l in *. inversions Hl1. inversions Hl2.
+          eapply defs_typing_sngl_rhs. apply Hdx. rewrite* open_var_typ_eq.
+        + rewrite <- app_comm_cons in Hl1. inversions Hl1.
+          eapply defs_typing_rhs.
+          apply Hdx.
+          apply Hin.
+          eauto.
+          rewrite open_var_typ_eq in Hr1. apply Hr1.
+          auto.
+          apply Hl2.
+          apply Hr2.
+        + auto.
       }
-      destruct bs'' as [|bs'h bs't].
-      + rewrite app_nil_l in *. inversions Hl1. inversions Hl2.
-        eapply defs_typing_sngl_rhs. apply Hdx. rewrite* open_var_typ_eq.
-      + rewrite <- app_comm_cons in Hl1. inversions Hl1.
-        eapply defs_typing_rhs.
-        apply Hdx.
-        apply Hin.
-        eauto.
-        rewrite open_var_typ_eq in Hr1. apply Hr1.
-        auto.
-        apply Hl2.
-        apply Hr2.
-      + auto.
+      apply pt3_exists in Hq as [? Hq'%pt2_exists]; auto.
     }
-    apply pt3_exists in Hq as [? Hq'%pt2_exists]; auto.
   - specialize (IHHv _ Hi Hwf eq_refl Hx). destruct_all. eexists; split*.
+  - exists (typ_tag q). repeat split; eauto 2.
+    constructor; eauto.
+    + introv Hp.
+      assert (binds x (typ_tag q) (G & x ~ typ_tag q)) as Hb by auto. apply pf_bind in Hb; auto.
+      destruct bs as [|b bs].
+      ++ apply pf_binds in Hp; auto. apply binds_push_eq_inv in Hp as [=].
+      ++ apply pf_sngl in Hp as [? [? [=]%pf_binds%binds_push_eq_inv]]; auto.
 Qed.
 
 (** Helper tactics for proving Preservation *)
@@ -314,9 +433,9 @@ Proof.
   - Case "ty_all_elim"%string.
     match goal with
     | [Hp: _ ⊢ trm_path _ : ∀(_) _ |- _] =>
-        pose proof (canonical_forms_fun Hi Hwf Hwt Hp) as [L [T' [t [Hl [Hsub Hty]]]]];
-        invert_red
+        pose proof (canonical_forms_fun Hi Hwf Hwt Hp) as [L [T' [t [Hl [Hsub Hty]]]]]
     end.
+    invert_red.
     lookup_eq.
     exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
     pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
@@ -347,6 +466,74 @@ Proof.
       apply weaken_subtyp with (G2:=G') in Hs;
       eauto
     end.
+  - Case "ty_tag"%string.
+    pose proof (canonical_forms_tag Hi Hwf Hwt Ht1) as Hcf.
+    destruct Hcf as [p0 [A0 [r1 [Hpd [Htr1 Htr2]]]]].
+    inversion Hred. subst.
+    + lookup_eq. exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+      (* pick_fresh y. assert (y \notin L) as FrL by eauto. specialize (H y FrL). *)
+      destruct Htr2 as [Htr21 [Htr22 Htr23]].
+      destruct Htr23 as [[U0 HrU0] [Htr23 | [Htr23 | Htr23]]].
+      ++ subst r0.
+         eapply subst_fresh_var_path. apply* inert_ok. exact H.
+         lets Hq1: canonical_forms_path_sel Hi Htr21.
+         destruct Hq1 as [T1 Hq1].
+         lets Hq2: pt3_exists Hi Ht2. destruct Hq2 as [T2 Hq2].
+         lets Hd1: (canonical_forms_dealias Hi Hwf Hwt Hq1 Hq2 H10 H11).
+         assert (Htr21': G ⊢ trm_path r: q↓A). {
+           destruct Hd1 as [Hd1 | [Hd1 | Hd1]].
+           - subst. auto.
+           - eapply ty_sub. exact Htr21.
+             eapply subtyp_sngl_pq. exact Hd1. apply* precise_to_general3.
+             apply repl_intro_sel.
+           - eapply ty_sub. exact Htr21.
+             eapply subtyp_sngl_qp. exact Hd1. apply* precise_to_general3.
+             apply repl_intro_sel.
+         }
+         eauto 3.
+      ++ eapply subst_fresh_var_path. apply* inert_ok. exact H.
+         eapply ty_and_intro.
+         * apply ty_sub with (T:={{r0}}). exact Htr22.
+           eapply subtyp_sngl_qp. exact Htr23. exact Htr21.
+           apply repl_intro_sngl.
+         * eapply ty_sngl. exact Htr22.
+           lets Hq1: canonical_forms_path_sel Hi Htr21.
+           destruct Hq1 as [T1 Hq1].
+           lets Hq2: pt3_exists Hi Ht2. destruct Hq2 as [T2 Hq2].
+           lets Hd1: (canonical_forms_dealias Hi Hwf Hwt Hq1 Hq2 H10 H11).
+           assert (Htr21': G ⊢ trm_path r0: q ↓ A). {
+             destruct Hd1 as [Hd1 | [Hd1 | Hd1]].
+             - subst. auto.
+             - eapply ty_sub. exact Htr21.
+               eapply subtyp_sngl_pq. exact Hd1. apply* precise_to_general3.
+               apply repl_intro_sel.
+             - eapply ty_sub. exact Htr21.
+               eapply subtyp_sngl_qp. exact Hd1. apply* precise_to_general3.
+               apply repl_intro_sel.
+           }
+           exact Htr21'.
+      ++ eapply subst_fresh_var_path. apply* inert_ok. exact H.
+         eapply ty_and_intro.
+         * apply ty_sub with (T:={{r0}}). exact Htr22.
+           eapply subtyp_sngl_pq. exact Htr23. exact HrU0.
+           apply repl_intro_sngl.
+         * eapply ty_sngl. exact Htr22.
+           lets Hq1: canonical_forms_path_sel Hi Htr21.
+           destruct Hq1 as [T1 Hq1].
+           lets Hq2: pt3_exists Hi Ht2. destruct Hq2 as [T2 Hq2].
+           lets Hd1: (canonical_forms_dealias Hi Hwf Hwt Hq1 Hq2 H10 H11).
+           assert (Htr21': G ⊢ trm_path r0: q ↓ A). {
+             destruct Hd1 as [Hd1 | [Hd1 | Hd1]].
+             - subst. auto.
+             - eapply ty_sub. exact Htr21.
+               eapply subtyp_sngl_pq. exact Hd1. apply* precise_to_general3.
+               apply repl_intro_sel.
+             - eapply ty_sub. exact Htr21.
+               eapply subtyp_sngl_qp. exact Hd1. apply* precise_to_general3.
+               apply repl_intro_sel.
+           }
+           exact Htr21'.
+    + subst. lookup_eq. exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
 Qed.
 
 (** **** Progress (Lemma 5.3) *)
@@ -370,6 +557,13 @@ Proof.
       { inversion Hn. } eauto.
     + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
       { inversion Hn. } eauto.
+    + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
+      { inversion Hn. } eauto.
+  - Case "ty_case"%string.
+    right.
+    pose proof (canonical_forms_tag Hi Hwf Hwt Ht1) as Hcf.
+    destruct Hcf as [p0 [A0 [r1 [Hpd [Htr1 Htr2]]]]].
+    eauto.
 Qed.
 
 (** *** Safety *)

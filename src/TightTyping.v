@@ -132,6 +132,33 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     G ⊢# t : T ->
     G ⊢# T <: U ->
     G ⊢# t : U
+
+(** [[
+G ⊢# q: p.A
+_______________________
+G ⊢# tag p.A q : Tag q
+]]
+*)
+| ty_tag_t : forall G p q A r,
+    G ⊢# trm_path q : p ↓ A ->
+    G ⊢# trm_path r : {{ q }} ->
+    G ⊢# trm_val (val_tag p A q r) : typ_tag q
+
+(** [[
+G ⊢# p: Tag r
+G, y: r.type ∧ q.A ⊢ t1 : T
+G ⊢# t2 : T
+_______________________________________________
+G ⊢# case p of tag q.A y => t1 | else => t2 : T
+]]
+*)
+| ty_case_t : forall L G p r q A t1 t2 T U,
+    G ⊢# trm_path p : typ_tag r ->
+    G ⊢# trm_path q : U ->
+    (forall y, y \notin L ->
+      G & y ~ ({{ r }} ∧ (q ↓ A)) ⊢ open_trm y t1 : T) ->
+    G ⊢# t2 : T ->
+    G ⊢# trm_case p q A t1 t2 : T
 where "G '⊢#' t ':' T" := (ty_trm_t G t T)
 
 (** *** Tight subtyping [G ⊢# T <: U] *)
@@ -268,7 +295,7 @@ Lemma tight_to_general:
      G ⊢# S <: U ->
      G ⊢ S <: U).
 Proof.
-  apply ts_mutind_ts; intros; subst; eauto using precise_to_general3.
+  apply ts_mutind_ts; intros; subst; eauto 4 using precise_to_general3.
   Unshelve.
   all: solve_ex_typ_L.
 Qed.

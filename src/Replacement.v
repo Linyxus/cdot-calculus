@@ -61,6 +61,7 @@ Proof.
     simpl. repeat rewrite field_sel_open. repeat rewrite open_named_path; auto.
   - Case "rsngl"%string.
     simpl. repeat rewrite field_sel_open. repeat rewrite open_named_path; auto.
+  - simpl. repeat rewrite field_sel_open. repeat rewrite open_named_path; auto.
 Qed.
 
 (** ...for types only *)
@@ -195,6 +196,11 @@ Proof.
     repeat rewrite proj_rewrite_mult. eauto.
     apply star_refl.
     destruct q as [qx qbs]. apply star_refl.
+  - destruct p as [[pn | px] pbs]; destruct p0 as [p0x p0bs]; simpl.
+    case_if; destruct q as [qx qbs]; subst. apply star_one.
+    repeat rewrite proj_rewrite_mult. eauto.
+    apply star_refl.
+    destruct q as [qx qbs]. apply star_refl.
   - eapply star_trans. apply repl_star_typ1. apply* H. apply repl_star_typ2. apply* H0.
   - apply* repl_star_trm.
 Qed.
@@ -258,6 +264,13 @@ Proof.
   introv Hr. inversions Hr. eauto.
 Qed.
 
+Lemma repl_prefixes_tag: forall p q p' q',
+    repl_typ p q (typ_tag p')  (typ_tag q') ->
+    exists bs, p' = p •• bs /\ q' = q •• bs.
+Proof.
+  introv Hr. inversions Hr. eauto.
+Qed.
+
 Lemma repl_prefixes_sel: forall p q p' q' A,
     repl_typ p q (p' ↓ A) (q' ↓ A) ->
     exists bs, p' = p •• bs /\ q' = q •• bs.
@@ -283,6 +296,8 @@ Lemma repl_typ_subst_mutind:
     repl_dec (subst_path x y p) (subst_path x y q) (subst_dec x y T) (subst_dec x y U)).
 Proof.
   apply repl_mutind; intros; simpl; try (constructor); eauto.
+  - rewrite* sel_fieldss_subst.
+    rewrite* sel_fieldss_subst.
   - rewrite* sel_fieldss_subst.
     rewrite* sel_fieldss_subst.
   - rewrite* sel_fieldss_subst.

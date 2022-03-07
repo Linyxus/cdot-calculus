@@ -65,6 +65,7 @@ Inductive typ : Set :=
   | typ_bnd  : typ -> typ
   | typ_all  : typ -> typ -> typ
   | typ_sngl : path -> typ
+  | typ_tag  : path -> typ
 (**
   - [dec_typ A S T] represents a type declaraion [{A: S..T}];
   - [dec_trm a T] represents a field declaration [{a: T}] . *)
@@ -86,6 +87,7 @@ Inductive trm : Set :=
   | trm_app  : path -> path -> trm
   | trm_let  : trm -> trm -> trm
   | trm_path : path -> trm
+  | trm_case : path -> path -> typ_label -> trm -> trm -> trm
 (**
   - [val_new T ds] represents the object [nu(x: T)ds]; the variable [x] is bound in [T]
     and [ds] and is omitted from the representation;
@@ -96,6 +98,7 @@ Inductive trm : Set :=
 with val : Set :=
   | val_new  : typ -> defs -> val
   | val_lambda : typ -> trm -> val
+  | val_tag  : path -> typ_label -> path -> path -> val
 (**
   - [def_typ A T] represents a type-member definition [{A = T}];
   - [def_trm a t] represents a field definition [{a = t}]; *)
@@ -112,6 +115,7 @@ with defs : Set :=
 
 with def_rhs : Set :=
   | defp : path -> def_rhs
+  (* | deft : path -> typ_label -> path -> def_rhs *)
   | defv : val -> def_rhs.
 
 (** *** Useful definitions and notations *)
@@ -155,6 +159,9 @@ Notation "'{' a ':=' t '}'" := (def_trm a t) (t at level 50).
 
 (** - field definition with a path on the right-handside [{a = p}] *)
 Notation "'{' a ':=p' p '}'" := (def_trm a (defp p)).
+
+(** - field definition with a tagged path on the right-handside [{a = tag p.A q}] *)
+(* Notation "'{' a ':=t' p ';' A ';' q '}'" := (def_trm a (deft p A q)). *)
 
 (** - field definition with a value on the right-handside [{a = v}] *)
 Notation "'{' a ':=v' v '}'" := (def_trm a (defv v)).
@@ -239,6 +246,7 @@ Fixpoint open_rec_typ (k: nat) (u: var) (T: typ): typ :=
   | μ T            => μ (open_rec_typ (S k) u T)
   | ∀(T1) T2      => ∀(open_rec_typ k u T1) open_rec_typ (S k) u T2
   | {{ p }}        => {{ open_rec_path k u p }}
+  | typ_tag p      => typ_tag (open_rec_path k u p)
   end
 with open_rec_dec (k: nat) (u: var) (D: dec): dec :=
   match D with
@@ -252,11 +260,14 @@ Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
   | trm_path p     => trm_path (open_rec_path k u p)
   | trm_app p q    => trm_app (open_rec_path k u p) (open_rec_path k u q)
   | trm_let t1 t2  => trm_let (open_rec_trm k u t1) (open_rec_trm (S k) u t2)
+  | trm_case p q A t1 t2 =>
+      trm_case (open_rec_path k u p) (open_rec_path k u q) A (open_rec_trm (S k) u t1) (open_rec_trm k u t2)
   end
 with open_rec_val (k: nat) (u: var) (v: val): val :=
   match v with
   | ν(T)ds   => ν (open_rec_typ (S k) u T) open_rec_defs (S k) u ds
   | λ(T) e  => λ(open_rec_typ k u T) open_rec_trm (S k) u e
+  | val_tag p A q r  => val_tag (open_rec_path k u p) A (open_rec_path k u q) (open_rec_path k u r)
   end
 with open_rec_def (k: nat) (u: var) (d: def): def :=
   match d with
@@ -271,6 +282,7 @@ with open_rec_defs (k: nat) (u: var) (ds: defs): defs :=
 with open_rec_defrhs (k: nat) (u: var) (drhs: def_rhs) : def_rhs :=
   match drhs with
   | defp p => defp (open_rec_path k u p)
+  (* | deft p A q => deft (open_rec_path k u p) A (open_rec_path k u q) *)
   | defv v => defv (open_rec_val k u v)
   end.
 
@@ -324,6 +336,7 @@ Fixpoint open_rec_typ_p (k: nat) (u: path) (T: typ): typ :=
   | μ       T      => μ (open_rec_typ_p (S k) u T)
   | ∀(T1) T2       => ∀(open_rec_typ_p k u T1) open_rec_typ_p (S k) u T2
   | {{ p }}        => {{ open_rec_path_p k u p }}
+  | typ_tag p      => typ_tag (open_rec_path_p k u p)
   end
 with open_rec_dec_p (k: nat) (u: path) (D: dec): dec :=
   match D with
@@ -337,11 +350,14 @@ Fixpoint open_rec_trm_p (k: nat) (u: path) (t: trm): trm :=
   | trm_path p     => trm_path (open_rec_path_p k u p)
   | trm_app p q    => trm_app (open_rec_path_p k u p) (open_rec_path_p k u q)
   | trm_let t1 t2  => trm_let (open_rec_trm_p k u t1) (open_rec_trm_p (S k) u t2)
+  | trm_case p q A t1 t2 =>
+      trm_case (open_rec_path_p k u p) (open_rec_path_p k u q) A (open_rec_trm_p (S k) u t1) (open_rec_trm_p k u t2)
   end
 with open_rec_val_p (k: nat) (u: path) (v: val): val :=
   match v with
   | ν(T) ds => ν(open_rec_typ_p (S k) u T) open_rec_defs_p (S k) u ds
   | λ(T) e  => λ(open_rec_typ_p k u T) open_rec_trm_p (S k) u e
+  | val_tag p A q r  => val_tag (open_rec_path_p k u p) A (open_rec_path_p k u q) (open_rec_path_p k u r)
   end
 with open_rec_def_p (k: nat) (u: path) (d: def): def :=
   match d with
@@ -356,6 +372,7 @@ with open_rec_defs_p (k: nat) (u: path) (ds: defs): defs :=
 with open_rec_defrhs_p (k: nat) (u: path) (drhs: def_rhs) : def_rhs :=
   match drhs with
   | defp p => defp (open_rec_path_p k u p)
+  (* | deft p A q => deft (open_rec_path_p k u p) A (open_rec_path_p k u q) *)
   | defv v => defv (open_rec_val_p k u v)
   end.
 
@@ -399,6 +416,8 @@ Inductive repl_typ : path -> path -> typ -> typ -> Prop :=
     repl_typ p q (∀(U) T1) (∀(U) T2)
 | rsngl: forall p q bs,
     repl_typ p q {{ p••bs }} {{ q••bs }}
+| rtag : forall p q bs,
+    repl_typ p q (typ_tag (p •• bs)) (typ_tag (q •• bs))
 with repl_dec : path -> path -> dec -> dec -> Prop :=
 | rdtyp1: forall p q T1 T2 A U,
     repl_typ p q T1 T2 ->
@@ -439,6 +458,7 @@ Fixpoint fv_typ (T: typ) : vars :=
   | μ T            => fv_typ T
   | ∀(T1) T2       => (fv_typ T1) \u (fv_typ T2)
   | {{ p }}        => fv_path p
+  | typ_tag p      => fv_path p
   end
 with fv_dec (D: dec) : vars :=
   match D with
@@ -453,11 +473,13 @@ Fixpoint fv_trm (t: trm) : vars :=
   | trm_path p       => (fv_path p)
   | trm_app p q      => (fv_path p) \u (fv_path q)
   | trm_let t1 t2    => (fv_trm t1) \u (fv_trm t2)
+  | trm_case p q A t1 t2 => (fv_path p) \u (fv_path q) \u (fv_trm t1) \u (fv_trm t2)
   end
 with fv_val (v: val) : vars :=
   match v with
   | ν(T) ds    => (fv_typ T) \u (fv_defs ds)
   | λ(T)t      => (fv_typ T) \u (fv_trm t)
+  | val_tag p A q r => (fv_path p) \u (fv_path q) \u (fv_path r)
   end
 with fv_def (d: def) : vars :=
   match d with
@@ -472,6 +494,7 @@ with fv_defs(ds: defs) : vars :=
 with fv_defrhs(drhs: def_rhs) : vars :=
   match drhs with
   | defp p => fv_path p
+  (* | deft p A q => fv_path p \u fv_path q *)
   | defv v => fv_val v
   end.
 
@@ -495,6 +518,7 @@ Inductive record_dec : dec -> Prop :=
 | rd_typ : forall A T, record_dec { A >: T <: T }
 | rd_trm : forall a T, inert_typ T -> record_dec { a ⦂ T }
 | rd_trm_sngl : forall a p, record_dec { a ⦂ {{ p }} }
+| rd_trm_tag : forall a p, record_dec { a ⦂ typ_tag p }
 
 (** Given a record declaration, a [record_typ] keeps track of the declaration's
     field member labels (i.e. names of fields) and type member labels
@@ -527,6 +551,7 @@ with record_typ : typ -> fset label -> Prop :=
     - [mu(x: {B: S..T})], where [S ≠ T]
     - [mu(x: {a: μ(y: {A: S..T})})], where [S ≠ T]*)
 with inert_typ : typ -> Prop :=
+  | inert_typ_tag : forall p, inert_typ (typ_tag p)
   | inert_typ_all : forall S T, inert_typ (∀(S) T)
   | inert_typ_bnd : forall T ls,
       record_typ T ls ->
@@ -792,6 +817,35 @@ G ⊢ t: U
     G ⊢ t : T ->
     G ⊢ T <: U ->
     G ⊢ t : U
+
+(** [[
+G ⊢ q: p.A
+_______________________
+G ⊢ tag p.A q : Tag q
+]]
+*)
+| ty_tag : forall G p q A r,
+    G ⊢ trm_path q : p ↓ A ->
+    G ⊢ trm_path r : {{ q }} ->
+    G ⊢ trm_val (val_tag p A q r) : typ_tag q
+
+(** [[
+G ⊢ p: Tag r
+G ⊢ q
+G, y: r.type ∧ q.A ⊢ t1 : T
+G ⊢ t2 : T
+_______________________________________________
+G ⊢ case p of tag q.A y => t1 | else => t2 : T
+]]
+*)
+| ty_case : forall L G p r q A t1 t2 T U,
+    G ⊢ trm_path p : typ_tag r ->
+    G ⊢ trm_path q : U ->
+    (forall y, y \notin L ->
+      G & y ~ ({{ r }} ∧ (q ↓ A)) ⊢ open_trm y t1 : T) ->
+    G ⊢ t2 : T ->
+    G ⊢ trm_case p q A t1 t2 : T
+
 where "G '⊢' t ':' T" := (ty_trm G t T)
 
 (** *** Single-definition typing [x; bs; G ⊢ d: D]
@@ -834,6 +888,16 @@ x.bs; G ⊢ {b = q}: {b: q.type}
  | ty_def_path : forall x bs G q b T,
     G ⊢ trm_path q: T ->
     x; bs; G ⊢ { b :=p q } : { b ⦂ {{ q }} }
+
+(** [[
+G ⊢ tag p.A q : Tag q
+_____________________________
+x.bs; G ⊢ {b = tag p.A q}: {b: Tag q}
+]]
+*)
+ | ty_def_tag : forall x bs G p A q r b,
+    G ⊢ trm_val (val_tag p A q r) : typ_tag q ->
+    x; bs; G ⊢ { b :=v (val_tag p A q r) } : { b ⦂ typ_tag q }
 
 where "x ';' bs ';' G '⊢' d ':' D" := (ty_def x bs G d D)
 
@@ -994,6 +1058,10 @@ __________________________
 G ⊢ T1 <: T2
 ]]
 *)
+(* | subtyp_all_inv2 : forall G S1 T1 S2 T2 L x, *)
+(*     G ⊢ ∀(S1)T1 <: ∀(S2)T2 -> *)
+(*     x \notin L -> *)
+(*     G & x ~ S2 ⊢ open_typ x T1 <: open_typ x T2 *)
 (* | subtyp_all_inv2 : forall G S1 T1 S2 T2, *)
 (*     G ⊢ ∀(S1)T1 <: ∀(S2)T2 -> *)
 (*     (forall x, open_typ x T1 = T1) -> *)
@@ -1173,6 +1241,7 @@ Ltac fresh_constructor :=
   apply_fresh ty_new_intro as z ||
   apply_fresh ty_all_intro as z ||
   apply_fresh ty_let as z ||
+  apply_fresh ty_case as z ||
   apply_fresh subtyp_all as z; auto.
 
 (** Tactics for naming cases in case analysis. *)

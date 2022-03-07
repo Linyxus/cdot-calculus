@@ -11,7 +11,7 @@ Set Implicit Arguments.
 Require Import Sequences.
 Require Import Coq.Program.Equality.
 Require Import Definitions RecordAndInertTypes PreciseTyping TightTyping InvertibleTyping
-        Narrowing Replacement ReplacementTyping GADTRules.
+        Narrowing Replacement ReplacementTyping GADTRules Binding.
 
 (** ** Sel-<: Replacement *)
 
@@ -201,6 +201,42 @@ Proof.
   specialize (HS2 y HL0).
   specialize (H2 y HL).
   eapply ty_sub; eauto. eapply narrow_typing in H2; eauto.
+Qed.
+
+(** If a path has a function type then its III-level precise type is
+    also a function type that is a subtype of the former. *)
+Lemma path_typ_tag_to_precise: forall G p r,
+    inert G ->
+    wf G ->
+    G ⊢ trm_path p : typ_tag r ->
+    (exists q,
+        G ⊢!!! p : typ_tag q /\
+        (exists q', G ⊩ r ⟿' q' ⬳ q)).
+Proof.
+  introv Hin Hwf Ht.
+  apply (general_to_tight Hin) in Ht; eauto 1.
+  apply (replacement_closure Hin) in Ht; eauto 1.
+  eapply repl_to_invertible_tag_repl_comp in Ht; eauto 1.
+  destruct Ht as [q' [Hrq' Hqi]].
+  eapply inv_to_precise_tag_repl_comp in Hqi; eauto 5.
+  destruct Hqi as [r' [Hqp Hrq'']].
+  eauto.
+Qed.
+
+(** If a value has a tag type then the value is a tag. *)
+Lemma val_typ_tag_to_tag: forall G v p,
+    inert G ->
+    G ⊢ trm_val v : typ_tag p ->
+    (exists p0 A q q1 r,
+        v = val_tag p0 A q q1 /\
+        G ⊢ trm_path q : p0 ↓ A /\
+        G ⊢ trm_path q1 : {{ q }} /\
+        G ⊩ p ⟿' r ⬳ q).
+Proof.
+  introv Hin Ht. proof_recipe.
+  destruct (repl_to_invertible_tag_v Hin Ht) as [r [Hinvv Hpre]].
+  destruct (invertible_to_precise_tag_v Hin Hinvv) as [q [Hpv Hqre]].
+  inversions Hpv. repeat eexists; eauto.
 Qed.
 
 Lemma invert_subtyp_all : forall G S1 T1 S2 T2,

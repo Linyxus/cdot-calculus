@@ -153,6 +153,7 @@ Proof.
     gen p. dependent induction IHHp; introv Hpq; eauto.
 Qed.
 
+(* useful: q.a is typed -> p.a : {{ q.a }} *)
 Lemma path_elim_prec: forall G p q a T,
     inert G ->
     G ⊢!!! p: {{ q }}->
@@ -174,8 +175,9 @@ Lemma pf_pt2: forall G p T U V,
 Proof.
   introv Hi Hp1 Hp2 His. gen T U. induction Hp2; introv Hp1.
   - lets Heq: (pf_T_unique Hi Hp1 H). subst. destruct His.
-    * destruct H0. apply* pf_forall_T. apply* pf_bnd_T.
-    * inversions H0. destruct_all. apply* pf_sngl_T.
+    * destruct H0. apply* pf_tag_T. apply* pf_forall_T. apply* pf_bnd_T.
+    * destruct_all.
+      inversions H0. destruct_all. apply* pf_sngl_T.
   - destruct (pf_path_sel _ _ Hi Hp1) as [V Hp].
     assert (inert_sngl {{ q }}) as His'. { right. eexists. auto. }
     specialize (IHHp2_1 Hi His' _ _ Hp). inversion IHHp2_1.
@@ -357,6 +359,7 @@ Proof.
                apply pt2_backtrack in H; destruct_all; eauto.
 Qed.
 
+(* This lemma is useful : q is typable to p is typeable. *)
 Lemma pt3_sngl_trans3: forall G p q T,
     G ⊢!!! p: {{ q }}->
     G ⊢!!! q: T ->
@@ -380,6 +383,7 @@ Proof.
   apply* pt2_sngl_trans.
 Qed.
 
+(* useful: is this what I want? *)
 Lemma pt3_field_trans: forall G p q bs T,
     inert G ->
     G ⊢!!! p : {{ q }}->
@@ -618,6 +622,7 @@ Proof.
   - lets Hu: (pt2_sngl_unique' Hi H Hp). subst*.
 Qed.
 
+(* Another useful lemma! *)
 Lemma pt3_invert : forall G p q T,
     inert G ->
     G ⊢!!! p : T ->
@@ -709,6 +714,15 @@ Proof.
   specialize (IHHp _ _ Hi eq_refl) as [Hq | [r [Hq Hr]]]; eauto.
 Qed.
 
+Lemma last_path_tag G p r :
+  inert G ->
+  G ⊢!!! p : typ_tag r ->
+  G ⊢!! p : typ_tag r \/ exists q, G ⊢!!! p: {{ q }} /\ G ⊢!! q : typ_tag r.
+Proof.
+  intros Hi Hp. dependent induction Hp; eauto.
+  specialize (IHHp _ Hi eq_refl). destruct_all; eauto.
+Qed.
+
 Lemma pt2_qbs_typed G p q T bs V:
   inert G ->
   G ⊢! p : {{ q }} ⪼ {{ q }} ->
@@ -783,12 +797,23 @@ Proof.
     apply inert_prefix in Hi; auto.
 Qed.
 
+Lemma pt2_strengthen_one_helper_tag G y bs T x q :
+  inert (G & x ~ T) ->
+  wf G ->
+  G & x ~ T ⊢!! p_sel (avar_f y) bs : typ_tag q ->
+  x <> y ->
+  G ⊢!! p_sel (avar_f y) bs : typ_tag q.
+Proof.
+  intros Hi Hwf Ht Hn. dependent induction Ht.
+  econstructor. apply* pf_strengthen.
+Qed.
+
 Lemma pt2_strengthen_one_helper G y bs T x q :
   inert (G & x ~ T) ->
   wf G ->
   G & x ~ T ⊢!! p_sel (avar_f y) bs : {{ q }}->
   x <> y ->
-  G ⊢!! p_sel (avar_f y) bs : {{ q }}/\ exists S, G ⊢!! q : S.
+  G ⊢!! p_sel (avar_f y) bs : {{ q }} /\ exists S, G ⊢!! q : S.
 Proof.
   intros Hi Hwf Ht Hn. dependent induction Ht.
   - split. econstructor. apply* pf_strengthen.
@@ -801,12 +826,22 @@ Proof.
       apply inert_ok in Hi. intros ->. apply ok_push_inv in Hi as [_ Hq]. eapply binds_fresh_inv; eauto.
     }
     rewrite proj_rewrite in *.
-    pose proof (pt2_inertsngl Hi Ht2) as [[Hin | [q ->]] | Hr].
+    pose proof (pt2_inertsngl Hi Ht2) as [[Hin | Hin] | Hr].
     + pose proof (pt2_to_pf Ht2 (or_introl Hin)) as [? Hpr]. apply pf_strengthen in Hpr; auto; split*.
-    + specialize (IHHt2 _ _ _ _ _ _ Hi Hwf JMeq_refl eq_refl eq_refl Hn') as [IHqx [W IHq']].
+    + inversions Hin.
+      specialize (IHHt2 _ _ _ _ _ _ Hi Hwf JMeq_refl eq_refl eq_refl Hn') as [IHqx [W IHq']].
       split.
       * rewrite proj_rewrite in *. eauto.
       * simpl. eexists; eauto.
+    (* + inversions Hin. *)
+      (* specialize (IHHt2 _ _ _ _ _ _ Hi Hwf JMeq_refl eq_refl eq_refl Hn') as [IHqx [W IHq']]. *)
+      (* split. *)
+      (* * eapply pt2_sngl_trans. apply IHy. eapply pt2_strengthen_one_helper_tag. *)
+      (*   exact Hi. exact Hwf. exact Ht2. exact Hn'. *)
+      (* * simpl. *)
+      (*   eexists; eauto. *)
+      (*   eapply pt2_strengthen_one_helper_tag. exact Hi. exact Hwf. *)
+      (*   exact Ht2. exact Hn'. *)
     + pose proof (pt2_to_pf Ht2 (or_intror Hr)) as [? Hpr]. apply pf_strengthen in Hpr; auto; split*.
 Qed.
 
@@ -818,9 +853,10 @@ Lemma pt2_strengthen_one G y bs T x U :
   G ⊢!! p_sel (avar_f y) bs : U.
 Proof.
   intros Hi Hwf Ht Hn.
-  pose proof (pt2_inertsngl Hi Ht) as [[Hin | [q ->]] | Hr].
+  pose proof (pt2_inertsngl Hi Ht) as [[Hin | Hin] | Hr].
   - pose proof (pt2_to_pf Ht (or_introl Hin)) as [? Hpr]. apply pf_strengthen in Hpr; eauto.
-  - apply* pt2_strengthen_one_helper.
+  - inversions Hin. apply* pt2_strengthen_one_helper.
+  (* - inversions Hin. apply* pt2_strengthen_one_helper_tag. *)
   - pose proof (pt2_to_pf Ht (or_intror Hr)) as [? Hpr]. apply pf_strengthen in Hpr; eauto.
 Qed.
 
@@ -853,6 +889,7 @@ Proof.
   pose proof (pf_sngl_T Hi H) as ->. apply* sngl_typed.
 Qed.
 
+(* useful! p is typed to q is typed *)
 Lemma sngl_typed3 : forall G p q,
     inert G ->
     wf G ->
@@ -1070,12 +1107,12 @@ Proof.
     lets Hpf: (pf_pt2_trans_inv_mult _ (inert_prefix Hi) H1 Hu). subst*.
   - specialize (IHHr _ Hp). destruct H as [p1 [p2 [S [H1 [Hq H2]]]]].
     destruct (repl_prefixes_sngl H2) as [bs [He1 He2]]. subst.
-    destruct IHHr as [Heq | IH].
-    * subst. right.
-     lets Hs: (sngl_typed3 (inert_prefix Hi) (wf_prefix Hwf) (pt3 (pt2 H1))). destruct Hs.
-      apply* pt3_trans_trans. apply* inert_prefix.
+    (* destruct IHHr as [Heq | IH]. *)
+    (* * subst. right. *)
+    (*  lets Hs: (sngl_typed3 (inert_prefix Hi) (wf_prefix Hwf) (pt3 (pt2 H1))). destruct Hs. *)
+    (*   apply* pt3_trans_trans. apply* inert_prefix. *)
     * right*. apply* pt3_sngl_trans3.
-      lets Hs: (sngl_typed3 (inert_prefix Hi) (wf_prefix Hwf) IH). destruct Hs.
+      lets Hs: (sngl_typed3 (inert_prefix Hi) (wf_prefix Hwf) H0). destruct Hs.
       apply* pt3_trans_trans. apply* inert_prefix.
 Qed.
 
@@ -1099,6 +1136,24 @@ Proof.
   specialize (IHHr _ eq_refl). destruct_all. eexists. eauto.
 Qed.
 
+Lemma repl_comp_tag_inv1 : forall G T p,
+    G ⊢ typ_tag p ⟿ T ->
+    exists q, T = typ_tag q.
+Proof.
+  introv Hr. dependent induction Hr; eauto.
+  specialize (IHHr _ eq_refl). destruct_all. subst.
+  inversions H. destruct_all. invert_repl. eexists. auto.
+Qed.
+
+Lemma repl_comp_tag_inv2 : forall G T p,
+    G ⊢ T ⟿ typ_tag p ->
+    exists q, T = typ_tag q.
+Proof.
+  introv Hr. dependent induction Hr; eauto.
+  inversions H. destruct_all. invert_repl.
+  specialize (IHHr _ eq_refl). destruct_all. eexists. eauto.
+Qed.
+
 Lemma repl_comp_bnd_inv1 G T U :
   G ⊢ μ U ⟿ T ->
   exists S, T = μ S.
@@ -1115,6 +1170,21 @@ Proof.
   introv Hr. dependent induction Hr; eauto.
   inversions H. destruct_all. invert_repl.
   specialize (IHHr _ eq_refl). destruct_all. eexists. eauto.
+Qed.
+
+Lemma repl_comp_tag': forall G p q,
+    G ⊢ typ_tag p ⟿ typ_tag q ->
+    G ⊢ p ⟿' q.
+Proof.
+  introv Hr. dependent induction Hr.
+  - apply star_refl.
+  - destruct H as [?[?[?[?[? Hr']]]]].
+    assert (exists V, b = typ_tag V) as [V ->]. {
+      invert_repl. eauto.
+    }
+    apply star_trans with (b:=V). apply star_one. inversions Hr'.
+    econstructor. apply H. apply H0.
+    invert_repl. apply* IHHr.
 Qed.
 
 Lemma repl_comp_bnd': forall G T T',
@@ -1233,6 +1303,19 @@ Proof.
     apply Hr'. apply* IHHr.
 Qed.
 
+Lemma repl_composition_p_weaken_one G x p q V :
+  ok G ->
+  x # G ->
+  G ⊢ p ⟿' q ->
+  G & x ~ V ⊢ p ⟿' q.
+Proof.
+  intros Hok Hn Hr. gen x V. dependent induction Hr; intros.
+  - constructor.
+  - destruct H.
+    eapply star_trans. apply star_one. econstructor. repeat eexists. apply* pf_weaken. apply* pt2_weaken.
+    apply* IHHr.
+Qed.
+
 Lemma repl_composition_weaken G G' T U :
   ok (G & G') ->
   G ⊢ T ⟿ U ->
@@ -1242,6 +1325,17 @@ Proof.
   - rewrite* concat_empty_r.
   - rewrite concat_assoc in *. apply ok_push_inv in Hok as [? ?].
     eapply repl_composition_weaken_one; eauto.
+Qed.
+
+Lemma repl_composition_p_weaken G G' p q :
+  ok (G & G') ->
+  G ⊢ p ⟿' q ->
+  G & G' ⊢ p ⟿' q.
+Proof.
+  intros Hok Hr. induction G' using env_ind.
+  - rewrite* concat_empty_r.
+  - rewrite concat_assoc in *. apply ok_push_inv in Hok as [? ?].
+    eapply repl_composition_p_weaken_one; eauto.
 Qed.
 
 Notation "G '⊩' T '⟿' U '⬳' V" := (G ⊢ T ⟿ U /\ G ⊢ V ⟿ U) (at level 40, T at level 59).
@@ -1303,3 +1397,172 @@ Proof.
     * apply star_one. repeat rewrite <- proj_rewrite'. econstructor; eauto.
     * eapply IHHr. eauto.
 Qed.
+
+(** In a well-formed environment, there is a precise-typing relation between equivalent
+    singleton paths *)
+Lemma repl_comp_to_prec'': forall G p q T,
+    inert G ->
+    wf G ->
+    G ⊢ {{ p }} ⟿ {{ q }} ->
+    G ⊢!!! q: T ->
+    p = q \/ G ⊢!!! p: {{ q }}.
+Proof.
+  introv Hi Hwf Hr Hp. gen T. dependent induction Hr; introv Hp; eauto.
+  assert (exists r, b = {{ r }}) as [r Heq].
+  { inversion H as [? [? [? [? [? Hr']]]]]. inversion* Hr'. }
+  subst.
+  specialize (IHHr _ _ Hi Hwf eq_refl eq_refl).
+  destruct H as [q1 [q2 [U2 [Hq1 [Hq2 H]]]]].
+  inversion H. subst.
+  Check pt3_field_trans.
+  lets Hqq: pt3_field_trans.
+  specialize (Hqq G q1 q2 bs T Hi).
+  assert (Hq13: G ⊢!!! q1 : {{ q2 }}) by eauto.
+  specialize (Hqq Hq13 Hp).
+  lets HqT: pt3_field_trans' G q1 q2 bs T.
+  specialize (HqT Hi Hq13 Hp).
+  specialize (IHHr _ HqT).
+  destruct IHHr.
+  - subst. right. exact Hqq.
+  - right. apply* pt3_sngl_trans3.
+Qed.
+
+Lemma repl_comp_to_prec_q_typed: forall G p q T,
+    inert G ->
+    wf G ->
+    G ⊢ {{ p }} ⟿ {{ q }} ->
+    G ⊢!!! q: T ->
+    (p = q \/ G ⊢!!! p: {{ q }}) /\ exists U, G ⊢!!! p: U.
+Proof.
+  introv Hi Hwf Hpq Hq.
+  assert (H: p = q \/ G ⊢!!! p: {{ q }}). {
+    apply* repl_comp_to_prec''.
+  }
+  split*.
+  destruct H.
+  - subst. eauto.
+  - repeat eexists. apply* pt3_sngl_trans3.
+Qed.
+
+Lemma repl_comp_to_prec_p_typed: forall G p q T,
+    inert G ->
+    wf G ->
+    G ⊢ {{ p }} ⟿ {{ q }} ->
+    G ⊢!!! p: T ->
+    (p = q \/ G ⊢!!! p: {{ q }}) /\ exists U, G ⊢!!! q: U.
+Proof.
+  introv Hi Hwf Hpq Hq.
+  assert (H: p = q \/ G ⊢!!! p: {{ q }}). {
+    apply* repl_comp_to_prec'; rewrite concat_empty_r; eauto.
+  }
+  split*.
+  destruct H.
+  - subst. eauto.
+  - apply* sngl_typed3.
+Qed.
+
+Lemma repl_comp_p_to_sngl : forall G p q,
+    G ⊢ p ⟿' q ->
+    G ⊢ {{ p }} ⟿ {{ q }}.
+Proof.
+  introv Hpq.
+  dependent induction Hpq.
+  - apply star_refl.
+  - apply star_trans with (b:={{b}}).
+    + apply star_one. destruct H.
+      unfold typed_repl_comp_qp. repeat eexists.
+      exact H. exact H0. auto.
+    + exact IHHpq.
+Qed.
+
+Lemma equiv_path_swap: forall G p q r,
+    G ⊩ p ⟿' r ⬳ q ->
+    G ⊩ q ⟿' r ⬳ p.
+Proof.
+  introv Hprq. destruct Hprq.
+  auto.
+Qed.
+
+Lemma shared_sngl_pq : forall G p q r U,
+    G ⊢ trm_path p : {{r}} ->
+    G ⊢ trm_path q : {{r}} ->
+    G ⊢ trm_path r : U ->
+    G ⊢ trm_path p : {{q}}.
+Proof.
+  introv Hp Hq Hr.
+  apply ty_sub with (T:={{r}}); auto.
+  eapply subtyp_sngl_qp. exact Hq. exact Hr.
+  apply* repl_intro_sngl.
+Qed.
+
+Lemma shared_sngl_qp : forall G p q r U,
+    G ⊢ trm_path p : {{r}} ->
+    G ⊢ trm_path q : {{r}} ->
+    G ⊢ trm_path r : U ->
+    G ⊢ trm_path q : {{p}}.
+Proof.
+  introv Hp Hq Hr.
+  apply ty_sub with (T:={{r}}); auto.
+  eapply subtyp_sngl_qp. exact Hp. exact Hr.
+  apply* repl_intro_sngl.
+Qed.
+
+Lemma equiv_path_to_sngl_typed: forall G p r q U,
+    inert G ->
+    wf G ->
+    G ⊩ p ⟿' r ⬳ q ->
+    G ⊢!!! q: U ->
+    (p = q \/ G ⊢!!! p: {{q}} \/ G ⊢!!! q: {{p}} \/
+     (G ⊢ trm_path p: {{q}} /\ G ⊢ trm_path q: {{p}})) /\
+    (exists U', G ⊢!!! p: U').
+Proof.
+  introv Hin Hwf Hpqr Hq. destruct Hpqr as [Hpr Hqr].
+  apply repl_comp_p_to_sngl in Hpr, Hqr.
+  Check repl_comp_to_prec_p_typed.
+  lets Hqrs: repl_comp_to_prec_p_typed Hin Hwf Hqr Hq.
+  destruct Hqrs as [Hqrs [U1 HU1]].
+  lets Hprs: repl_comp_to_prec_q_typed Hin Hwf Hpr HU1.
+  destruct Hprs as [Hprs [U2 HU2]].
+  split; eauto 3.
+  destruct Hqrs, Hprs; subst; auto.
+  right. right. right. split.
+  - eapply shared_sngl_pq;
+      apply precise_to_general3; eassumption.
+  - eapply shared_sngl_qp;
+      apply precise_to_general3; eassumption.
+Qed.
+
+Lemma equiv_path_to_sngl_typed_double: forall G p1 p2 p3 r1 r2 U,
+    inert G ->
+    wf G ->
+    G ⊩ p1 ⟿' r1 ⬳ p2 ->
+    G ⊩ p2 ⟿' r2 ⬳ p3 ->
+    G ⊢!!! p3: U ->
+    (p1 = p3 \/ G ⊢ trm_path p1: {{p3}} \/ G ⊢ trm_path p3: {{p1}}) /\ exists U', G ⊢!!! p1: U'.
+Proof.
+  introv Hin Hwf Hpqr1 Hpqr2 Hp3.
+  lets Hps2: equiv_path_to_sngl_typed Hin Hwf Hpqr2 Hp3.
+  destruct Hps2 as [Hps2 [U2 Hp2]].
+  lets Hps1: equiv_path_to_sngl_typed Hin Hwf Hpqr1 Hp2.
+  destruct Hps1 as [Hps1 [U3 Hp1]].
+  split.
+  2: {
+    exists U3. exact Hp1.
+  }
+  destruct Hps1 as [Heq1 | [Hps1 | [Hqs1 | [Hpqp1 Hpqq1]]]];
+  destruct Hps2 as [Heq2 | [Hps2 | [Hqs2 | [Hpqp2 Hpqq2]]]]; subst; eauto using precise_to_general3.
+  - right. left. apply precise_to_general3.
+    apply* pt3_sngl_trans3.
+  - right. left.
+    eapply shared_sngl_pq;
+      apply precise_to_general3; eassumption.
+  - lets Hi3: pt3_invert Hin Hqs1 Hps2.
+    destruct Hi3.
+    + right. right. apply* precise_to_general3.
+    + destruct H as [q' [Heq' Hqq]]. inversion Heq'. subst.
+      destruct Hqq.
+      * subst. left. auto.
+      * right. left. apply* precise_to_general3.
+  - right. right. apply precise_to_general3. apply* pt3_sngl_trans3.
+Qed.
+
