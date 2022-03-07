@@ -476,21 +476,28 @@ Proof.
       destruct Htr23 as [[U0 HrU0] [Htr23 | [Htr23 | Htr23]]].
       ++ subst r0.
          eapply subst_fresh_var_path. apply* inert_ok. exact H.
+         assert (Htr21': G ⊢ trm_path r: q↓A). {
+           admit.
+         }
          eauto 3.
       ++ eapply subst_fresh_var_path. apply* inert_ok. exact H.
          eapply ty_and_intro.
          * apply ty_sub with (T:={{r0}}). exact Htr22.
            eapply subtyp_sngl_qp. exact Htr23. exact Htr21.
            apply repl_intro_sngl.
-         * eapply ty_sngl. exact Htr22. exact Htr21.
+         * eapply ty_sngl. exact Htr22.
+           assert (Htr21': G ⊢ trm_path r0: q↓A). {admit.}
+           exact Htr21'.
       ++ eapply subst_fresh_var_path. apply* inert_ok. exact H.
          eapply ty_and_intro.
          * apply ty_sub with (T:={{r0}}). exact Htr22.
            eapply subtyp_sngl_pq. exact Htr23. exact HrU0.
            apply repl_intro_sngl.
-         * eapply ty_sngl. exact Htr22. exact Htr21.
+         * eapply ty_sngl. exact Htr22.
+           assert (Htr21': G ⊢ trm_path r0: q↓A). {admit.}
+           exact Htr21'.
     + subst. lookup_eq. exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
-Qed.
+Admitted.
 
 (** **** Progress (Lemma 5.3) *)
 (** Any well-typed term is either in normal form (i.e. a path or value) or can
