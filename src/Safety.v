@@ -476,8 +476,19 @@ Proof.
       destruct Htr23 as [[U0 HrU0] [Htr23 | [Htr23 | Htr23]]].
       ++ subst r0.
          eapply subst_fresh_var_path. apply* inert_ok. exact H.
+         lets Hq1: canonical_forms_path_sel Hi Htr21.
+         destruct Hq1 as [T1 Hq1].
+         lets Hq2: pt3_exists Hi Ht2. destruct Hq2 as [T2 Hq2].
+         lets Hd1: (canonical_forms_dealias Hi Hwf Hwt Hq1 Hq2 H10 H11).
          assert (Htr21': G ⊢ trm_path r: q↓A). {
-           admit.
+           destruct Hd1 as [Hd1 | [Hd1 | Hd1]].
+           - subst. auto.
+           - eapply ty_sub. exact Htr21.
+             eapply subtyp_sngl_pq. exact Hd1. apply* precise_to_general3.
+             apply repl_intro_sel.
+           - eapply ty_sub. exact Htr21.
+             eapply subtyp_sngl_qp. exact Hd1. apply* precise_to_general3.
+             apply repl_intro_sel.
          }
          eauto 3.
       ++ eapply subst_fresh_var_path. apply* inert_ok. exact H.
@@ -486,7 +497,20 @@ Proof.
            eapply subtyp_sngl_qp. exact Htr23. exact Htr21.
            apply repl_intro_sngl.
          * eapply ty_sngl. exact Htr22.
-           assert (Htr21': G ⊢ trm_path r0: q↓A). {admit.}
+           lets Hq1: canonical_forms_path_sel Hi Htr21.
+           destruct Hq1 as [T1 Hq1].
+           lets Hq2: pt3_exists Hi Ht2. destruct Hq2 as [T2 Hq2].
+           lets Hd1: (canonical_forms_dealias Hi Hwf Hwt Hq1 Hq2 H10 H11).
+           assert (Htr21': G ⊢ trm_path r0: q ↓ A). {
+             destruct Hd1 as [Hd1 | [Hd1 | Hd1]].
+             - subst. auto.
+             - eapply ty_sub. exact Htr21.
+               eapply subtyp_sngl_pq. exact Hd1. apply* precise_to_general3.
+               apply repl_intro_sel.
+             - eapply ty_sub. exact Htr21.
+               eapply subtyp_sngl_qp. exact Hd1. apply* precise_to_general3.
+               apply repl_intro_sel.
+           }
            exact Htr21'.
       ++ eapply subst_fresh_var_path. apply* inert_ok. exact H.
          eapply ty_and_intro.
@@ -494,10 +518,23 @@ Proof.
            eapply subtyp_sngl_pq. exact Htr23. exact HrU0.
            apply repl_intro_sngl.
          * eapply ty_sngl. exact Htr22.
-           assert (Htr21': G ⊢ trm_path r0: q↓A). {admit.}
+           lets Hq1: canonical_forms_path_sel Hi Htr21.
+           destruct Hq1 as [T1 Hq1].
+           lets Hq2: pt3_exists Hi Ht2. destruct Hq2 as [T2 Hq2].
+           lets Hd1: (canonical_forms_dealias Hi Hwf Hwt Hq1 Hq2 H10 H11).
+           assert (Htr21': G ⊢ trm_path r0: q ↓ A). {
+             destruct Hd1 as [Hd1 | [Hd1 | Hd1]].
+             - subst. auto.
+             - eapply ty_sub. exact Htr21.
+               eapply subtyp_sngl_pq. exact Hd1. apply* precise_to_general3.
+               apply repl_intro_sel.
+             - eapply ty_sub. exact Htr21.
+               eapply subtyp_sngl_qp. exact Hd1. apply* precise_to_general3.
+               apply repl_intro_sel.
+           }
            exact Htr21'.
     + subst. lookup_eq. exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
-Admitted.
+Qed.
 
 (** **** Progress (Lemma 5.3) *)
 (** Any well-typed term is either in normal form (i.e. a path or value) or can

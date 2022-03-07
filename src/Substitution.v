@@ -252,7 +252,7 @@ Proof.
     repeat subst_open_fresh.
     rewrite* <- subst_open_commut_trm_p.
     rewrite <- open_var_trm_eq.
-    apply~ H0; try rewrite* concat_assoc;
+    apply~ H1; try rewrite* concat_assoc;
     rewrite <- B, concat_assoc; unfold subst_ctx;
     auto using weaken_ty_trm, ok_push, ok_concat_map.
   - Case "ty_def_new"%string.

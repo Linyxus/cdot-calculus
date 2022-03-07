@@ -791,7 +791,7 @@ Lemma open_env_rules:
     G1 & x ~ (μ S) & G2 ⊢ T <: U).
 Proof.
   apply rules_mutind; intros; subst; simpl; auto;
-    try solve [fresh_constructor; rewrite <- concat_assoc; (apply* H || apply* H0); rewrite* concat_assoc]; eauto.
+    try solve [fresh_constructor; rewrite <- concat_assoc; (apply* H || apply* H0 || apply* H1); rewrite* concat_assoc]; eauto.
   - Case "ty_var"%string.
     destruct (classicT (x=x0)) as [-> | Hn].
     + apply binds_middle_eq_inv in b; subst*. rewrite open_var_typ_eq.

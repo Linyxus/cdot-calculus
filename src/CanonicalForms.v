@@ -1451,3 +1451,46 @@ Proof.
   repeat eexists; eauto 2. apply* precise_to_general3.
 Qed.
 
+Lemma canonical_forms_path_sel: forall G p q A,
+    inert G ->
+    G ⊢ trm_path p: q ↓ A ->
+    exists T, G ⊢!!! q: typ_rcd {A >: T <: T}.
+Proof.
+  introv Hin Hsel. proof_recipe.
+  lets Hr: path_sel_repl_inv' Hin Hsel.
+  destruct_all. eexists; eauto.
+Qed.
+
+Lemma canonical_forms_dealias: forall γ G p q T1 T2 v r,
+  inert G ->
+  wf G ->
+  γ ⫶ G ->
+  G ⊢!!! p : T1 ->
+  G ⊢!!! q : T2 ->
+  γ ⟦ p ⤳!* (v, r) ⟧ ->
+  γ ⟦ q ⤳!* (v, r) ⟧ ->
+  p = q \/ G ⊢ trm_path p: {{q}} \/ G ⊢ trm_path q: {{p}}.
+Proof.
+  introv Hin Hwf Hwt Hp Hq Hdp Hdq.
+  apply dealias_to_lookup_p in Hdp, Hdq.
+  Check lookup_pres.
+  lets Hr: lookup_pres Hin Hwf Hwt Hp Hdp. destruct Hr as [U Hr].
+  lets Hpr: lookup_sngl Hin Hwf Hwt Hp Hdp.
+  lets Hqr: lookup_sngl Hin Hwf Hwt Hq Hdq.
+  destruct Hpr as [Heq1 | Hs1]; destruct Hqr as [Heq2 | Hs2]; subst; eauto.
+  - right. left.
+    eapply ty_sub. apply Hs1.
+    eapply subtyp_sngl_qp. exact Hs2.
+    apply* precise_to_general3. apply repl_intro_sngl.
+Qed.
+
+Lemma repl_intro_sel: forall p q A,
+    repl_typ p q (p↓A) (q↓A).
+Proof.
+  introv.
+  replace (p↓A) with (p •• nil ↓ A).
+  replace (q↓A) with (q •• nil ↓ A).
+  - auto.
+  - destruct* q.
+  - destruct* p.
+Qed.
