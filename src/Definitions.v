@@ -844,15 +844,6 @@ G ⊢ case p of tag q.A y => t1 | else => t2 : T
     G ⊢ t2 : T ->
     G ⊢ trm_case p q A t1 t2 : T
 
-(** [[
-G ⊢ p: Tag q
-_______________________________________________
-G ⊢ p: q.type
-]]
-*)
-(* | ty_tag_sngl : forall G p q, *)
-(*     G ⊢ trm_path p : typ_tag q -> *)
-(*     G ⊢ trm_path p : {{ q }} *)
 where "G '⊢' t ':' T" := (ty_trm G t T)
 
 (** *** Single-definition typing [x; bs; G ⊢ d: D]
