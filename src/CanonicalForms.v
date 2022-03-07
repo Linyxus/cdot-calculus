@@ -570,6 +570,70 @@ Proof.
   - destruct_all. inversion H.
 Qed.
 
+(** If a well-typed path [p] looks up to a path [q] then [q] is also well-typed. *)
+Lemma lookup_step_sngl G p T q γ :
+  inert G ->
+  wf G ->
+  γ ⫶ G ->
+  G ⊢!!! p : T ->
+  γ ⟦ p ⤳ defp q ⟧ ->
+  G ⊢ trm_path p: {{ q }}.
+Proof.
+  intros Hi Hwf Hwt Hp Hl.
+  apply pt2_exists in Hp as [U Hp].
+  pose proof (named_lookup_step Hl) as [x [bs Heq]].
+  pose proof (lookup_step_preservation_prec2 Hi Hwf Hwt Hl Hp Heq)
+    as [[? [? [? [[=] ?]]]] |
+        [[? [? [? [? [? [? [? [[=] ?]]]]]]]] |
+         [[r' [r [G1 [G2 [pT [S [[= ->] [-> [-> [[-> | Hr] [-> | Hr']]]]]]]]]]]|]]].
+  - eauto.
+    apply* precise_to_general2.
+  - assert (Hr'': G2 & x ~ S & pT ⊢!!! r' : {{ G1 }}). {
+      do 2 apply* pt3_weaken. apply inert_ok in Hi.
+      apply* ok_concat_inv_l.
+    }
+    assert (Hg: exists U, G2 & x ~ S & pT ⊢!!! G1: U). {
+      apply* sngl_typed3.
+    }
+    destruct Hg as [U Hg].
+    eapply ty_sub.
+    + apply* precise_to_general2.
+    + eapply subtyp_sngl_qp. apply* precise_to_general3.
+      apply* precise_to_general3. apply repl_intro_sngl.
+  - assert (Hr': G2 & x ~ S & pT ⊢!!! r: {{ r' }}). {
+      do 2 apply* pt3_weaken. apply* inert_ok.
+      apply* inert_prefix.
+    }
+    assert (Hr'': exists U, G2 & x ~ S & pT ⊢!!! r' : U). {
+      eapply sngl_typed3. exact Hi. exact Hwf. exact Hr'.
+    }
+    destruct Hr'' as [U Hr''].
+    eapply ty_sub.
+    + apply* precise_to_general3.
+    + eapply subtyp_sngl_pq.
+      apply* precise_to_general3.
+      apply* precise_to_general3.
+      apply repl_intro_sngl.
+  - assert (Hrf: G2 & x ~ S & pT ⊢!!! r: {{G1}}). {
+      do 2 apply* pt3_weaken. apply* inert_ok. apply* inert_prefix.
+    }
+    assert (Hrf': G2 & x ~ S & pT ⊢!!! r': {{G1}}). {
+      do 2 apply* pt3_weaken. apply* inert_ok. apply* inert_prefix.
+    }
+    assert (Hg: exists U, G2 & x ~ S & pT ⊢!!! G1: U). {
+      apply* sngl_typed3.
+    }
+    destruct Hg as [U Hg].
+    assert (Hrr: G2 & x ~ S & pT ⊢ trm_path r: {{r'}}). {
+      apply~ shared_sngl_pq; apply* precise_to_general3.
+    }
+    eapply ty_sub.
+    + apply* precise_to_general3.
+    + apply subtyp_sngl_pq with (p:=r) (q:=r') (U:={{G1}}).
+      auto. apply* precise_to_general3. apply repl_intro_sngl.
+  - destruct_all. inversion H.
+Qed.
+
 (** If a well-typed path [p] looks up to a path [q] in a finite number
     of steps then [q] is also well-typed.*)
 Lemma lookup_pres G p T q γ :
@@ -584,6 +648,38 @@ Proof.
   destruct b.
   - pose proof (lookup_step_pres Hi Hwf Hwt Hp H) as [U Hq]. eauto.
   - apply lookup_val_inv in Hl as [=].
+Qed.
+
+(** If a well-typed path [p] looks up to a path [q] then [q] is also well-typed. *)
+Lemma lookup_sngl G p T q γ :
+  inert G ->
+  wf G ->
+  γ ⫶ G ->
+  G ⊢!!! p : T ->
+  γ ⟦ defp p ⤳* defp q ⟧ ->
+  p = q \/ G ⊢ trm_path p: {{ q }}.
+Proof.
+  introv Hi Hwf Hwt Hp Hl. gen T. dependent induction Hl; introv Hp; auto.
+  destruct b.
+  + assert (Hqu: exists U, G ⊢!!! p0 : U). {
+      apply* lookup_pres.
+    }
+    assert (Hpp0: G ⊢ trm_path p : {{ p0 }}). {
+      apply* lookup_step_sngl.
+    }
+    destruct Hqu as [U Hpu].
+    assert (Hqu: exists U, G ⊢!!! q : U). {
+      apply* lookup_pres.
+    }
+    destruct Hqu as [U' Hqu].
+    specialize (IHHl p0 q Hi Hwf Hwt eq_refl eq_refl _ Hpu).
+    destruct IHHl.
+    - subst. right. auto.
+    - right. eapply ty_sub.
+      * exact Hpp0.
+      * eapply subtyp_sngl_pq. exact H0.
+        apply* precise_to_general3. apply repl_intro_sngl.
+  + apply lookup_val_inv in Hl. inversion Hl.
 Qed.
 
 (** If a stable term [t] has a function type and [t] can be looked
@@ -1354,3 +1450,4 @@ Proof.
   destruct Hes as [Hes1 [U0 Hes2]].
   repeat eexists; eauto 2. apply* precise_to_general3.
 Qed.
+

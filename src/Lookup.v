@@ -360,3 +360,55 @@ Proof.
   left. f_equal. auto.
 Qed.
 
+Lemma dealias_value_inv : forall γ p v q,
+    γ ⟦ p ⤳! (defv v, q) ⟧ ->
+    p = q.
+Proof.
+  introv Hd.
+  dependent induction Hd; eauto.
+Qed.
+
+Lemma dealias_to_lookup_step_p' : forall γ p t q,
+    γ ⟦ p ⤳! (t, q) ⟧ ->
+    γ ⟦ q ⤳ t ⟧.
+Proof.
+  introv Hd.
+  dependent induction Hd; eauto.
+  specialize (IHHd _ _ eq_refl).
+  lets Heq: dealias_value_inv Hd. subst.
+  eauto.
+Qed.
+
+Lemma dealias_to_lookup : forall γ p t q,
+    γ ⟦ p ⤳!* (t, q) ⟧ ->
+    γ ⟦ defp p ⤳* t ⟧.
+Proof.
+  introv Hd. dependent induction Hd; try apply star_refl.
+  specialize (IHHd _ _ eq_refl).
+  apply star_trans with (b:=defp q2). assumption.
+  apply star_one.
+  apply* dealias_to_lookup_step.
+Qed.
+
+Lemma dealias_to_lookup_p' : forall γ p t q,
+    γ ⟦ p ⤳!* (t, q) ⟧ ->
+    γ ⟦ defp q ⤳* t ⟧.
+Proof.
+  introv Hd. dependent induction Hd; try apply star_refl.
+  specialize (IHHd _ _ eq_refl).
+  apply dealias_to_lookup_step_p' in H.
+  apply* star_one.
+Qed.
+
+Lemma dealias_to_lookup_p : forall γ p t q,
+    γ ⟦ p ⤳!* (t, q) ⟧ ->
+    γ ⟦ defp p ⤳* defp q ⟧.
+Proof.
+  introv Hd. dependent induction Hd; try apply star_refl.
+  specialize (IHHd _ _ eq_refl).
+  apply dealias_to_lookup_p' in Hd.
+  eapply star_trans. exact IHHd.
+  eapply star_trans. exact Hd.
+  apply dealias_to_lookup_step_p in H. destruct H; eauto.
+  subst. apply star_refl.
+Qed.
