@@ -740,39 +740,39 @@ Proof.
     eauto using union_assoc.
 Qed.
 
-Lemma open_trm_p_fv :
-  (forall t p i,
-      fv_trm (open_rec_trm_p i p t) = fv_trm t
-    \/ fv_trm (open_rec_trm_p i p t) = fv_path p \u fv_trm t) /\
-  (forall v p i,
-      fv_val (open_rec_val_p i p v) = fv_val v
-    \/ fv_val (open_rec_val_p i p v) = fv_path p \u fv_val v) /\
-  (forall d p i,
-      fv_def (open_rec_def_p i p d) = fv_def d
-    \/ fv_def (open_rec_def_p i p d) = fv_path p \u fv_def d) /\
-  (forall ds p i,
-      fv_defs (open_rec_defs_p i p ds) = fv_defs ds
-    \/ fv_defs (open_rec_defs_p i p ds) = fv_path p \u fv_defs ds) /\
-  (forall d p i,
-      fv_defrhs (open_rec_defrhs_p i p d) = fv_defrhs d
-    \/ fv_defrhs (open_rec_defrhs_p i p d) = fv_path p \u fv_defrhs d).
-Proof.
-  apply trm_mutind;
-    intros; subst; simpl in *; eauto.
-  - destruct p; simpl. destruct p1; simpl. destruct a; simpl;
-    repeat cases_if; simpl; destruct p0; simpl; destruct a; simpl;
-      repeat cases_if; simpl; destruct a0; simpl;
-      repeat rewrite union_same; repeat rewrite union_empty_l; repeat rewrite union_empty_r; eauto using union_comm.
-  - specialize (H p i). specialize (H0 p (S i)).
-    destruct H; destruct H0; rewrite H; rewrite H0;
-      eauto using union_assoc, union_comm, union_comm_assoc, union_empty_r.
-    rewrite union_comm_assoc. rewrite union_assoc. rewrite union_assoc. rewrite union_same.
-    eauto using union_assoc.
-  - destruct p; simpl. destruct p0; simpl.
-    destruct a; simpl;
-      repeat cases_if; simpl;
-      repeat rewrite union_same; repeat rewrite union_empty_l; repeat rewrite union_empty_r;
-      eauto using union_comm.
+(* Lemma open_trm_p_fv : *)
+(*   (forall t p i, *)
+(*       fv_trm (open_rec_trm_p i p t) = fv_trm t *)
+(*     \/ fv_trm (open_rec_trm_p i p t) = fv_path p \u fv_trm t) /\ *)
+(*   (forall v p i, *)
+(*       fv_val (open_rec_val_p i p v) = fv_val v *)
+(*     \/ fv_val (open_rec_val_p i p v) = fv_path p \u fv_val v) /\ *)
+(*   (forall d p i, *)
+(*       fv_def (open_rec_def_p i p d) = fv_def d *)
+(*     \/ fv_def (open_rec_def_p i p d) = fv_path p \u fv_def d) /\ *)
+(*   (forall ds p i, *)
+(*       fv_defs (open_rec_defs_p i p ds) = fv_defs ds *)
+(*     \/ fv_defs (open_rec_defs_p i p ds) = fv_path p \u fv_defs ds) /\ *)
+(*   (forall d p i, *)
+(*       fv_defrhs (open_rec_defrhs_p i p d) = fv_defrhs d *)
+(*     \/ fv_defrhs (open_rec_defrhs_p i p d) = fv_path p \u fv_defrhs d). *)
+(* Proof. *)
+(*   apply trm_mutind; *)
+(*     intros; subst; simpl in *; eauto. *)
+(*   - destruct p; simpl. destruct p1; simpl. destruct a; simpl; *)
+(*     repeat cases_if; simpl; destruct p0; simpl; destruct a; simpl; *)
+(*       repeat cases_if; simpl; destruct a0; simpl; *)
+(*       repeat rewrite union_same; repeat rewrite union_empty_l; repeat rewrite union_empty_r; eauto using union_comm. *)
+(*   - specialize (H p i). specialize (H0 p (S i)). *)
+(*     destruct H; destruct H0; rewrite H; rewrite H0; *)
+(*       eauto using union_assoc, union_comm, union_comm_assoc, union_empty_r. *)
+(*     rewrite union_comm_assoc. rewrite union_assoc. rewrite union_assoc. rewrite union_same. *)
+(*     eauto using union_assoc. *)
+(*   - destruct p; simpl. destruct p0; simpl. *)
+(*     destruct a; simpl; *)
+(*       repeat cases_if; simpl; *)
+(*       repeat rewrite union_same; repeat rewrite union_empty_l; repeat rewrite union_empty_r; *)
+(*       eauto using union_comm. *)
   (* - destruct open_typ_p_fv as [HTv _]. *)
   (*   specialize (HTv t p (S i)) as H0. *)
   (*   specialize (H p (S i)). *)
@@ -799,7 +799,7 @@ Proof.
   (*     repeat cases_if; simpl; *)
   (*     repeat rewrite union_same; repeat rewrite union_empty_l; repeat rewrite union_empty_r; *)
   (*     eauto using union_comm. *)
-Admitted.
+(* Admitted. *)
 
 (* Lemma open_typ_fv : *)
 (*   (forall T z i, *)
