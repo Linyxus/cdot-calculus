@@ -1346,7 +1346,7 @@ Proof.
   introv Hin Hwf Hwt Hty.
   destruct (path_typ_tag_to_precise Hin Hwf Hty) as [q [Hpq [q' Hrqq]]].
   destruct (corresponding_types_tag Hin Hwf Hwt Hpq) as [v [P Hv]].
-  destruct (val_typ_tag_to_tag Hin Hv) as [p0 [A [r' [r'' [Heq [Ht1 [He1 [He2 He3]]]]]]]].
+  destruct (val_typ_tag_to_tag Hin Hv) as [p0 [A [r' [r'' [r''' [Heq [He1 [He2 He3]]]]]]]].
   subst.
   repeat eexists; eauto 2.
 Admitted.
