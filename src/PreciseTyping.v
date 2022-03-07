@@ -1461,4 +1461,108 @@ Proof.
   - apply* sngl_typed3.
 Qed.
 
+Lemma repl_comp_p_to_sngl : forall G p q,
+    G ⊢ p ⟿' q ->
+    G ⊢ {{ p }} ⟿ {{ q }}.
+Proof.
+  introv Hpq.
+  dependent induction Hpq.
+  - apply star_refl.
+  - apply star_trans with (b:={{b}}).
+    + apply star_one. destruct H.
+      unfold typed_repl_comp_qp. repeat eexists.
+      exact H. exact H0. auto.
+    + exact IHHpq.
+Qed.
+
+Lemma equiv_path_swap: forall G p q r,
+    G ⊩ p ⟿' r ⬳ q ->
+    G ⊩ q ⟿' r ⬳ p.
+Proof.
+  introv Hprq. destruct Hprq.
+  auto.
+Qed.
+
+Lemma shared_sngl_pq : forall G p q r U,
+    G ⊢ trm_path p : {{r}} ->
+    G ⊢ trm_path q : {{r}} ->
+    G ⊢ trm_path r : U ->
+    G ⊢ trm_path p : {{q}}.
+Proof.
+  introv Hp Hq Hr.
+  apply ty_sub with (T:={{r}}); auto.
+  eapply subtyp_sngl_qp. exact Hq. exact Hr.
+  apply* repl_intro_sngl.
+Qed.
+
+Lemma shared_sngl_qp : forall G p q r U,
+    G ⊢ trm_path p : {{r}} ->
+    G ⊢ trm_path q : {{r}} ->
+    G ⊢ trm_path r : U ->
+    G ⊢ trm_path q : {{p}}.
+Proof.
+  introv Hp Hq Hr.
+  apply ty_sub with (T:={{r}}); auto.
+  eapply subtyp_sngl_qp. exact Hp. exact Hr.
+  apply* repl_intro_sngl.
+Qed.
+
+Lemma equiv_path_to_sngl_typed: forall G p r q U,
+    inert G ->
+    wf G ->
+    G ⊩ p ⟿' r ⬳ q ->
+    G ⊢!!! q: U ->
+    (p = q \/ G ⊢!!! p: {{q}} \/ G ⊢!!! q: {{p}} \/
+     (G ⊢ trm_path p: {{q}} /\ G ⊢ trm_path q: {{p}})) /\
+    (exists U', G ⊢!!! p: U').
+Proof.
+  introv Hin Hwf Hpqr Hq. destruct Hpqr as [Hpr Hqr].
+  apply repl_comp_p_to_sngl in Hpr, Hqr.
+  Check repl_comp_to_prec_p_typed.
+  lets Hqrs: repl_comp_to_prec_p_typed Hin Hwf Hqr Hq.
+  destruct Hqrs as [Hqrs [U1 HU1]].
+  lets Hprs: repl_comp_to_prec_q_typed Hin Hwf Hpr HU1.
+  destruct Hprs as [Hprs [U2 HU2]].
+  split; eauto 3.
+  destruct Hqrs, Hprs; subst; auto.
+  right. right. right. split.
+  - eapply shared_sngl_pq;
+      apply precise_to_general3; eassumption.
+  - eapply shared_sngl_qp;
+      apply precise_to_general3; eassumption.
+Qed.
+
+Lemma equiv_path_to_sngl_typed_double: forall G p1 p2 p3 r1 r2 U,
+    inert G ->
+    wf G ->
+    G ⊩ p1 ⟿' r1 ⬳ p2 ->
+    G ⊩ p2 ⟿' r2 ⬳ p3 ->
+    G ⊢!!! p3: U ->
+    (p1 = p3 \/ G ⊢ trm_path p1: {{p3}} \/ G ⊢ trm_path p3: {{p1}}) /\ exists U', G ⊢!!! p1: U'.
+Proof.
+  introv Hin Hwf Hpqr1 Hpqr2 Hp3.
+  lets Hps2: equiv_path_to_sngl_typed Hin Hwf Hpqr2 Hp3.
+  destruct Hps2 as [Hps2 [U2 Hp2]].
+  lets Hps1: equiv_path_to_sngl_typed Hin Hwf Hpqr1 Hp2.
+  destruct Hps1 as [Hps1 [U3 Hp1]].
+  split.
+  2: {
+    exists U3. exact Hp1.
+  }
+  destruct Hps1 as [Heq1 | [Hps1 | [Hqs1 | [Hpqp1 Hpqq1]]]];
+  destruct Hps2 as [Heq2 | [Hps2 | [Hqs2 | [Hpqp2 Hpqq2]]]]; subst; eauto using precise_to_general3.
+  - right. left. apply precise_to_general3.
+    apply* pt3_sngl_trans3.
+  - right. left.
+    eapply shared_sngl_pq;
+      apply precise_to_general3; eassumption.
+  - lets Hi3: pt3_invert Hin Hqs1 Hps2.
+    destruct Hi3.
+    + right. right. apply* precise_to_general3.
+    + destruct H as [q' [Heq' Hqq]]. inversion Heq'. subst.
+      destruct Hqq.
+      * subst. left. auto.
+      * right. left. apply* precise_to_general3.
+  - right. right. apply precise_to_general3. apply* pt3_sngl_trans3.
+Qed.
 

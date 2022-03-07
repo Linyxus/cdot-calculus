@@ -7,7 +7,7 @@ Set Implicit Arguments.
 Require Import Coq.Program.Equality List String.
 Require Import Sequences.
 Require Import Binding CanonicalForms Definitions GeneralToTight InvertibleTyping Lookup Narrowing
-        Reduction PreciseTyping RecordAndInertTypes ReplacementTyping
+        Reduction PreciseTyping RecordAndInertTypes ReplacementTyping Replacement
         Subenvironments Substitution TightTyping Weakening.
 
 Close Scope string_scope.
@@ -473,12 +473,22 @@ Proof.
     + lookup_eq. exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
       (* pick_fresh y. assert (y \notin L) as FrL by eauto. specialize (H y FrL). *)
       destruct Htr2 as [Htr21 [Htr22 Htr23]].
-      destruct Htr23.
+      destruct Htr23 as [[U0 HrU0] [Htr23 | [Htr23 | Htr23]]].
       ++ subst r0.
          eapply subst_fresh_var_path. apply* inert_ok. exact H.
          eauto 3.
       ++ eapply subst_fresh_var_path. apply* inert_ok. exact H.
-         eauto 3.
+         eapply ty_and_intro.
+         * apply ty_sub with (T:={{r0}}). exact Htr22.
+           eapply subtyp_sngl_qp. exact Htr23. exact Htr21.
+           apply repl_intro_sngl.
+         * eapply ty_sngl. exact Htr22. exact Htr21.
+      ++ eapply subst_fresh_var_path. apply* inert_ok. exact H.
+         eapply ty_and_intro.
+         * apply ty_sub with (T:={{r0}}). exact Htr22.
+           eapply subtyp_sngl_pq. exact Htr23. exact HrU0.
+           apply repl_intro_sngl.
+         * eapply ty_sngl. exact Htr22. exact Htr21.
     + subst. lookup_eq. exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
 Qed.
 

@@ -1341,12 +1341,16 @@ Lemma canonical_forms_tag: forall G γ p r1,
     (exists q A r2 r3, γ ⟦ defp p ⤳* defv (val_tag q A r2 r3) ⟧ /\
                G ⊢ trm_path r2 : q↓A /\
                G ⊢ trm_path r3 : {{ r2 }} /\
-               (r1 = r2 \/ G ⊢ trm_path r2 : {{ r1 }})).
+               (exists U, G ⊢ trm_path r1: U) /\
+               (r1 = r2 \/ G ⊢ trm_path r1 : {{ r2 }} \/ G ⊢ trm_path r2 : {{ r1 }})).
 Proof.
   introv Hin Hwf Hwt Hty.
   destruct (path_typ_tag_to_precise Hin Hwf Hty) as [q [Hpq [q' Hrqq]]].
   destruct (corresponding_types_tag Hin Hwf Hwt Hpq) as [v [P Hv]].
   destruct (val_typ_tag_to_tag Hin Hv) as [p0 [A [r' [r'' [r''' [Heq [He1 [He2 He3]]]]]]]].
   subst.
-  repeat eexists; eauto 2.
-Admitted.
+  apply (pt3_exists Hin) in He1 as He1'. destruct He1' as [U1 He1'].
+  lets Hes: equiv_path_to_sngl_typed_double Hin Hwf Hrqq He3 He1'.
+  destruct Hes as [Hes1 [U0 Hes2]].
+  repeat eexists; eauto 2. apply* precise_to_general3.
+Qed.
