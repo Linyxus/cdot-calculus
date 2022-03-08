@@ -10,6 +10,7 @@ Set Implicit Arguments.
 Require Export TLC.LibLN.
 Require Import TLC.LibOption.
 Require Import List String.
+Require Import TLC.LibList.
 
 Parameter typ_label: Set.
 Parameter trm_label: Set.
@@ -73,6 +74,14 @@ with dec : Set :=
   | dec_typ  : typ_label -> typ -> typ -> dec
   | dec_trm  : trm_label -> typ -> dec.
 
+(* A tag is a type member that can be used to tag a path. *)
+Inductive tag : Set :=
+  | tag_path_sel : path -> typ_label -> tag
+.
+
+(* A list of tags. *)
+Definition tags := list tag.
+
 (** *** Terms
   Terms ([t], [u]), values ([v]),
    member definitions ([d] and [defs], [ds]):
@@ -98,7 +107,7 @@ Inductive trm : Set :=
 with val : Set :=
   | val_new  : typ -> defs -> val
   | val_lambda : typ -> trm -> val
-  | val_tag  : path -> typ_label -> path -> path -> val
+  | val_tag  : tags -> path -> path -> val
 (**
   - [def_typ A T] represents a type-member definition [{A = T}];
   - [def_trm a t] represents a field definition [{a = t}]; *)
@@ -236,6 +245,14 @@ Definition open_rec_path (k: nat) (u: var) (p: path): path :=
   | p_sel x bs => p_sel (open_rec_avar k u x) bs
   end.
 
+Definition open_rec_tag (k: nat) (u: var) (t: tag) : tag :=
+  match t with
+  | tag_path_sel p A => tag_path_sel (open_rec_path k u p) A
+  end.
+
+Definition open_rec_tags (k: nat) (u: var) (ts: tags) : tags :=
+  map (open_rec_tag k u) ts.
+
 Fixpoint open_rec_typ (k: nat) (u: var) (T: typ): typ :=
   match T with
   | typ_top        => typ_top
@@ -267,7 +284,7 @@ with open_rec_val (k: nat) (u: var) (v: val): val :=
   match v with
   | ν(T)ds   => ν (open_rec_typ (S k) u T) open_rec_defs (S k) u ds
   | λ(T) e  => λ(open_rec_typ k u T) open_rec_trm (S k) u e
-  | val_tag p A q r  => val_tag (open_rec_path k u p) A (open_rec_path k u q) (open_rec_path k u r)
+  | val_tag ts q r  => val_tag (open_rec_tags k u ts) (open_rec_path k u q) (open_rec_path k u r)
   end
 with open_rec_def (k: nat) (u: var) (d: def): def :=
   match d with
@@ -326,6 +343,14 @@ Definition open_rec_path_p (k: nat) (u: path) (p: path): path :=
     end
   end.
 
+Definition open_rec_tag_p (k: nat) (u: path) (t: tag) : tag :=
+  match t with
+  | tag_path_sel p A => tag_path_sel (open_rec_path_p k u p) A
+  end.
+
+Definition open_rec_tags_p (k: nat) (u: path) (ts: tags): tags :=
+  map (open_rec_tag_p k u) ts.
+
 Fixpoint open_rec_typ_p (k: nat) (u: path) (T: typ): typ :=
   match T with
   | typ_top        => typ_top
@@ -357,7 +382,7 @@ with open_rec_val_p (k: nat) (u: path) (v: val): val :=
   match v with
   | ν(T) ds => ν(open_rec_typ_p (S k) u T) open_rec_defs_p (S k) u ds
   | λ(T) e  => λ(open_rec_typ_p k u T) open_rec_trm_p (S k) u e
-  | val_tag p A q r  => val_tag (open_rec_path_p k u p) A (open_rec_path_p k u q) (open_rec_path_p k u r)
+  | val_tag ts q r  => val_tag (open_rec_tags_p k u ts) (open_rec_path_p k u q) (open_rec_path_p k u r)
   end
 with open_rec_def_p (k: nat) (u: path) (d: def): def :=
   match d with
@@ -447,6 +472,14 @@ Fixpoint fv_path (p: path) : vars :=
   | p_sel x bs => fv_avar x
   end.
 
+Definition fv_tag (t: tag) : vars :=
+  match t with
+  | tag_path_sel p A => fv_path p
+  end.
+
+Definition fv_tags (ts: tags) : vars :=
+  fold_right (fun t acc => fv_tag t \u acc) \{} ts.
+
 (** Free variables in a type or declaration. *)
 Fixpoint fv_typ (T: typ) : vars :=
   match T with
@@ -479,7 +512,7 @@ with fv_val (v: val) : vars :=
   match v with
   | ν(T) ds    => (fv_typ T) \u (fv_defs ds)
   | λ(T)t      => (fv_typ T) \u (fv_trm t)
-  | val_tag p A q r => (fv_path p) \u (fv_path q) \u (fv_path r)
+  | val_tag ts q r => (fv_tags ts) \u (fv_path q) \u (fv_path r)
   end
 with fv_def (d: def) : vars :=
   match d with
@@ -824,10 +857,10 @@ _______________________
 G ⊢ tag p.A q : Tag q
 ]]
 *)
-| ty_tag : forall G p q A r,
-    G ⊢ trm_path q : p ↓ A ->
+| ty_tag : forall G ts q r,
+    (forall p A, mem (tag_path_sel p A) ts -> G ⊢ trm_path q : p ↓ A) ->
     G ⊢ trm_path r : {{ q }} ->
-    G ⊢ trm_val (val_tag p A q r) : typ_tag q
+    G ⊢ trm_val (val_tag ts q r) : typ_tag q
 
 (** [[
 G ⊢ p: Tag r
