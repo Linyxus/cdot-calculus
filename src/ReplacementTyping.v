@@ -891,24 +891,32 @@ Proof.
   - specialize (IHHq Hi _ Hpq). apply ty_bnd_r.
     pose proof (repl_to_inv Hq) as [_ [_ [U Hq']%pt2_exists]%inv_to_prec].
     destruct (repl_to_invertible_sngl Hi Hpq Hq') as [r [S [Hpr [Hs Hor]]]].
-    destruct (inv_to_precise_sngl Hi Hpr (pt3 Hs)) as [r' [Hpr' Hor']]. clear Hpr Hpq.
-    destruct Hor, Hor'; subst.
-    * assert (repl_repeat_typ r p0 (open_typ_p r T) (open_typ_p p0 T)) as Hrr by apply* repl_comp_open_rec.
-      apply* replacement_repl_closure_qp_comp.
-    * assert (repl_repeat_typ r r' (open_typ_p r T) (open_typ_p r' T)) as Hrr by apply* repl_comp_open_rec.
-      lets Hc: (replacement_repl_closure_qp_comp Hi IHHq H0 Hs Hrr).
-      apply pt2_exists in H0 as [? ?].
-      eapply (replacement_repl_closure_qp_comp Hi Hc). apply Hpr'. eauto.
-      apply* repl_comp_open_rec.
-    * assert (repl_repeat_typ p r (open_typ_p p T) (open_typ_p r T)) as Hrr by apply* repl_comp_open_rec.
-      lets Hc: (replacement_repl_closure_pq_comp Hi IHHq H Hs Hrr).
-      apply* replacement_repl_closure_qp_comp. apply* repl_comp_open_rec.
-    * assert (repl_repeat_typ p r (open_typ_p p T) (open_typ_p r T)) as Hrr by apply* repl_comp_open_rec.
-      lets Hc: (replacement_repl_closure_pq_comp Hi IHHq H Hs Hrr).
-      assert (repl_repeat_typ r r' (open_typ_p r T) (open_typ_p r' T)) as Hrr' by apply* repl_comp_open_rec.
-      lets Hc': (replacement_repl_closure_qp_comp Hi Hc H0 Hs Hrr').
-      pose proof (pt2_exists H0) as [? ?].
-      eapply (replacement_repl_closure_qp_comp Hi). auto. apply Hc'. apply Hpr'. eauto. apply* repl_comp_open_rec.
+    destruct (inv_to_precise_sngl Hi Hpr (pt3 Hs)) as [[r' [Hpr' Hor']] | Heq].
+    {
+      clear Hpr Hpq.
+      destruct Hor, Hor'; subst.
+      * assert (repl_repeat_typ r p0 (open_typ_p r T) (open_typ_p p0 T)) as Hrr by apply* repl_comp_open_rec.
+        apply* replacement_repl_closure_qp_comp.
+      * assert (repl_repeat_typ r r' (open_typ_p r T) (open_typ_p r' T)) as Hrr by apply* repl_comp_open_rec.
+        lets Hc: (replacement_repl_closure_qp_comp Hi IHHq H0 Hs Hrr).
+        apply pt2_exists in H0 as [? ?].
+        eapply (replacement_repl_closure_qp_comp Hi Hc). apply Hpr'. eauto.
+        apply* repl_comp_open_rec.
+      * assert (repl_repeat_typ p r (open_typ_p p T) (open_typ_p r T)) as Hrr by apply* repl_comp_open_rec.
+        lets Hc: (replacement_repl_closure_pq_comp Hi IHHq H Hs Hrr).
+        apply* replacement_repl_closure_qp_comp. apply* repl_comp_open_rec.
+      * assert (repl_repeat_typ p r (open_typ_p p T) (open_typ_p r T)) as Hrr by apply* repl_comp_open_rec.
+        lets Hc: (replacement_repl_closure_pq_comp Hi IHHq H Hs Hrr).
+        assert (repl_repeat_typ r r' (open_typ_p r T) (open_typ_p r' T)) as Hrr' by apply* repl_comp_open_rec.
+        lets Hc': (replacement_repl_closure_qp_comp Hi Hc H0 Hs Hrr').
+        pose proof (pt2_exists H0) as [? ?].
+        eapply (replacement_repl_closure_qp_comp Hi). auto. apply Hc'. apply Hpr'. eauto. apply* repl_comp_open_rec.
+    }
+    { subst. destruct Hor; subst.
+      + auto.
+      + assert (repl_repeat_typ p r (open_typ_p p T) (open_typ_p r T)) as Hrr by apply* repl_comp_open_rec.
+        lets Hc: (replacement_repl_closure_pq_comp Hi IHHq H Hs Hrr). exact Hc.
+    }
   - pose proof (path_elim_repl _ Hi Hpq Hq) as Hp0a. specialize (IHHq Hi _ Hp0a). eauto.
 Qed.
 
@@ -925,6 +933,12 @@ Proof.
     apply* repl_fld.
   - Case "ty_sngl_t"%string.
     apply* repl_sngl_trans.
+  - Case "ty_self_t"%string.
+    specialize (IHHp _ Hi eq_refl).
+    lets Hinv: (repl_to_inv IHHp). destruct Hinv as [U Hinv].
+    lets Hp3: (inv_to_prec Hinv). destruct Hp3 as [U' Hp3].
+    lets Hp2: (pt2_exists Hp3). destruct Hp2 as [U'' Hp2].
+    apply ty_inv_r. apply* ty_self_inv.
   - Case "ty_path_elim_t"%string.
     apply* path_elim_repl.
   - Case "ty_rec_elim_t"%string.
