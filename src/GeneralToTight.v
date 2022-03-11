@@ -45,6 +45,19 @@ Qed.
 
 (** ** Sngl-<: Replacement *)
 
+Lemma repl_same_eq :
+  (forall p q T T',
+      repl_typ p q T T' ->
+      p = q ->
+      T = T') /\
+  (forall p q D D',
+      repl_dec p q D D' ->
+      p = q ->
+      D = D').
+Proof.
+  apply repl_mutind; intros; subst; eauto; try f_equal; eauto.
+Qed.
+
 (** This lemma strengthens the tight [Sngl-<:-#] and [<:-Sngl-#] subtyping rules
     ([subtyp_sngl_pq_t] and [subtyp_sngl_qp_t]) by replacing the ⊢!!! premise
     with a ⊢# premise: #<br>#
@@ -60,7 +73,7 @@ Proof.
   apply (tight_to_prec_exists Hi) in Hr as [V Hq].
   lets Hc: (replacement_closure Hi Hp).
   pose proof (repl_to_invertible_sngl Hi Hc Hq) as [r [W [Hpt [Hq' [-> | Hpq]]]]];
-    pose proof (inv_to_precise_sngl Hi Hpt (pt3 Hq')) as [r' [Ht [-> | Hrc']]].
+    pose proof (inv_to_precise_sngl Hi Hpt (pt3 Hq')) as [[r' [Ht [-> | Hrc']]] | Heq].
   - split. eauto. apply repl_swap in H. eauto.
   - split.
     + destruct (repl_insert r H) as [X [Hr1 Hr2]].
@@ -69,6 +82,9 @@ Proof.
       apply subtyp_trans_t with (T:=X).
       * apply repl_swap in Hr2. eauto.
       * apply repl_swap in Hr1. eauto.
+  - subst. split.
+    + apply repl_same_eq in H; auto. subst. eauto.
+    + apply repl_same_eq in H; auto. subst. eauto.
   - split.
     + destruct (repl_insert r H) as [X [Hr1 Hr2]].
       apply subtyp_trans_t with (T:=X); eauto.
@@ -88,6 +104,9 @@ Proof.
         apply subtyp_trans_t with (T:=S').
         ** apply repl_swap in Hr2'. eauto.
         ** apply repl_swap in Hr1'. eauto.
+  - subst. split.
+    + eauto.
+    + apply repl_swap in H. eauto.
 Qed.
 
 (** ** General to Tight [⊢ to ⊢#] *)
