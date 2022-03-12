@@ -737,6 +737,10 @@ G ⊢ p: T
     G ⊢ trm_path q : T ->
     G ⊢ trm_path p : T
 
+| ty_self : forall G p T,
+    G ⊢ trm_path p : T ->
+    G ⊢ trm_path p : {{ p }}
+
 (** [[
 G ⊢ p: q.type
 G ⊢ q.a

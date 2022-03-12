@@ -93,6 +93,10 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     G ⊢# trm_path q : T ->
     G ⊢# trm_path p : T
 
+| ty_self_t : forall G p T,
+    G ⊢# trm_path p : T ->
+    G ⊢# trm_path p : {{ p }}
+
 (** [G ⊢# p.: T]       #<br>#
     [――――――――――――――]   #<br>#
     [G ⊢# p: {a: T}]        *)
@@ -224,21 +228,6 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
 | subtyp_sel1_t: forall G p A T,
     G ⊢!!! p : typ_rcd { A >: T <: T } ->
     G ⊢# p↓A <: T
-
-(** [[
-G ⊢# ∀(S1)T1 <: ∀(S2)T2
-T1 and T2 is non-dependent
-S2 is a trivial type
-__________________________
-G ⊢# T1 <: T2
-]]
-*)
-(* | subtyp_all_inv2 : forall G S1 T1 S2 T2, *)
-(*     G ⊢# ∀(S1)T1 <: ∀(S2)T2 -> *)
-(*     (forall x, open_typ x T1 = T1) -> *)
-(*     (forall x, open_typ x T2 = T2) -> *)
-(*     trivial_typ S2 -> *)
-(*     G ⊢# T1 <: T2 *)
 
 (** [G ⊢# S2 <: S1]                #<br>#
     [G, x: S2 ⊢ T1^x <: T2^x]       #<br>#

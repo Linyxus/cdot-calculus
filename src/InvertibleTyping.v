@@ -77,6 +77,10 @@ Inductive ty_path_inv : ctx -> path -> typ -> Prop :=
     G ⊢## r : {{ p •• bs }} ->
     G ⊢## r : {{ q •• bs }}
 
+| ty_self_inv : forall G p T,
+    G ⊢!! p : T ->
+    G ⊢## p : {{ p }}
+
 where "G '⊢##' p ':' T" := (ty_path_inv G p T).
 
 Hint Constructors ty_path_inv.
@@ -208,31 +212,50 @@ Qed.
 
 Lemma inv_to_precise_sngl_repl_comp: forall G p q,
     G ⊢## p: {{ q }} ->
-    exists r, G ⊢!!! p: {{ r }} /\ G ⊢ r ⟿' q.
+    (exists r, G ⊢!!! p: {{ r }} /\ G ⊢ r ⟿' q) \/ G ⊢ p ⟿' q.
 Proof.
   introv Hp.
   dependent induction Hp.
-  - exists q. split*. apply star_refl.
-  - specialize (IHHp _ eq_refl). destruct IHHp as [r'' [Hr' Hc']].
-    exists r''. split*. apply star_trans with (b:= p •• bs).
-    apply star_one. econstructor; eauto. apply Hc'.
+  - left. exists q. split*. apply star_refl.
+  - specialize (IHHp _ eq_refl). destruct IHHp as [[r'' [Hr' Hc']] | Heq].
+    + left. exists r''. split*. apply star_trans with (b:= p •• bs).
+      apply star_one. econstructor; eauto. apply Hc'.
+    + subst. right. apply star_trans with (b:= p •• bs).
+      * apply star_one. econstructor; eauto.
+      * apply Heq.
+  -  right. apply star_refl.
 Qed.
 
 Lemma inv_to_precise_sngl: forall G p q U,
     inert G ->
     G ⊢## p: {{ q }} ->
     G ⊢!!! q : U ->
-    exists r, G ⊢!!! p: {{ r }} /\ (r = q \/ G ⊢!!! r: {{ q }}).
+    (exists r, G ⊢!!! p: {{ r }} /\ (r = q \/ G ⊢!!! r: {{ q }})) \/ p = q.
 Proof.
-  introv Hi Hp Hq. destruct (inv_to_precise_sngl_repl_comp Hp) as [r [Hpr Hrc]].
-  exists r. split*. clear Hp.
-  gen p U. dependent induction Hrc; introv Hpr; introv Hq; auto.
-  inversions H.
-  assert (G ⊢!!! p0 •• bs : U).
-  { apply (pt3_field_trans' _ Hi (pt3 (pt2 H0)) Hq). }
-  destruct (IHHrc _ Hpr _ H).
-  - subst. right. eapply pt3_field_trans; eauto.
-  - right. eapply pt3_sngl_trans3; eauto. eapply pt3_field_trans; eauto.
+  introv Hi Hp Hq. destruct (inv_to_precise_sngl_repl_comp Hp) as [[r [Hpr Hrc]] | Hpq].
+  - left. exists r. split*. clear Hp.
+    gen p U. dependent induction Hrc; introv Hpr; introv Hq; auto.
+    inversions H.
+    assert (G ⊢!!! p0 •• bs : U).
+    { apply (pt3_field_trans' _ Hi (pt3 (pt2 H0)) Hq). }
+    destruct (IHHrc _ Hpr _ H).
+    + subst. right. eapply pt3_field_trans; eauto.
+    + right. eapply pt3_sngl_trans3; eauto. eapply pt3_field_trans; eauto.
+  - gen U. clear Hp. dependent induction Hpq; introv Hq.
+    + right. trivial.
+    + inversions H.
+      assert (G ⊢!!! p •• bs : U).
+      { apply (pt3_field_trans' _ Hi (pt3 (pt2 H0)) Hq). }
+      specialize (IHHpq _ H). destruct IHHpq.
+      * destruct H2. left. exists x. split*. right. destruct_all; subst.
+        {
+          eapply pt3_field_trans; eauto.
+        }
+        {
+          eapply pt3_sngl_trans3; eauto. eapply pt3_field_trans; eauto.
+        }
+      * subst. left. exists (q •• bs). split*.
+        eapply pt3_field_trans; eauto.
 Qed.
 
 (** If a path has an invertible type it also has a III-level precise type. *)
@@ -319,6 +342,9 @@ Lemma inv_backtrack G p a T :
 Proof.
   introv Hp. dependent induction Hp; eauto.
   apply pt3_backtrack in H as [? ?]; eauto.
+  lets H2: (pt2_backtrack). specialize (H2 _ _ _ _ H).
+  destruct H2. exists x.
+  apply ty_precise_inv. apply pt3. auto.
 Qed.
 
 Lemma invertible_repl_closure_comp_typed: forall G p q q',
