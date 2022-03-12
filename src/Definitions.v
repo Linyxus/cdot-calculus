@@ -94,7 +94,7 @@ Inductive trm : Set :=
     and is omitted;
     we will denote lambda terms as [lambda(T)t. *)
 with val : Set :=
-  | val_new  : typ -> defs -> val
+  | val_new  : path -> typ_label -> typ -> defs -> val
   | val_lambda : typ -> trm -> val
 (**
   - [def_typ A T] represents a type-member definition [{A = T}];
@@ -143,8 +143,8 @@ Notation "⊥" := typ_bot.
 (** singleton types [p.type] *)
 Notation "'{{' p '}}'" := (typ_sngl p).
 
-(** - object [ν(x: T)ds] *)
-Notation "'ν' '(' T ')' ds" := (val_new T ds) (at level 40, T at level 40, ds at level 40).
+(** - object [ν[p.A](x: T)ds] *)
+Notation "'ν' '[' p '↘' A ']' '(' T ')' ds" := (val_new p A T ds) (at level 40, T at level 40, ds at level 40).
 
 (** - function [λ(x: T).t] *)
 Notation "'λ' '(' T ')' t" := (val_lambda T t) (at level 50).
@@ -255,7 +255,7 @@ Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
   end
 with open_rec_val (k: nat) (u: var) (v: val): val :=
   match v with
-  | ν(T)ds   => ν (open_rec_typ (S k) u T) open_rec_defs (S k) u ds
+  | ν[p↘A](T)ds   => ν [(open_rec_path (S k) u p)↘A] (open_rec_typ (S k) u T) open_rec_defs (S k) u ds
   | λ(T) e  => λ(open_rec_typ k u T) open_rec_trm (S k) u e
   end
 with open_rec_def (k: nat) (u: var) (d: def): def :=
@@ -340,7 +340,7 @@ Fixpoint open_rec_trm_p (k: nat) (u: path) (t: trm): trm :=
   end
 with open_rec_val_p (k: nat) (u: path) (v: val): val :=
   match v with
-  | ν(T) ds => ν(open_rec_typ_p (S k) u T) open_rec_defs_p (S k) u ds
+  | ν[p↘A](T) ds => ν[(open_rec_path_p (S k) u p)↘A](open_rec_typ_p (S k) u T) open_rec_defs_p (S k) u ds
   | λ(T) e  => λ(open_rec_typ_p k u T) open_rec_trm_p (S k) u e
   end
 with open_rec_def_p (k: nat) (u: path) (d: def): def :=
