@@ -881,127 +881,127 @@ Qed.
 
 (** * Trivial types *)
 
-Inductive trivial_dec : dec -> Prop :=
-| td_typ_refl : forall A T, trivial_dec { A >: T <: T }
-| td_typ_bot : forall A T, trivial_dec { A >: ⊥ <: T }
-| td_typ_top : forall A T, trivial_dec { A >: T <: ⊤ }
-| td_trm : forall a T, trivial_typ T -> trivial_dec { a ⦂ T }
-| td_trm_sngl : forall a p, trivial_dec { a ⦂ {{ p }} }
+(* Inductive trivial_dec : dec -> Prop := *)
+(* | td_typ_refl : forall A T, trivial_dec { A >: T <: T } *)
+(* | td_typ_bot : forall A T, trivial_dec { A >: ⊥ <: T } *)
+(* | td_typ_top : forall A T, trivial_dec { A >: T <: ⊤ } *)
+(* | td_trm : forall a T, trivial_typ T -> trivial_dec { a ⦂ T } *)
+(* | td_trm_sngl : forall a p, trivial_dec { a ⦂ {{ p }} } *)
 
-with trivial_record_typ : typ -> fset label -> Prop :=
-| trt_one : forall D l,
-  trivial_dec D ->
-  l = label_of_dec D ->
-  trivial_record_typ (typ_rcd D) \{l}
-| trt_cons: forall T ls D l,
-  trivial_record_typ T ls ->
-  trivial_dec D ->
-  l = label_of_dec D ->
-  l \notin ls ->
-  trivial_record_typ (T ∧ typ_rcd D) (union ls \{l})
+(* with trivial_record_typ : typ -> fset label -> Prop := *)
+(* | trt_one : forall D l, *)
+(*   trivial_dec D -> *)
+(*   l = label_of_dec D -> *)
+(*   trivial_record_typ (typ_rcd D) \{l} *)
+(* | trt_cons: forall T ls D l, *)
+(*   trivial_record_typ T ls -> *)
+(*   trivial_dec D -> *)
+(*   l = label_of_dec D -> *)
+(*   l \notin ls -> *)
+(*   trivial_record_typ (T ∧ typ_rcd D) (union ls \{l}) *)
 
-with trivial_typ : typ -> Prop :=
-  | trivial_typ_all : forall S T, trivial_typ (∀(S) T)
-  | trivial_typ_bnd : forall T ls,
-      trivial_record_typ T ls ->
-      trivial_typ (μ T).
+(* with trivial_typ : typ -> Prop := *)
+(*   | trivial_typ_all : forall S T, trivial_typ (∀(S) T) *)
+(*   | trivial_typ_bnd : forall T ls, *)
+(*       trivial_record_typ T ls -> *)
+(*       trivial_typ (μ T). *)
 
-Lemma inv_weaken_ty_path : forall G x S p T,
-    ok (G & x ~ S) ->
-    x \notin (fv_ctx_types G \u fv_path p \u fv_typ T) ->
-    trivial_typ S ->
-    G & x ~ S ⊢ trm_path p : T ->
-    G ⊢ trm_path p : T
-with inv_weaken_subtyp : forall G x S T U,
-    ok (G & x ~ S) ->
-    x \notin (fv_ctx_types G \u fv_typ T \u fv_typ U) ->
-    trivial_typ S ->
-    G & x ~ S ⊢ T <: U ->
-    G ⊢ T <: U.
-Proof.
-  all: introv Hok Hx HS H.
-  - dependent induction H.
-    -- constructor. eapply binds_concat_left_inv. exact H.
-       simpl in Hx. eauto.
-    -- constructor. apply IHty_trm with (S0 := S) (x0 := x); eauto.
-       destruct p0; simpl in *. eauto.
-    -- constructor. apply IHty_trm with (S0 := S) (x0 := x); eauto.
-       destruct p; simpl in *. eauto.
-    -- apply ty_sngl with (q := q).
-       * apply IHty_trm1 with (S0:=S) (x0:=x); eauto.
-         destruct p; simpl in *. admit.
-       * apply IHty_trm2 with (S0:=S) (x0:=x); eauto.
-         admit.
-    -- apply ty_path_elim with (T:=T). admit. admit.
-    -- apply ty_rec_intro. apply IHty_trm with (S0:=S) (x0:=x); eauto.
-       destruct (open_typ_p_fv) as [HTv _]. unfold open_typ_p.
-       destruct (HTv T p 0); rewrite H0; eauto. simpl in Hx. eauto.
-    -- apply ty_rec_elim. apply IHty_trm with (S0:=S) (x0:=x); eauto.
-       simpl in *.
-       destruct (open_typ_p_fv) as [HTv _]. unfold open_typ_p in Hx.
-       destruct (HTv T p 0); rewrite H0 in Hx; eauto.
-    -- apply ty_and_intro.
-       * apply~ IHty_trm1; eauto. simpl in *; eauto.
-       * apply~ IHty_trm2; eauto. simpl in *; eauto.
-    -- apply ty_sub with (T:=T). apply~ IHty_trm; eauto.
-       admit. apply~ inv_weaken_subtyp; eauto. admit.
-Admitted.
-
-(* Lemma inv_weaken_ty_trm : forall G1 G2 x S t T, *)
-(*     ok (G1 & x ~ S & G2) -> *)
-(*     x \notin (fv_ctx_types G1 \u fv_ctx_types G2 \u fv_trm t \u fv_typ T) -> *)
+(* Lemma inv_weaken_ty_path : forall G x S p T, *)
+(*     ok (G & x ~ S) -> *)
+(*     x \notin (fv_ctx_types G \u fv_path p \u fv_typ T) -> *)
 (*     trivial_typ S -> *)
-(*     G1 & x ~ S & G2 ⊢ t : T -> *)
-(*     G1 & G2 ⊢ t : T *)
-(* with inv_weaken_ty_def : forall y bs G1 G2 x S d D, *)
-(*     ok (G1 & x ~ S & G2) -> *)
-(*     x \notin (fv_ctx_types G1 \u fv_ctx_types G2 \u fv_def d \u fv_dec D) -> *)
+(*     G & x ~ S ⊢ trm_path p : T -> *)
+(*     G ⊢ trm_path p : T *)
+(* with inv_weaken_subtyp : forall G x S T U, *)
+(*     ok (G & x ~ S) -> *)
+(*     x \notin (fv_ctx_types G \u fv_typ T \u fv_typ U) -> *)
 (*     trivial_typ S -> *)
-(*     y; bs; G1 & x ~ S & G2 ⊢ d : D -> *)
-(*     y; bs; G1 & G2 ⊢ d : D *)
-(* with inv_weaken_ty_defs : forall y bs G1 G2 x S ds T, *)
-(*     ok (G1 & x ~ S & G2) -> *)
-(*     x \notin (fv_ctx_types G1 \u fv_ctx_types G2 \u fv_defs ds \u fv_typ T) -> *)
-(*     trivial_typ S -> *)
-(*     y; bs; G1 & x ~ S & G2 ⊢ ds :: T -> *)
-(*     y; bs; G1 & G2 ⊢ ds :: T *)
-(* with inv_weaken_subtyp : forall G1 G2 x S T U, *)
-(*     ok (G1 & x ~ S & G2) -> *)
-(*     x \notin (fv_ctx_types G1 \u fv_ctx_types G2 \u fv_typ T \u fv_typ U) -> *)
-(*     trivial_typ S -> *)
-(*     G1 & x ~ S & G2 ⊢ T <: U -> *)
-(*     G1 & G2 ⊢ T <: U. *)
+(*     G & x ~ S ⊢ T <: U -> *)
+(*     G ⊢ T <: U. *)
 (* Proof. *)
 (*   all: introv Hok Hx HS H. *)
 (*   - dependent induction H. *)
-(*     -- constructor. eapply binds_subst. *)
-(*        exact H. simpl in Hx. eauto. *)
-(*     -- fresh_constructor. rewrite <- concat_assoc. *)
-(*        apply H0 with (S0:=S) (x0:=x); eauto 5; try rewrite -> concat_assoc; eauto 2. *)
-(*        rewrite fv_ctx_types_push_eq. simpl in Hx. *)
-(*        destruct open_trm_fv as [Htv _]. *)
-(*        destruct open_typ_fv as [HTv _]. *)
-(*        unfold open_trm. unfold open_typ. *)
-(*        destruct (Htv t z 0); destruct (HTv U z 0); *)
-(*          rewrite H1; rewrite H2; eauto. *)
-(*     -- apply ty_all_elim with (S:=S0). *)
-(*        * apply IHty_trm1 with (S1:=S) (x0:=x); eauto. *)
-(*          simpl in Hx. simpl. *)
-(*          destruct open_typ_p_fv as [HTv _]. unfold open_typ_p in Hx. *)
-(*          specialize (HTv T q 0). destruct HTv. rewrite H1 in Hx. *)
+(*     -- constructor. eapply binds_concat_left_inv. exact H. *)
+(*        simpl in Hx. eauto. *)
+(*     -- constructor. apply IHty_trm with (S0 := S) (x0 := x); eauto. *)
+(*        destruct p0; simpl in *. eauto. *)
+(*     -- constructor. apply IHty_trm with (S0 := S) (x0 := x); eauto. *)
+(*        destruct p; simpl in *. eauto. *)
+(*     -- apply ty_sngl with (q := q). *)
+(*        * apply IHty_trm1 with (S0:=S) (x0:=x); eauto. *)
+(*          destruct p; simpl in *. admit. *)
+(*        * apply IHty_trm2 with (S0:=S) (x0:=x); eauto. *)
+(*          admit. *)
+(*     -- apply ty_path_elim with (T:=T). admit. admit. *)
+(*     -- apply ty_rec_intro. apply IHty_trm with (S0:=S) (x0:=x); eauto. *)
+(*        destruct (open_typ_p_fv) as [HTv _]. unfold open_typ_p. *)
+(*        destruct (HTv T p 0); rewrite H0; eauto. simpl in Hx. eauto. *)
+(*     -- apply ty_rec_elim. apply IHty_trm with (S0:=S) (x0:=x); eauto. *)
+(*        simpl in *. *)
+(*        destruct (open_typ_p_fv) as [HTv _]. unfold open_typ_p in Hx. *)
+(*        destruct (HTv T p 0); rewrite H0 in Hx; eauto. *)
+(*     -- apply ty_and_intro. *)
+(*        * apply~ IHty_trm1; eauto. simpl in *; eauto. *)
+(*        * apply~ IHty_trm2; eauto. simpl in *; eauto. *)
+(*     -- apply ty_sub with (T:=T). apply~ IHty_trm; eauto. *)
+(*        admit. apply~ inv_weaken_subtyp; eauto. admit. *)
 (* Admitted. *)
 
-Lemma inv_weaken_typ_inert : forall G x S p T,
-    inert (G & x ~ S) ->
-    x \notin (fv_ctx_types G \u fv_path p \u fv_typ T) ->
-    G & x ~ S ⊢ trm_path p : T ->
-    G ⊢ trm_path p : T
-with inv_weaken_subtyp_inert : forall G x S T U,
-    inert (G & x ~ S) ->
-    x \notin (fv_ctx_types G \u fv_typ T \u fv_typ U) ->
-    G & x ~ S ⊢ T <: U ->
-    G ⊢ T <: U.
-Admitted.
+(* (* Lemma inv_weaken_ty_trm : forall G1 G2 x S t T, *) *)
+(* (*     ok (G1 & x ~ S & G2) -> *) *)
+(* (*     x \notin (fv_ctx_types G1 \u fv_ctx_types G2 \u fv_trm t \u fv_typ T) -> *) *)
+(* (*     trivial_typ S -> *) *)
+(* (*     G1 & x ~ S & G2 ⊢ t : T -> *) *)
+(* (*     G1 & G2 ⊢ t : T *) *)
+(* (* with inv_weaken_ty_def : forall y bs G1 G2 x S d D, *) *)
+(* (*     ok (G1 & x ~ S & G2) -> *) *)
+(* (*     x \notin (fv_ctx_types G1 \u fv_ctx_types G2 \u fv_def d \u fv_dec D) -> *) *)
+(* (*     trivial_typ S -> *) *)
+(* (*     y; bs; G1 & x ~ S & G2 ⊢ d : D -> *) *)
+(* (*     y; bs; G1 & G2 ⊢ d : D *) *)
+(* (* with inv_weaken_ty_defs : forall y bs G1 G2 x S ds T, *) *)
+(* (*     ok (G1 & x ~ S & G2) -> *) *)
+(* (*     x \notin (fv_ctx_types G1 \u fv_ctx_types G2 \u fv_defs ds \u fv_typ T) -> *) *)
+(* (*     trivial_typ S -> *) *)
+(* (*     y; bs; G1 & x ~ S & G2 ⊢ ds :: T -> *) *)
+(* (*     y; bs; G1 & G2 ⊢ ds :: T *) *)
+(* (* with inv_weaken_subtyp : forall G1 G2 x S T U, *) *)
+(* (*     ok (G1 & x ~ S & G2) -> *) *)
+(* (*     x \notin (fv_ctx_types G1 \u fv_ctx_types G2 \u fv_typ T \u fv_typ U) -> *) *)
+(* (*     trivial_typ S -> *) *)
+(* (*     G1 & x ~ S & G2 ⊢ T <: U -> *) *)
+(* (*     G1 & G2 ⊢ T <: U. *) *)
+(* (* Proof. *) *)
+(* (*   all: introv Hok Hx HS H. *) *)
+(* (*   - dependent induction H. *) *)
+(* (*     -- constructor. eapply binds_subst. *) *)
+(* (*        exact H. simpl in Hx. eauto. *) *)
+(* (*     -- fresh_constructor. rewrite <- concat_assoc. *) *)
+(* (*        apply H0 with (S0:=S) (x0:=x); eauto 5; try rewrite -> concat_assoc; eauto 2. *) *)
+(* (*        rewrite fv_ctx_types_push_eq. simpl in Hx. *) *)
+(* (*        destruct open_trm_fv as [Htv _]. *) *)
+(* (*        destruct open_typ_fv as [HTv _]. *) *)
+(* (*        unfold open_trm. unfold open_typ. *) *)
+(* (*        destruct (Htv t z 0); destruct (HTv U z 0); *) *)
+(* (*          rewrite H1; rewrite H2; eauto. *) *)
+(* (*     -- apply ty_all_elim with (S:=S0). *) *)
+(* (*        * apply IHty_trm1 with (S1:=S) (x0:=x); eauto. *) *)
+(* (*          simpl in Hx. simpl. *) *)
+(* (*          destruct open_typ_p_fv as [HTv _]. unfold open_typ_p in Hx. *) *)
+(* (*          specialize (HTv T q 0). destruct HTv. rewrite H1 in Hx. *) *)
+(* (* Admitted. *) *)
+
+(* Lemma inv_weaken_typ_inert : forall G x S p T, *)
+(*     inert (G & x ~ S) -> *)
+(*     x \notin (fv_ctx_types G \u fv_path p \u fv_typ T) -> *)
+(*     G & x ~ S ⊢ trm_path p : T -> *)
+(*     G ⊢ trm_path p : T *)
+(* with inv_weaken_subtyp_inert : forall G x S T U, *)
+(*     inert (G & x ~ S) -> *)
+(*     x \notin (fv_ctx_types G \u fv_typ T \u fv_typ U) -> *)
+(*     G & x ~ S ⊢ T <: U -> *)
+(*     G ⊢ T <: U. *)
+(* Admitted. *)
 
 
 
