@@ -103,10 +103,11 @@ Fixpoint subst_trm (z: var) (u: path) (t: trm) : trm :=
   | trm_path p       => trm_path (subst_path z u p)
   | trm_app x1 x2    => trm_app (subst_path z u x1) (subst_path z u x2)
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
+  | trm_case p q A t1 t2 => trm_case (subst_path z u p) (subst_path z u q) A (subst_trm z u t1) (subst_trm z u t2)
   end
 with subst_val (z: var) (u: path) (v: val) : val :=
   match v with
-  | ν(T) ds  => ν(subst_typ z u T) subst_defs z u ds
+  | ν[q↘A](T) ds  => ν[(subst_path z u q)↘A](subst_typ z u T) subst_defs z u ds
   | λ(T) t   => λ(subst_typ z u T) subst_trm z u t
   end
 with subst_def (z: var) (u: path) (d: def) : def :=
