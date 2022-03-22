@@ -737,6 +737,24 @@ G ⊢ let t in u: U
     G ⊢ trm_let t u : U
 
 (** [[
+G ⊢ p: μ(x: T)
+G ⊢ q
+G, y: p.type ∧ q.A ⊢ t1 : T
+G ⊢ t2 : T
+_______________________________________________
+G ⊢ case p of tag q.A y => t1 | else => t2 : T
+]]
+*)
+| ty_case : forall L G p S q A t1 t2 T U,
+    G ⊢ trm_path p : μ(S) ->
+    G ⊢ trm_path q : U ->
+    (forall y, y \notin L ->
+      G & y ~ ({{ p }} ∧ (q ↓ A)) ⊢ open_trm y t1 : T) ->
+    G ⊢ t2 : T ->
+    G ⊢ trm_case p q A t1 t2 : T
+
+
+(** [[
 G ⊢ p: q.type
 G ⊢ q: T
 _________________
