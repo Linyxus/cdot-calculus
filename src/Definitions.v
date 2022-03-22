@@ -1193,6 +1193,7 @@ Ltac fresh_constructor :=
   apply_fresh ty_new_intro as z ||
   apply_fresh ty_all_intro as z ||
   apply_fresh ty_let as z ||
+  apply_fresh ty_case as z ||
   apply_fresh subtyp_all as z; auto.
 
 (** Tactics for naming cases in case analysis. *)
