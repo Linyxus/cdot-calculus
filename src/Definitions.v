@@ -147,7 +147,7 @@ Notation "'{{' p '}}'" := (typ_sngl p).
 (** - object [ν[p.A](x: T)ds] *)
 Notation "'ν' '[' p '↘' A ']' '(' T ')' ds" := (val_new p A T ds) (at level 40, p at level 40, A at level 40, T at level 40, ds at level 40).
 
-(** - case [case p of q.A => t1 else => t2] *)
+(** - case [case p of y: q.A => t1 else => t2] *)
 Notation "'case' p 'of' q '↘' A '⇒' t1 'else' t2" := (trm_case p q A t1 t2) (at level 40, p at level 40, q at level 40, A at level 40, t1 at level 40, t2 at level 40).
 
 (** - function [λ(x: T).t] *)
