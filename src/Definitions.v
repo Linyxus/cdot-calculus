@@ -857,7 +857,7 @@ x.bs; G ⊢ {b = nu(T)ds}: {b: T}
      p = p_sel (avar_f x) bs ->
      tight_bounds (μ T) ->
      x; (b :: bs); G ⊢ open_defs_p p•b ds :: open_typ_p p•b T ->
-     x; (b :: bs); G ⊢ open_defs_p p•b ds :: open_typ_p p•b (q↓A) ->
+     G ⊢ trm_path p•b : open_typ_p p•b (q↓A) ->
      x; bs; G ⊢ { b :=v ν[q↘A](T)ds } : { b ⦂ μ T }
 
 (** [[
