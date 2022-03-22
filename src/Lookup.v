@@ -33,8 +33,8 @@ Inductive lookup_step : sta -> def_rhs -> def_rhs -> Prop :=
 (** [γ ⊢ p ⤳ ν(T)...{a = t}... ]   #<br>#
     [――――――――――――――――――――――]         #<br>#
     [γ ⊢ p.a ⤳ t ]                 *)
-| lookup_sel_v : forall γ p a t T ds,
-    γ ⟦ p ⤳ defv (val_new T ds) ⟧ ->
+| lookup_sel_v : forall γ p a t q A T ds,
+    γ ⟦ p ⤳ defv (val_new q A T ds) ⟧ ->
     defs_has ds { a := t } ->
     γ ⟦ p•a ⤳ open_defrhs_p p t ⟧
 
