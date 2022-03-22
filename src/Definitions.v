@@ -699,7 +699,7 @@ G ⊢ nu(T)ds :: mu(T)
     (forall z, z \notin L ->
       z; nil; G & (z ~ open_typ z T) ⊢ open_defs z ds :: open_typ z T) ->
     (forall z, z \notin L ->
-      G & z ~ open_typ z T ⊢ trm_path (pvar z) : p ↓ A) ->
+      G & z ~ open_typ z T ⊢ trm_path (pvar z) : open_typ z (p ↓ A)) ->
     G ⊢ trm_val (val_new p A T ds) : μ T
 
 (** [[
