@@ -799,6 +799,15 @@ Proof.
   rewrite* concat_empty_r.
 Qed.
 
+Lemma open_env_last_trm G x T t U :
+  ok (G & x ~ open_typ x T) ->
+  G & x ~ open_typ x T ⊢ t : U ->
+  G & x ~ (μ T) ⊢ t : U.
+Proof.
+  introv Hok Ht. erewrite <- concat_empty_r at 1. apply* open_env_rules.
+  rewrite* concat_empty_r.
+Qed.
+
 (** Inverting environment equalities I *)
 Lemma env_ok_inv {A} (G1 G2 G1' G2' : env A) x T T' :
   G1 & x ~ T & G2 = G1' & x ~ T' & G2' ->
