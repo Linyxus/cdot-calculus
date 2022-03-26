@@ -147,7 +147,7 @@ Proof.
     rewrite app_nil_l in *.
     pose proof (lft_unique Hin Hl1 Hl2) as [=].
   - Case "def_new"%string.
-    pose proof (ty_def_new _ _ eq_refl H6 H7).
+    pose proof (ty_def_new _ _ eq_refl H2 H7 H8).
     assert (z ==> S =b::bs=> μ T0) as Hl1'. {
         eapply lft_cons. eauto. eauto.
     }
@@ -229,7 +229,8 @@ Proof.
     + apply pf_binds in Hp; auto. apply binds_push_eq_inv in Hp as [=].
     + apply pf_sngl in Hp as [? [? [=]%pf_binds%binds_push_eq_inv]]; auto.
   - exists (μ T). assert (inert_typ (μ T)) as Hin. {
-      apply ty_new_intro_p in H. apply* pfv_inert.
+      lets Hv: (ty_new_intro_p T ds H H0).
+      apply* pfv_inert.
     }
     repeat split*. pick_fresh z. assert (z \notin L) as Hz by auto.
     specialize (H z Hz). assert (z # G) as Hz' by auto.
