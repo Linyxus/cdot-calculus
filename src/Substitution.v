@@ -436,6 +436,46 @@ Proof.
   apply* ok_concat_map.
 Qed.
 
+Lemma rename_trms G x z T U:
+  x \notin fv_typ T ->
+  x \notin fv_typ U ->
+  x \notin fv_ctx_types G ->
+  ok (G & z ~ subst_typ x (pvar z) (open_typ x T) & x ~ open_typ x T) ->
+  G & x ~ open_typ x T ⊢ tvar x : open_typ x U ->
+  G & z ~ open_typ z T ⊢ tvar z : open_typ z U.
+Proof.
+  introv Hx Hx' Hx'' Hok HU.
+  assert (Heq1: G & z ~ open_typ z T = G & z ~ open_typ z T & empty) by rewrite* concat_empty_r.
+  assert (Heq2: G & x ~ open_typ x T = G & x ~ open_typ x T & empty) by rewrite* concat_empty_r.
+  rewrite Heq1. rewrite Heq2 in HU. clear Heq1 Heq2.
+  match goal with
+  | H : ok (?G) |- _ =>
+      assert (G = G & empty) as Heq by rewrite* concat_empty_r;
+      rewrite Heq in Hok; clear Heq
+  end.
+  lets Hty: (rename_ty_trm Hx'' HU Hok).
+
+  assert (empty = subst_ctx x (pvar z) empty) as Heq. {
+    unfold subst_ctx. rewrite* map_empty.
+  }
+  rewrite <- Heq in Hty. clear Heq.
+
+  assert (Heq: subst_trm x (pvar z) (tvar x) = tvar z). {
+    unfold subst_trm. unfold subst_path. unfold subst_avar.
+    unfold subst_var_p. cases_if. simpl. auto.
+  }
+  rewrite Heq in Hty. clear Heq.
+  assert (open_typ z T = subst_typ x (pvar z) (open_typ x T)) as Heq. {
+    rewrite open_var_typ_eq. rewrite* <- subst_intro_typ. repeat eexists.
+  }
+  rewrite <- Heq in Hty. clear Heq.
+  assert (open_typ z U = subst_typ x (pvar z) (open_typ x U)) as Heq. {
+    rewrite open_var_typ_eq. rewrite* <- subst_intro_typ. repeat eexists.
+  }
+  rewrite <- Heq in Hty. clear Heq.
+  auto.
+Qed.
+
 (** Replace the this variable with a fresh variable for definition typing: #<br>#:
     if [z.bs; G1, z: T, G2 ⊢ ds: U] then [x.bs; G1, x: T[x/z], G2[x/z] ⊢ ds[x/z]: U[x/z]] *)
 Lemma rename_def_defs :
