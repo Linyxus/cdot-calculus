@@ -35,9 +35,10 @@ Lemma object_typing G x bs ds T a t V :
   defs_has ds {a := t} ->
   record_has T {a ⦂ V} ->
   (exists U u, t = defv (λ(U) u) /\ G ⊢ deftrm t : V) \/
-  (exists U ds', t = defv (ν(U) ds') /\
+  (exists r0 A U ds', t = defv (ν[r0↘A](U) ds') /\
             x; (a :: bs); G ⊢ open_defs_p (p_sel (avar_f x) (a :: bs)) ds' ::
                                  open_typ_p (p_sel (avar_f x) (a :: bs)) U /\
+            G ⊢ trm_path (p_sel (avar_f x) (a :: bs)) : open_typ_p (p_sel (avar_f x) (a :: bs)) (r0 ↓ A) /\
             V = μ U) \/
   (exists q S, t = defp q /\ V = {{ q }} /\ G ⊢ trm_path q : S).
 Proof.
@@ -65,11 +66,12 @@ Lemma lookup_step_preservation_prec1: forall G γ p px pbs t T U,
     G ⊢! p : T ⪼ U ->
     p = p_sel (avar_f px) pbs ->
     (exists S u, t = defv (λ(S) u) /\ G ⊢ deftrm t : T) \/
-    (exists S ds W T' G1 G2 pT,
-        t = defv (ν(S) ds) /\
+    (exists S ds W T' r0 A G1 G2 pT,
+        t = defv (ν[r0 ↘ A](S) ds) /\
         T = μ T' /\
         G = G1 & px ~ pT & G2 /\
         px ; pbs; G ⊢ open_defs_p p ds :: open_typ_p p S /\
+        G ⊢ trm_path p : open_typ_p p (r0 ↓ A) /\
         G1 ⊩ S ⟿ W ⬳ T') \/
     (exists q r r' G1 G2 pT,
         t = defp q /\
@@ -94,19 +96,31 @@ Proof.
         apply binds_push_eq_inv in H1 as ->.
         lets Hb: (pf_binds Hi Hp). pose proof (binds_push_eq_inv Hb) as ->.
         apply binds_inert in Hb; auto.
-        destruct v as [S ds | S u].
+        destruct v as [r0 A S ds | S u].
         ++ (* v is an object *)
            right. left.
            lets Hi': (inert_prefix Hi). lets Hwf': (wf_prefix Hwf).
            inversions Hb; proof_recipe. { inversion Hvpr. }
            inversions Hv. pick_fresh z. assert (z \notin L) as Hz by auto.
-           apply H4 in Hz. repeat eexists.
+           apply H5 in Hz. repeat eexists.
            +++ rewrite concat_empty_r. eauto.
            +++ apply open_env_last_defs; auto.
-               apply narrow_defs with (G:=G & px ~ open_typ px S). {
+               apply narrow_defs with (G:=G & px ~ open_typ px U''). {
                  assert (open_defs_p (p_sel (avar_f px) nil) ds = open_defs px ds) as -> by rewrite* open_var_defs_eq.
-                 assert (open_typ_p (p_sel (avar_f px) nil) S = open_typ px S) as -> by rewrite* open_var_typ_eq.
+                 assert (open_typ_p (p_sel (avar_f px) nil) U'' = open_typ px U'') as -> by rewrite* open_var_typ_eq.
                  apply rename_defs with (x := z); auto.
+               }
+               apply subenv_last; auto. apply (repl_composition_open (pvar px)) in Hrc.
+               eapply (repl_composition_open (pvar px)) in Hrc'.
+               apply subtyp_trans with (T:=open_typ px U');
+                 apply repl_composition_sub in Hrc'; apply repl_composition_sub in Hrc; destruct_all;
+                   repeat rewrite open_var_typ_eq in *; auto. all: auto.
+           +++ apply open_env_last_trm; auto.
+               apply narrow_typing with (G:=G & px ~ open_typ px U''). {
+                 (* assert (open_defs_p (p_sel (avar_f px) nil) ds = open_defs px ds) as -> by rewrite* open_var_defs_eq. *)
+                 assert (open_typ_p (p_sel (avar_f px) nil) (r0 ↓ A) = open_typ px (r0 ↓ A)) as -> by rewrite* open_var_typ_eq. clear Hz.
+                 assert (z \notin L) as Hz by auto. apply H9 in Hz.
+                 apply rename_trms with (x := z); auto. simpl. auto.
                }
                apply subenv_last; auto. apply (repl_composition_open (pvar px)) in Hrc.
                eapply (repl_composition_open (pvar px)) in Hrc'.
@@ -120,13 +134,13 @@ Proof.
         destruct (pf_path_sel _ _ Hi Hp) as [V Hp'].
         specialize (IHHs _ _ _ Hwt IHHwt _ H0 H JMeq_refl eq_refl _ Hwf Hi Hv _ _ Hp' _ _ eq_refl)
           as [[? [? [[=] ?]]] |
-              [[? [? [? [? [? [? [? [[=]]]]]]]]] |
+              [[? [? [? [? [? [? [? [? [? [[=]]]]]]]]]]] |
                [? [? [? [? [? [? [[= ->] [[=] ?]]]]]]]]]].
       + SSCase "lookup_sel_v"%string.
         destruct (pf_path_sel _ _ Hi Hp) as [V Hp'].
         specialize (IHHs _ _ _ Hwt IHHwt _ H0 H JMeq_refl eq_refl _ Hwf Hi Hv _ _ Hp' _ _ eq_refl)
           as [[? [? [[=] ?]]] |
-              [[S [ds' [W [T'' [G1 [G2 [pT [[= -> ->] [[= ->] [Heq [Hds Hrc]]]]]]]]]]] |
+              [[S [ds' [W [T'' [r0 [A0 [G1 [G2 [pT [[= -> ->] [[= ->] [Heq [Hds [Htag Hrc]]]]]]]]]]]]]] |
                [? [? [? [? [? [? [[= ->] [-> [[= ->] ?]]]]]]]]]]].
         lets H': (defs_has_open (p_sel (avar_f px) f) H1). simpl in *.
         lets Hr: (pf_record_has_U Hi Hp').
