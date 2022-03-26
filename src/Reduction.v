@@ -33,6 +33,20 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
     (γ, t0) ⟼ (γ', t0') ->
     (γ, trm_let t0 t) ⟼ (γ', trm_let t0' t)
 
+(** [γ ⊢ p ⤳* ν[q.A](x: T)ds ]      #<br>#
+    [―――――――――――――――――――――]      #<br>#
+    [γ | case p of tag q.A y => t1 | else => t2 ⟼ γ | t1^p ]      *)
+| red_case_match : forall γ p q A T ds t1 t2,
+    γ ⟦ defp p ⤳* defv (ν[q↘A](T)ds) ⟧ ->
+    (γ, trm_case p q A t1 t2) ⟼ (γ, open_trm_p p t1)
+
+(** [γ ⊢ p ⤳* tag r1.A r2 ]      #<br>#
+    [―――――――――――――――――――――]      #<br>#
+    [γ | case p of tag q.A y => t1 | else => t2 ⟼ γ | t2 ]      *)
+| red_case_else : forall γ p q r T ds A1 A2 t1 t2,
+    γ ⟦ defp p ⤳* defv (ν[q ↘ A1](T)ds) ⟧ ->
+    (γ, trm_case p r A2 t1 t2) ⟼ (γ, t2)
+
 where "t1 '⟼' t2" := (red t1 t2).
 
 (** Reflexive, transitive closure of reduction relation *)
