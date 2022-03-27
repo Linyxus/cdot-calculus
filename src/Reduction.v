@@ -6,9 +6,9 @@ Require Import Definitions Lookup Sequences.
 (** * Operational Semantics *)
 
 Definition matched_case γ p q A :=
-  exists r T ds r0, γ ⟦ defp p ⤳* defv (ν[q↘A](T)ds) ⟧ /\  (* checks that runtime value of the path is matchable *)
-                   γ ⟦ defp (open_path_p p q) ⤳* defp r0 ⟧ /\
-                   γ ⟦ defp r ⤳* defp r0 ⟧.
+  exists r T ds r0, γ ⟦ defp p ⤳* defv (ν[r↘A](T)ds) ⟧ /\  (* checks that runtime value of the path is matchable *)
+                   γ ⟦ defp (open_path_p p r) ⤳* defp r0 ⟧ /\
+                   γ ⟦ defp q ⤳* defp r0 ⟧.
 
 (** Term-reduction relation *)
 Reserved Notation "t1 '⟼' t2" (at level 40, t2 at level 39).
