@@ -41,6 +41,17 @@ Proof.
   - destruct* p.
 Qed.
 
+Lemma repl_intro_path_sel: forall p q A,
+    repl_typ p q (p↓A) (q↓A).
+Proof.
+  intros.
+  replace (p↓A) with ( p •• nil ↓ A).
+  replace (q↓A) with ( q •• nil ↓ A).
+  - auto.
+  - destruct* q.
+  - destruct* p.
+Qed.
+
 (** As long as named paths are replaced with named paths, opening
     preserves the replacement relationship between types and declarations *)
 Lemma repl_open_rec:
