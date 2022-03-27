@@ -342,7 +342,7 @@ Proof.
       apply* subst_fresh_var_path.
   - Case "ty_case"%string.
     inversion Hred. subst.
-    + lets Hcf: (canonical_forms_obj Hi Hwf Hwt H2).
+    + lets Hcf: (canonical_forms_obj Hi Hwf Hwt H3 Ht1).
       exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
       eapply subst_fresh_var_path. eauto. apply H.
       apply ty_and_intro.
@@ -381,6 +381,10 @@ Proof.
       { inversion Hn. } eauto.
     + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
       { inversion Hn. } eauto.
+    (* + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]]. *)
+    (*   { inversion Hn. } eauto. *)
+  (* - Case "ty_case"%string. *)
+  (*   right. repeat eexists. *)
 Qed.
 
 (** *** Safety *)
