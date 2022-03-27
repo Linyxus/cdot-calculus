@@ -7,7 +7,7 @@ Set Implicit Arguments.
 Require Import Coq.Program.Equality List String.
 Require Import Sequences.
 Require Import Binding CanonicalForms Definitions GeneralToTight InvertibleTyping Lookup Narrowing
-        Reduction PreciseTyping RecordAndInertTypes ReplacementTyping
+        Reduction PreciseTyping RecordAndInertTypes ReplacementTyping Replacement
         Subenvironments Substitution TightTyping Weakening.
 
 Close Scope string_scope.
@@ -295,6 +295,26 @@ Ltac solve_IH :=
 Ltac solve_let :=
   invert_red; solve_IH; fresh_constructor; eauto; apply* weaken_rules.
 
+Lemma matched_case_typing: forall γ G p q A T1 T2,
+    inert G ->
+    wf G ->
+    γ ⫶ G ->
+    G ⊢ trm_path p : T1 ->
+    G ⊢ trm_path q : T2 ->
+    matched_case γ p q A ->
+    G ⊢ trm_path p : q ↓ A.
+Proof.
+  introv Hin Hwf Hwt Hp Hq Hm.
+  unfold matched_case in Hm. destruct_all.
+  lets Hcf: (canonical_forms_obj Hin Hwf Hwt H Hp).
+  lets Hx: (path_sel_implies_typed_path Hin Hcf). destruct Hx as [U Hxp].
+  assert (Hx: G ⊢ trm_path (open_path_p p x) : typ_rcd {A >: U <: U}) by apply* precise_to_general3.
+  lets Hd: (path_lookup_implies_sngl_typing Hin Hwf Hwt Hx Hq H0 H1).
+  apply ty_sub with (T:=open_path_p p x ↓ A); auto.
+  apply subtyp_sngl_pq with (p:=(open_path_p p x)) (q:=q) (U:=T2); auto.
+  apply repl_intro_path_sel.
+Qed.
+
 (** **** Preservation (Lemma 5.4) *)
 (** If a term [γ|t] has type [T] and reduces to [γ'|t'] then the latter has
     the same type [T] under an extended environment that is inert, well-typed,
@@ -342,7 +362,7 @@ Proof.
       apply* subst_fresh_var_path.
   - Case "ty_case"%string.
     inversion Hred. subst.
-    + lets Hcf: (canonical_forms_obj Hi Hwf Hwt H3 Ht1).
+    + lets Hcf: (matched_case_typing Hi Hwf Hwt Ht1 Ht2 H2).
       exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
       eapply subst_fresh_var_path. eauto. apply H.
       apply ty_and_intro.
@@ -381,10 +401,12 @@ Proof.
       { inversion Hn. } eauto.
     + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
       { inversion Hn. } eauto.
-    (* + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]]. *)
-    (*   { inversion Hn. } eauto. *)
-  (* - Case "ty_case"%string. *)
-  (*   right. repeat eexists. *)
+    + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
+      { inversion Hn. } eauto.
+  - Case "ty_case"%string.
+    right. destruct (classicT (matched_case γ p q A)).
+    + eauto.
+    + eauto.
 Qed.
 
 (** *** Safety *)
