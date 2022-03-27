@@ -1,4 +1,4 @@
-FILES=Safety.v ListExample.v CompilerExample.v SingletonTypeExample.v
+FILES=Safety.v ListExample.v CompilerExample.v SingletonTypeExample.v SymPathExample.v
 OBJECTS=$(FILES:.v=.vo)
 
 DOCDIR=doc
