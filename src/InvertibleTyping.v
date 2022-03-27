@@ -162,7 +162,7 @@ Lemma repl_composition_sub G T U :
   G ⊢ T ⟿ U ->
   G ⊢ U <: T /\ G ⊢ T <: U.
 Proof.
-  intros Hr. dependent induction Hr; eauto.
+  intros Hr. dependent induction Hr; eauto 2.
   destruct H as [q [r [S [Hq%precise_to_general [Hq' Hrt]]]]]. destruct_all.
   split.
   - eapply subtyp_trans. apply* subtyp_sngl_qp. apply* precise_to_general2. eauto.
@@ -355,4 +355,19 @@ Lemma invertible_repl_closure_comp_typed: forall G p q q',
 Proof.
   introv Hi Hp Hr. dependent induction Hr; eauto.
   inversions H. eapply ty_sngl_pq_inv; eauto.
+Qed.
+
+Lemma invertible_to_precise_new : forall G r0 A T ds U,
+    inert G ->
+    G ⊢##v ν[r0↘A](T)ds : U ->
+    (exists T', U = μ T' /\ G ⊢!v ν[r0↘A](T)ds : μ T /\ G ⊢ T ⟿ T').
+Proof.
+  introv Hin Hv. dependent induction Hv.
+  - apply pfv_new_inv in H as H1. subst. repeat eexists. auto. apply star_refl.
+  - specialize (IHHv _ _ _ _ Hin eq_refl).
+    destruct IHHv as [T'' [Heq [Hpv Hrepl]]].
+    inversions Heq. repeat eexists. exact Hpv. eapply star_trans.
+    + apply star_one.
+      econstructor. repeat eexists. apply H. eauto. apply* repl_swap.
+    + eauto.
 Qed.

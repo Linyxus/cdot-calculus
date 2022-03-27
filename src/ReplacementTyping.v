@@ -1353,3 +1353,35 @@ Proof.
     * eapply narrow_subtyping. apply* Hst. apply subenv_last. apply* tight_to_general. auto.
     * apply* H0.
 Qed.
+
+Lemma repl_val_to_invertible_new : forall G r0 A T ds U,
+    inert G ->
+    G ⊢//v ν[r0↘A](T)ds : U ->
+    (exists T', G ⊢##v ν[r0↘A](T)ds : μ T').
+Proof.
+  introv Hin Hrv.
+  dependent induction Hrv.
+  - lets Hinvv: (invertible_to_precise_new Hin H).
+    destruct Hinvv as [T' [Heq [Hpv Hr]]].
+    subst. repeat eexists. eauto.
+  - specialize (IHHrv1 _ _ _ _ Hin eq_refl). exact IHHrv1.
+  - specialize (IHHrv _ _ _ _ Hin eq_refl). exact IHHrv.
+  - specialize (IHHrv _ _ _ _ Hin eq_refl). exact IHHrv.
+  - specialize (IHHrv _ _ _ _ Hin eq_refl). exact IHHrv.
+  - specialize (IHHrv _ _ _ _ Hin eq_refl). exact IHHrv.
+  - specialize (IHHrv _ _ _ _ Hin eq_refl). exact IHHrv.
+Qed.
+
+Lemma repl_val_to_precise_new : forall G r0 A T ds U,
+    inert G ->
+    G ⊢//v ν[r0↘A](T)ds : U ->
+    (exists T', G ⊢!v ν[r0↘A](T)ds : μ T').
+Proof.
+  introv Hin Hrv.
+  lets Hinvv: (repl_val_to_invertible_new Hin Hrv).
+  destruct Hinvv as [T' Hinvv].
+  lets Hpv: (invertible_to_precise_new Hin Hinvv).
+  destruct Hpv as [T'' [Heq [Hpv ?]]].
+  inversions Heq.
+  repeat eexists. eauto.
+Qed.

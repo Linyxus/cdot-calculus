@@ -591,3 +591,10 @@ Proof.
       apply (pf_T_unique Hi Hq) in Hq0 as [= ->];
      apply sel_fields_equal in Heq as ->; auto.
 Qed.
+
+Lemma pfv_new_inv : forall G r0 A T ds U,
+    G ⊢!v ν[r0 ↘ A](T)ds : U ->
+    U = μ T.
+Proof.
+  introv Hpv. inversion Hpv. subst. trivial.
+Qed.

@@ -340,6 +340,16 @@ Proof.
       repeat invert_red.
       exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
       apply* subst_fresh_var_path.
+  - Case "ty_case"%string.
+    inversion Hred. subst.
+    + lets Hcf: (canonical_forms_obj Hi Hwf Hwt H2).
+      exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+      eapply subst_fresh_var_path. eauto. apply H.
+      apply ty_and_intro.
+      * eapply ty_self. exact Hcf.
+      * apply Hcf.
+    + subst.
+      exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
   - Case "ty_sub"%string.
     solve_IH.
     match goal with
