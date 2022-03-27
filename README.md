@@ -1,13 +1,13 @@
+> The version used to encode the lambda-2Gmu calculus is on the
+> [lambda-2Gmu](https://github.com/Linyxus/extended-pdot-calculus/tree/lambda-2Gmu)
+> branch.
+
 ![Extended pDOT Subtyping](assets/extended-pdot-subtyping.png)
 
 # Soundness Proof for Extended pDOT Calculus
 
 This repository contains type safety proof for the extended pDOT system,
 mechanized in Coq.
-
-> The version used to encode the lambda-2Gmu calculus is on the
-> [lambda-2Gmu](https://github.com/Linyxus/extended-pdot-calculus/tree/lambda-2Gmu)
-> branch.
 
 The calculus is extended with the following record subtyping inversion rules,
 which will facilitate the formalization of GADT reasoning in pDOT.
