@@ -1440,14 +1440,15 @@ Lemma path_lookup_implies_sngl_typing: forall γ G p q T1 T2 r,
   inert G ->
   wf G ->
   γ ⫶ G ->
-  G ⊢!!! p : T1 ->
-  G ⊢!!! q : T2 ->
+  G ⊢ trm_path p : T1 ->
+  G ⊢ trm_path q : T2 ->
   γ ⟦ defp p ⤳* defp r ⟧ ->
   γ ⟦ defp q ⤳* defp r ⟧ ->
   G ⊢ trm_path p: {{q}}.
 Proof.
-  introv Hin Hwf Hwt Hp Hq Hpr Hqr.
-  Check lookup_sngl.
+  introv Hin Hwf Hwt Hpg Hqg Hpr Hqr.
+  lets Hpp: (pt3_exists Hin Hpg). destruct Hpp as [U1 Hp].
+  lets Hqp: (pt3_exists Hin Hqg). destruct Hqp as [U2 Hq].
   lets Hprs: (lookup_sngl Hin Hwf Hwt Hp Hpr).
   lets Hqrs: (lookup_sngl Hin Hwf Hwt Hq Hqr).
   destruct Hprs; destruct Hqrs.
