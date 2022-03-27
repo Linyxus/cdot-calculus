@@ -1425,3 +1425,42 @@ Proof.
   lets Hlp: (lookup_preservation_prec2_obj Hin Hwf Hwt Hl Hpp).
   auto.
 Qed.
+
+Lemma path_sel_implies_typed_path: forall G p q A,
+    inert G ->
+    G ⊢ trm_path p: q ↓ A ->
+    exists T, G ⊢!!! q: typ_rcd {A >: T <: T}.
+Proof.
+  introv Hin Hsel. proof_recipe.
+  lets Hr: path_sel_repl_inv' Hin Hsel.
+  destruct_all. eexists; eauto.
+Qed.
+
+Lemma path_lookup_implies_sngl_typing: forall γ G p q T1 T2 r,
+  inert G ->
+  wf G ->
+  γ ⫶ G ->
+  G ⊢!!! p : T1 ->
+  G ⊢!!! q : T2 ->
+  γ ⟦ defp p ⤳* defp r ⟧ ->
+  γ ⟦ defp q ⤳* defp r ⟧ ->
+  G ⊢ trm_path p: {{q}}.
+Proof.
+  introv Hin Hwf Hwt Hp Hq Hpr Hqr.
+  Check lookup_sngl.
+  lets Hprs: (lookup_sngl Hin Hwf Hwt Hp Hpr).
+  lets Hqrs: (lookup_sngl Hin Hwf Hwt Hq Hqr).
+  destruct Hprs; destruct Hqrs.
+  - subst. eapply ty_self. apply* precise_to_general3.
+  - subst. apply ty_sub with (T:={{r}}).
+    + apply~ ty_self. apply* precise_to_general3.
+    + apply~ subtyp_sngl_qp. exact H0. apply* precise_to_general3.
+      apply repl_intro_sngl.
+  - subst. auto.
+  - lets Hpres: (lookup_pres Hin Hwf Hwt Hp Hpr). destruct Hpres as [U Hr].
+    apply ty_sub with (T:={{r}}).
+    + auto.
+    + apply~ subtyp_sngl_qp. exact H0. apply* precise_to_general3.
+      apply repl_intro_sngl.
+Qed.
+

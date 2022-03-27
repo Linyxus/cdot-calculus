@@ -686,6 +686,25 @@ Proof.
     eapply pf_pt3_trans_inv_mult'; eauto.
 Qed.
 
+Lemma path_sel_repl_inv': forall G p A q,
+    inert G ->
+    G ⊢// q : p ↓ A ->
+    (exists T, G ⊢!!! p : typ_rcd {A >: T <: T} /\
+     G ⊢// q : T).
+Proof.
+  introv Hi Hq. dependent induction Hq.
+  - Case "ty_inv_r"%string.
+    lets Hps: path_sel_inv' Hi H. destruct Hps as [T [Hp Hp0]].
+    eexists; eauto.
+  - Case "ty_sel_r"%string.
+    clear IHHq.
+    exists T. split; eauto.
+  - Case "ty_sel_qp_r"%string.
+    specialize (IHHq _ _ Hi eq_refl). destruct IHHq as [T [Hqbs Hr]].
+    eexists. split; eauto.
+    apply* pt3_field_trans'.
+Qed.
+
 (** If a path has a replacement type it has also an invertible type *)
 Lemma repl_to_inv G p T :
   G ⊢// p : T ->

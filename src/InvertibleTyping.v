@@ -371,3 +371,20 @@ Proof.
       econstructor. repeat eexists. apply H. eauto. apply* repl_swap.
     + eauto.
 Qed.
+
+Lemma path_sel_inv': forall G p A q,
+    inert G ->
+    G ⊢## q : p↓A ->
+    exists T, G ⊢!!! p : typ_rcd {A >: T <: T} /\
+    G ⊢## q : T.
+Proof.
+  introv Hi Hq. dependent induction Hq.
+  - Case "ty_precise_inv"%string.
+    false* pt3_psel.
+  - Case "ty_sel_pq_inv"%string.
+    specialize (IHHq _ _ Hi eq_refl).
+    destruct IHHq as [T [Hp Hr]].
+    eexists. split.
+    + apply* pf_pt3_trans_inv_mult'.
+    + exact Hr.
+Qed.
