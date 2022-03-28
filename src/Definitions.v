@@ -746,7 +746,7 @@ G ⊢ case p of tag q.A y => t1 | else => t2 : T
 ]]
 *)
 | ty_case : forall L G p S q A t1 t2 T U,
-    G ⊢ trm_path p : μ(S) ->
+    G ⊢ trm_path p : S ->
     G ⊢ trm_path q : U ->
     (forall y, y \notin L ->
       G & y ~ ({{ p }} ∧ (q ↓ A)) ⊢ open_trm y t1 : T) ->
