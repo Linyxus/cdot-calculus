@@ -569,62 +569,31 @@ Inductive inert : ctx -> Prop :=
 
 (** ** Unique Flow *)
 
-Inductive rcd_with_unique_typ : typ -> fset typ_label -> typ -> Prop :=
+Inductive unique_membership : typ -> fset label -> typ -> Prop :=
 
 | rcd_typ : forall A S T,
-    rcd_with_unique_typ (typ_rcd (dec_typ A S T)) \{A} (typ_rcd (dec_typ A S T))
+    unique_membership (typ_rcd (dec_typ A S T)) \{label_typ A} (typ_rcd (dec_typ A S T))
 
 | rcd_fld : forall a T,
-    rcd_with_unique_typ (typ_rcd (dec_trm a T)) \{} (typ_rcd (dec_trm a T))
-
-| rcd_rec : forall T,
-    rcd_with_unique_typ (μ T) \{} (μ T)
+    unique_membership (typ_rcd (dec_trm a T)) \{label_trm a} (typ_rcd (dec_trm a T))
 
 | rcd_andl : forall U1 U2 L1 L2 T1 T2,
-    rcd_with_unique_typ U1 L1 T1 ->
-    rcd_with_unique_typ U2 L2 T2 ->
+    unique_membership U1 L1 T1 ->
+    unique_membership U2 L2 T2 ->
     disjoint L1 L2 ->
-    rcd_with_unique_typ (typ_and U1 U2) (L1 \u L2) T1
+    unique_membership (typ_and U1 U2) (L1 \u L2) T1
 
 | rcd_andr : forall U1 U2 L1 L2 T1 T2,
-    rcd_with_unique_typ U1 L1 T1 ->
-    rcd_with_unique_typ U2 L2 T2 ->
+    unique_membership U1 L1 T1 ->
+    unique_membership U2 L2 T2 ->
     disjoint L1 L2 ->
-    rcd_with_unique_typ (typ_and U1 U2) (L1 \u L2) T2
+    unique_membership (typ_and U1 U2) (L1 \u L2) T2
 .
 
-Hint Constructors rcd_with_unique_typ.
+Hint Constructors unique_membership.
 
 Notation "U '↘' S" :=
-  (exists ls, rcd_with_unique_typ U ls S) (at level 60).
-
-
-(** * Trivial types *)
-
-Inductive trivial_dec : dec -> Prop :=
-| td_typ_refl : forall A T, trivial_dec { A >: T <: T }
-| td_typ_bot : forall A T, trivial_dec { A >: ⊥ <: T }
-| td_typ_top : forall A T, trivial_dec { A >: T <: ⊤ }
-| td_trm : forall a T, trivial_typ T -> trivial_dec { a ⦂ T }
-| td_trm_sngl : forall a p, trivial_dec { a ⦂ {{ p }} }
-
-with trivial_record_typ : typ -> fset label -> Prop :=
-| trt_one : forall D l,
-  trivial_dec D ->
-  l = label_of_dec D ->
-  trivial_record_typ (typ_rcd D) \{l}
-| trt_cons: forall T ls D l,
-  trivial_record_typ T ls ->
-  trivial_dec D ->
-  l = label_of_dec D ->
-  l \notin ls ->
-  trivial_record_typ (T ∧ typ_rcd D) (union ls \{l})
-
-with trivial_typ : typ -> Prop :=
-  | trivial_typ_all : forall S T, trivial_typ (∀(S) T)
-  | trivial_typ_bnd : forall T ls,
-      trivial_record_typ T ls ->
-      trivial_typ (μ T).
+  (exists ls, unique_membership U ls S) (at level 60).
 
 
 (** ** Typing Rules *)
