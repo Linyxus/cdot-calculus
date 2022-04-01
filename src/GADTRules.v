@@ -196,7 +196,7 @@ Proof.
        apply subtyp_sngl_pq1_t with (p := p) (q := q) (S := T0) (U := U); auto.
        apply* IHHsub. specialize (IHHsub H0 S1 T0 T1 eq_refl T2 eq_refl) as [_ IH].
        destruct IH as [L IH]. exists (L \u dom G). introv Hn.
-       apply* narrow_subtyping. eapply subenv_push.
+       apply~ narrow_subtyping. eapply subenv_push.
        + eauto.
        + eauto.
        + eauto.
@@ -219,7 +219,7 @@ Proof.
        apply subtyp_sngl_qp1_t with (p := p) (q := q) (S := T0) (U := U); auto.
        apply* IHHsub. specialize (IHHsub H0 S1 T0 T1 eq_refl T2 eq_refl) as [_ IH].
        destruct IH as [L IH]. exists (L \u dom G). introv Hn.
-       apply* narrow_subtyping. eapply subenv_push.
+       apply~ narrow_subtyping. eapply subenv_push.
        + eauto.
        + eauto.
        + eauto.
@@ -439,8 +439,6 @@ Proof.
     inversion Heqtyp; subst; clear Heqtyp. auto.
   - (* fld *)
     inversion Heqtyp.
-  - (* rec *)
-    inversion Heqtyp.
   - (* andl *)
     apply invert_subtyp_and2_s in Hs as [Hs1 Hs2].
     eauto.
@@ -449,21 +447,20 @@ Proof.
     eauto.
 Qed.
 
-Lemma rcd_with_unique_typ_in_label : forall U L A S T,
-    rcd_with_unique_typ U L (typ_rcd {A >: S <: T}) ->
-    A \in L.
+Lemma unique_membership_in_typ_labels : forall U L A S T,
+    unique_membership U L (typ_rcd {A >: S <: T}) ->
+    label_typ A \in L.
 Proof.
   introv H.
   remember (typ_rcd (dec_typ A S T)) as T1.
   induction H.
   - (* typ *) inversion HeqT1. subst. apply in_singleton_self.
   - (* fld *) inversion HeqT1.
-  - inversion HeqT1.
   - (* andl *)
-    specialize (IHrcd_with_unique_typ1 HeqT1).
+    specialize (IHunique_membership1 HeqT1).
     rewrite in_union. left. auto.
   - (* andr *)
-    specialize (IHrcd_with_unique_typ2 HeqT1).
+    specialize (IHunique_membership2 HeqT1).
     rewrite in_union. right. auto.
 Qed.
 
@@ -598,9 +595,9 @@ Proof.
     inversion He1.
 Qed.
 
-Lemma rcd_with_unique_typ_notin_labels : forall G U L T1 A S T,
-    rcd_with_unique_typ U L T1 ->
-    A \notin L ->
+Lemma unique_membership_notin_typ_labels : forall G U L T1 A S T,
+    unique_membership U L T1 ->
+    (label_typ A) \notin L ->
     ~ G ⊢{} U <: typ_rcd (dec_typ A S T).
 Proof.
   intros G U L T1 A S T H1 Hn Ha.
@@ -611,19 +608,19 @@ Proof.
     subst A0. apply Hn. trivial.
   - (* fld *)
     eapply subtyp_s_trm_typ_false. apply Ha.
-  - apply* subtyp_s_rec_typ_false.
+  (* - apply* subtyp_s_rec_typ_false. *)
   - (* andl *)
     apply notin_union in Hn. destruct Hn as [Hn1 Hn2].
     apply invert_subtyp_and1_s_rcd in Ha.
     destruct Ha.
-    -- specialize (IHrcd_with_unique_typ1 Hn1 H0). contradiction.
-    -- specialize (IHrcd_with_unique_typ2 Hn2 H0). contradiction.
+    -- specialize (IHunique_membership1 Hn1 H0). contradiction.
+    -- specialize (IHunique_membership2 Hn2 H0). contradiction.
   - (* andl *)
     apply notin_union in Hn. destruct Hn as [Hn1 Hn2].
     apply invert_subtyp_and1_s_rcd in Ha.
     destruct Ha.
-    -- specialize (IHrcd_with_unique_typ1 Hn1 H0). contradiction.
-    -- specialize (IHrcd_with_unique_typ2 Hn2 H0). contradiction.
+    -- specialize (IHunique_membership1 Hn1 H0). contradiction.
+    -- specialize (IHunique_membership2 Hn2 H0). contradiction.
 Qed.
 
 Lemma reduce_subtyp_rcd1_s : forall G U1 A S1 T1 S2 T2,
@@ -639,22 +636,22 @@ Proof.
     inversion He; subst. auto.
   - (* fld *)
     inversion He.
-  - inversion He.
+  (* - inversion He. *)
   - (* andl *)
     apply invert_subtyp_and1_s_rcd in Hs as [Hs | Hs].
     -- auto.
     -- subst T0.
-       apply rcd_with_unique_typ_in_label in Hu1.
+       apply unique_membership_in_typ_labels in Hu1.
        pose proof (disjoint_in_notin H Hu1) as Hni.
-       contradict Hs. eapply rcd_with_unique_typ_notin_labels.
+       contradict Hs. eapply unique_membership_notin_typ_labels.
        apply Hu2. apply Hni.
   - (* andr *)
     apply invert_subtyp_and1_s_rcd in Hs as [Hs | Hs].
     -- subst.
-       apply rcd_with_unique_typ_in_label in Hu2.
+       apply unique_membership_in_typ_labels in Hu2.
        apply disjoint_comm in H.
        pose proof (disjoint_in_notin H Hu2) as Hni.
-       contradict Hs. eapply rcd_with_unique_typ_notin_labels.
+       contradict Hs. eapply unique_membership_notin_typ_labels.
        apply Hu1. apply Hni.
     -- auto.
 Qed.
@@ -694,19 +691,19 @@ Proof.
   apply* tight_to_semantic.
 Qed.
 
-Lemma subst_typ_rcd_with_unique_typ : forall x p U L T,
-    rcd_with_unique_typ U L T ->
-    rcd_with_unique_typ (subst_typ x p U) L (subst_typ x p T).
+Lemma subst_unique_membership_labels : forall x p U L T,
+    unique_membership U L T ->
+    unique_membership (subst_typ x p U) L (subst_typ x p T).
 Proof.
   introv Hu. induction Hu; simpl; eauto.
 Qed.
 
-Lemma subst_typ_rcd_has_unique_typ : forall x p U T,
+Lemma subst_unique_membership : forall x p U T,
     U ↘ T ->
     subst_typ x p U ↘ subst_typ x p T.
 Proof.
   introv [ls H]. exists ls.
-  apply* subst_typ_rcd_with_unique_typ.
+  apply* subst_unique_membership_labels.
 Qed.
 
   (* - (* typ *) *)
