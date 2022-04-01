@@ -287,6 +287,14 @@ Proof.
   introv H0 Hsub. apply* invert_subtyp_all_s. apply* tight_to_semantic.
 Qed.
 
+Lemma invert_subtyp_fld_s_label : forall G a1 a2 T1 T2,
+    G ⊢{} typ_rcd {a1 ⦂ T1} <: typ_rcd {a2 ⦂ T2} ->
+    a1 = a2.
+Proof.
+  introv Hs.
+  dependent induction Hs; auto; inv_repl_typ_rcd; inv_repl_dec; apply* IHHs.
+Qed.
+
 Lemma invert_subtyp_typ_s_label : forall G A1 S1 T1 A2 S2 T2,
     G ⊢{} typ_rcd {A1 >: S1 <: T1} <: typ_rcd {A2 >: S2 <: T2} ->
     A1 = A2.
@@ -447,6 +455,22 @@ Proof.
     eauto.
 Qed.
 
+Lemma reduce_subtyp_fld2_s : forall G U1 U2 a T,
+    G ⊢{} U1 <: U2 ->
+    U2 ↘ typ_rcd {a ⦂ T} ->
+    G ⊢{} U1 <: typ_rcd {a ⦂ T}.
+Proof.
+  introv Hs [ls Hu].
+  dependent induction Hu.
+  - (* fld *) auto.
+  - (* andl *)
+    apply invert_subtyp_and2_s in Hs as [Hs1 Hs2].
+    eauto.
+  - (* andr *)
+    apply invert_subtyp_and2_s in Hs as [Hs1 Hs2].
+    eauto.
+Qed.
+
 Lemma unique_membership_in_typ_labels : forall U L A S T,
     unique_membership U L (typ_rcd {A >: S <: T}) ->
     label_typ A \in L.
@@ -461,6 +485,21 @@ Proof.
     rewrite in_union. left. auto.
   - (* andr *)
     specialize (IHunique_membership2 HeqT1).
+    rewrite in_union. right. auto.
+Qed.
+
+Lemma unique_membership_in_trm_labels : forall U L a T,
+    unique_membership U L (typ_rcd {a ⦂ T}) ->
+    label_trm a \in L.
+Proof.
+  introv H.
+  dependent induction H.
+  - apply in_singleton_self.
+  - (* andl *)
+    specialize (IHunique_membership1 _ _ eq_refl).
+    rewrite in_union. left. auto.
+  - (* andr *)
+    specialize (IHunique_membership2 _ _ eq_refl).
     rewrite in_union. right. auto.
 Qed.
 
@@ -505,6 +544,13 @@ Proof.
     inversion Heq1.
   - (* all *)
     inversion Heq1.
+Qed.
+
+Lemma subtyp_s_typ_trm_false : forall G a U A S T,
+    ~ G ⊢{} typ_rcd {A >: S <: T} <: typ_rcd {a ⦂ U}.
+Proof.
+  introv Hsub.
+  dependent induction Hsub; inv_repl_typ_rcd; inv_repl_dec; apply* IHHsub.
 Qed.
 
 Lemma subtyp_s_rec_typ_false : forall G U A S T,
@@ -623,6 +669,32 @@ Proof.
     -- specialize (IHunique_membership2 Hn2 H0). contradiction.
 Qed.
 
+Lemma unique_membership_notin_trm_labels : forall G U L T1 a T,
+    unique_membership U L T1 ->
+    (label_trm a) \notin L ->
+    ~ G ⊢{} U <: typ_rcd {a ⦂ T}.
+Proof.
+  introv Hm Hn Hs.
+  dependent induction Hm.
+  - (* typ *) false* subtyp_s_typ_trm_false.
+  - (* fld *)
+    rewrite -> notin_singleton in Hn.
+    apply invert_subtyp_fld_s_label in Hs.
+    subst a0. false* Hn.
+  - (* andl *)
+    apply notin_union in Hn. destruct Hn as [Hn1 Hn2].
+    apply invert_subtyp_and1_s_rcd in Hs.
+    destruct Hs.
+    -- specialize (IHHm1 Hn1 H0). contradiction.
+    -- specialize (IHHm2 Hn2 H0). contradiction.
+  - (* andl *)
+    apply notin_union in Hn. destruct Hn as [Hn1 Hn2].
+    apply invert_subtyp_and1_s_rcd in Hs.
+    destruct Hs.
+    -- specialize (IHHm1 Hn1 H0). contradiction.
+    -- specialize (IHHm2 Hn2 H0). contradiction.
+Qed.
+
 Lemma reduce_subtyp_rcd1_s : forall G U1 A S1 T1 S2 T2,
     G ⊢{} U1 <: typ_rcd {A >: S2 <: T2} ->
     U1 ↘ typ_rcd {A >: S1 <: T1} ->
@@ -656,6 +728,31 @@ Proof.
     -- auto.
 Qed.
 
+Lemma reduce_subtyp_fld1_s : forall G U1 a T1 T2,
+    G ⊢{} U1 <: typ_rcd {a ⦂ T2} ->
+    U1 ↘ typ_rcd {a ⦂ T1} ->
+    G ⊢{} typ_rcd {a ⦂ T1} <: typ_rcd {a ⦂ T2}.
+Proof.
+  introv Hs [ls Hu].
+  dependent induction Hu; auto.
+  - (* andl *)
+    apply invert_subtyp_and1_s_rcd in Hs as [Hs | Hs].
+    -- auto.
+    -- apply unique_membership_in_trm_labels in Hu1.
+       pose proof (disjoint_in_notin H Hu1) as Hni.
+       contradict Hs. eapply unique_membership_notin_trm_labels.
+       apply Hu2. apply Hni.
+  - (* andr *)
+    apply invert_subtyp_and1_s_rcd in Hs as [Hs | Hs].
+    -- subst.
+       apply unique_membership_in_trm_labels in Hu2.
+       apply disjoint_comm in H.
+       pose proof (disjoint_in_notin H Hu2) as Hni.
+       contradict Hs. eapply unique_membership_notin_trm_labels.
+       apply Hu1. apply Hni.
+    -- auto.
+Qed.
+
 Lemma reduce_subtyp_rcd_both_s : forall G U1 U2 A S1 T1 S2 T2,
     U1 ↘ typ_rcd {A >: S1 <: T1} ->
     U2 ↘ typ_rcd {A >: S2 <: T2} ->
@@ -665,6 +762,18 @@ Proof.
   introv Hu1 Hu2 Hsub.
   pose proof (reduce_subtyp_rcd2_s _ _ _ _ _ _ Hsub Hu2) as H1.
   pose proof (reduce_subtyp_rcd1_s _ _ _ _ _ _ _ H1 Hu1) as H2.
+  auto.
+Qed.
+
+Lemma reduce_subtyp_fld_both_s : forall G U1 U2 a T1 T2,
+    U1 ↘ typ_rcd {a ⦂ T1} ->
+    U2 ↘ typ_rcd {a ⦂ T2} ->
+    G ⊢{} U1 <: U2 ->
+    G ⊢{} typ_rcd {a ⦂ T1} <: typ_rcd {a ⦂ T2}.
+Proof.
+  introv Hu1 Hu2 Hsub.
+  pose proof (reduce_subtyp_fld2_s _ _ _ _ _ Hsub Hu2) as H1.
+  pose proof (reduce_subtyp_fld1_s _ _ _ _ _ H1 Hu1) as H2.
   auto.
 Qed.
 
