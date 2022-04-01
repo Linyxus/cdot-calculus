@@ -346,6 +346,17 @@ Proof.
   apply tight_to_semantic; eauto.
 Qed.
 
+Lemma invert_subtyp_trm_t : forall G a T1 T2,
+    inert G ->
+    G ⊢# typ_rcd {a ⦂ T1} <: typ_rcd {a ⦂ T2} ->
+    G ⊢# T1 <: T2.
+Proof.
+  introv Hi Hs.
+  apply semantic_to_tight.
+  eapply invert_subtyp_trm_s.
+  apply* tight_to_semantic.
+Qed.
+
 (** * Unique typing *)
 
 Lemma invert_subtyp_and2_s : forall G S T U,
