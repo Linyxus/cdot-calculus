@@ -5,6 +5,11 @@ Require Import Definitions Lookup Sequences.
 
 (** * Operational Semantics *)
 
+Definition matched_case γ p q A :=
+  exists r T ds r0, γ ⟦ defp p ⤳* defv (ν[r↘A](T)ds) ⟧ /\  (* checks that runtime value of the path is matchable *)
+                   γ ⟦ defp (open_path_p p r) ⤳* defp r0 ⟧ /\
+                   γ ⟦ defp q ⤳* defp r0 ⟧.
+
 (** Term-reduction relation *)
 Reserved Notation "t1 '⟼' t2" (at level 40, t2 at level 39).
 
@@ -32,6 +37,20 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
 | red_let_tgt : forall t0 t γ t0' γ',
     (γ, t0) ⟼ (γ', t0') ->
     (γ, trm_let t0 t) ⟼ (γ', trm_let t0' t)
+
+(** [γ ⊢ p ⤳* ν[q.A](x: T)ds ]      #<br>#
+    [―――――――――――――――――――――]      #<br>#
+    [γ | case p of tag q.A y => t1 | else => t2 ⟼ γ | t1^p ]      *)
+| red_case_match : forall γ p q A t1 t2,
+    matched_case γ p q A ->
+    (γ, trm_case p q A t1 t2) ⟼ (γ, open_trm_p p t1)
+
+(** [γ ⊢ p ⤳* tag r1.A r2 ]      #<br>#
+    [―――――――――――――――――――――]      #<br>#
+    [γ | case p of tag q.A y => t1 | else => t2 ⟼ γ | t2 ]      *)
+| red_case_else : forall γ p q A t1 t2,
+    ~(matched_case γ p q A) ->
+    (γ, trm_case p q A t1 t2) ⟼ (γ, t2)
 
 where "t1 '⟼' t2" := (red t1 t2).
 

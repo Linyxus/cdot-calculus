@@ -86,6 +86,7 @@ Inductive trm : Set :=
   | trm_app  : path -> path -> trm
   | trm_let  : trm -> trm -> trm
   | trm_path : path -> trm
+  | trm_case : path -> path -> typ_label -> trm -> trm -> trm
 (**
   - [val_new T ds] represents the object [nu(x: T)ds]; the variable [x] is bound in [T]
     and [ds] and is omitted from the representation;
@@ -94,7 +95,7 @@ Inductive trm : Set :=
     and is omitted;
     we will denote lambda terms as [lambda(T)t. *)
 with val : Set :=
-  | val_new  : typ -> defs -> val
+  | val_new  : path -> typ_label -> typ -> defs -> val
   | val_lambda : typ -> trm -> val
 (**
   - [def_typ A T] represents a type-member definition [{A = T}];
@@ -143,8 +144,11 @@ Notation "⊥" := typ_bot.
 (** singleton types [p.type] *)
 Notation "'{{' p '}}'" := (typ_sngl p).
 
-(** - object [ν(x: T)ds] *)
-Notation "'ν' '(' T ')' ds" := (val_new T ds) (at level 40, T at level 40, ds at level 40).
+(** - object [ν[p.A](x: T)ds] *)
+Notation "'ν' '[' p '↘' A ']' '(' T ')' ds" := (val_new p A T ds) (at level 40, p at level 40, A at level 40, T at level 40, ds at level 40).
+
+(** - case [case p of y: q.A => t1 else => t2] *)
+Notation "'case' p 'of' q '↘' A '⇒' t1 'else' t2" := (trm_case p q A t1 t2) (at level 40, p at level 40, q at level 40, A at level 40, t1 at level 40, t2 at level 40).
 
 (** - function [λ(x: T).t] *)
 Notation "'λ' '(' T ')' t" := (val_lambda T t) (at level 50).
@@ -252,10 +256,12 @@ Fixpoint open_rec_trm (k: nat) (u: var) (t: trm): trm :=
   | trm_path p     => trm_path (open_rec_path k u p)
   | trm_app p q    => trm_app (open_rec_path k u p) (open_rec_path k u q)
   | trm_let t1 t2  => trm_let (open_rec_trm k u t1) (open_rec_trm (S k) u t2)
+  | case p of q↘A ⇒ t1 else t2 =>
+      case (open_rec_path k u p) of (open_rec_path k u q)↘A ⇒ (open_rec_trm (S k) u t1) else (open_rec_trm k u t2)
   end
 with open_rec_val (k: nat) (u: var) (v: val): val :=
   match v with
-  | ν(T)ds   => ν (open_rec_typ (S k) u T) open_rec_defs (S k) u ds
+  | ν[p↘A](T)ds   => ν [(open_rec_path (S k) u p)↘A] (open_rec_typ (S k) u T) open_rec_defs (S k) u ds
   | λ(T) e  => λ(open_rec_typ k u T) open_rec_trm (S k) u e
   end
 with open_rec_def (k: nat) (u: var) (d: def): def :=
@@ -337,10 +343,12 @@ Fixpoint open_rec_trm_p (k: nat) (u: path) (t: trm): trm :=
   | trm_path p     => trm_path (open_rec_path_p k u p)
   | trm_app p q    => trm_app (open_rec_path_p k u p) (open_rec_path_p k u q)
   | trm_let t1 t2  => trm_let (open_rec_trm_p k u t1) (open_rec_trm_p (S k) u t2)
+  | case p of q↘A ⇒ t1 else t2 =>
+      case (open_rec_path_p k u p) of (open_rec_path_p k u q)↘A ⇒ (open_rec_trm_p (S k) u t1) else (open_rec_trm_p k u t2)
   end
 with open_rec_val_p (k: nat) (u: path) (v: val): val :=
   match v with
-  | ν(T) ds => ν(open_rec_typ_p (S k) u T) open_rec_defs_p (S k) u ds
+  | ν[p↘A](T) ds => ν[(open_rec_path_p (S k) u p)↘A](open_rec_typ_p (S k) u T) open_rec_defs_p (S k) u ds
   | λ(T) e  => λ(open_rec_typ_p k u T) open_rec_trm_p (S k) u e
   end
 with open_rec_def_p (k: nat) (u: path) (d: def): def :=
@@ -453,10 +461,11 @@ Fixpoint fv_trm (t: trm) : vars :=
   | trm_path p       => (fv_path p)
   | trm_app p q      => (fv_path p) \u (fv_path q)
   | trm_let t1 t2    => (fv_trm t1) \u (fv_trm t2)
+  | trm_case p q A t1 t2 => (fv_path p) \u (fv_path q) \u (fv_trm t1) \u (fv_trm t2)
   end
 with fv_val (v: val) : vars :=
   match v with
-  | ν(T) ds    => (fv_typ T) \u (fv_defs ds)
+  | ν[p↘A](T) ds    => (fv_path p) \u (fv_typ T) \u (fv_defs ds)
   | λ(T)t      => (fv_typ T) \u (fv_trm t)
   end
 with fv_def (d: def) : vars :=
@@ -686,10 +695,12 @@ _________________
 G ⊢ nu(T)ds :: mu(T)
 ]]
 *)
-| ty_new_intro : forall L G T ds,
+| ty_new_intro : forall L G p A T ds,
     (forall z, z \notin L ->
       z; nil; G & (z ~ open_typ z T) ⊢ open_defs z ds :: open_typ z T) ->
-    G ⊢ trm_val (ν(T) ds) : μ T
+    (forall z, z \notin L ->
+      G & z ~ open_typ z T ⊢ trm_path (pvar z) : open_typ z (p ↓ A)) ->
+    G ⊢ trm_val (val_new p A T ds) : μ T
 
 (** [[
 G ⊢ p: {a: T}
@@ -726,6 +737,24 @@ G ⊢ let t in u: U
     G ⊢ trm_let t u : U
 
 (** [[
+G ⊢ p: μ(x: T)
+G ⊢ q
+G, y: p.type ∧ q.A ⊢ t1 : T
+G ⊢ t2 : T
+_______________________________________________
+G ⊢ case p of tag q.A y => t1 | else => t2 : T
+]]
+*)
+| ty_case : forall L G p S q A t1 t2 T U,
+    G ⊢ trm_path p : S ->
+    G ⊢ trm_path q : U ->
+    (forall y, y \notin L ->
+      G & y ~ ({{ p }} ∧ (q ↓ A)) ⊢ open_trm y t1 : T) ->
+    G ⊢ t2 : T ->
+    G ⊢ trm_case p q A t1 t2 : T
+
+
+(** [[
 G ⊢ p: q.type
 G ⊢ q: T
 _________________
@@ -736,6 +765,10 @@ G ⊢ p: T
     G ⊢ trm_path p : {{ q }} ->
     G ⊢ trm_path q : T ->
     G ⊢ trm_path p : T
+
+| ty_self : forall G p T,
+    G ⊢ trm_path p : T ->
+    G ⊢ trm_path p : {{ p }}
 
 (** [[
 G ⊢ p: q.type
@@ -792,6 +825,7 @@ G ⊢ t: U
     G ⊢ t : T ->
     G ⊢ T <: U ->
     G ⊢ t : U
+
 where "G '⊢' t ':' T" := (ty_trm G t T)
 
 (** *** Single-definition typing [x; bs; G ⊢ d: D]
@@ -819,11 +853,12 @@ _________________
 x.bs; G ⊢ {b = nu(T)ds}: {b: T}
 ]]
 *)
- | ty_def_new : forall x bs b G ds T p,
+ | ty_def_new : forall x bs b G q A ds T p,
      p = p_sel (avar_f x) bs ->
      tight_bounds (μ T) ->
      x; (b :: bs); G ⊢ open_defs_p p•b ds :: open_typ_p p•b T ->
-     x; bs; G ⊢ { b :=v ν(T) ds } : { b ⦂ μ T }
+     G ⊢ trm_path p•b : open_typ_p p•b (q↓A) ->
+     x; bs; G ⊢ { b :=v ν[q↘A](T)ds } : { b ⦂ μ T }
 
 (** [[
 G ⊢ q
@@ -985,21 +1020,6 @@ G ⊢ S2 <: S1
 | subtyp_all_inv1 : forall G S1 T1 S2 T2,
     G ⊢ ∀(S1)T1 <: ∀(S2)T2 ->
     G ⊢ S2 <: S1
-
-(** [[
-G ⊢ ∀(S1)T1 <: ∀(S2)T2
-T1 and T2 is non-dependent
-S2 is a trivial type
-__________________________
-G ⊢ T1 <: T2
-]]
-*)
-(* | subtyp_all_inv2 : forall G S1 T1 S2 T2, *)
-(*     G ⊢ ∀(S1)T1 <: ∀(S2)T2 -> *)
-(*     (forall x, open_typ x T1 = T1) -> *)
-(*     (forall x, open_typ x T2 = T2) -> *)
-(*     trivial_typ S2 -> *)
-(*     G ⊢ T1 <: T2 *)
 
 (** [[
 G ⊢ p: q.type
@@ -1173,6 +1193,7 @@ Ltac fresh_constructor :=
   apply_fresh ty_new_intro as z ||
   apply_fresh ty_all_intro as z ||
   apply_fresh ty_let as z ||
+  apply_fresh ty_case as z ||
   apply_fresh subtyp_all as z; auto.
 
 (** Tactics for naming cases in case analysis. *)

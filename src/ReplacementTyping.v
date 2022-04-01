@@ -504,6 +504,8 @@ Proof.
     apply ty_inv_r.
     apply ty_sngl_pq_inv with (p:=q0) (U:=U0); auto.
     rewrite <- He1; auto. eapply ty_sngl_pq_inv; eauto.
+  - invert_repl. apply ty_inv_r. apply ty_precise_inv.
+    eapply pt3_trans_trans. exact Hi. eauto. eauto.
 Qed.
 
 (** Replacement typing is closed under [pq] replacement
@@ -684,6 +686,25 @@ Proof.
     eapply pf_pt3_trans_inv_mult'; eauto.
 Qed.
 
+Lemma path_sel_repl_inv': forall G p A q,
+    inert G ->
+    G ⊢// q : p ↓ A ->
+    (exists T, G ⊢!!! p : typ_rcd {A >: T <: T} /\
+     G ⊢// q : T).
+Proof.
+  introv Hi Hq. dependent induction Hq.
+  - Case "ty_inv_r"%string.
+    lets Hps: path_sel_inv' Hi H. destruct Hps as [T [Hp Hp0]].
+    eexists; eauto.
+  - Case "ty_sel_r"%string.
+    clear IHHq.
+    exists T. split; eauto.
+  - Case "ty_sel_qp_r"%string.
+    specialize (IHHq _ _ Hi eq_refl). destruct IHHq as [T [Hqbs Hr]].
+    eexists. split; eauto.
+    apply* pt3_field_trans'.
+Qed.
+
 (** If a path has a replacement type it has also an invertible type *)
 Lemma repl_to_inv G p T :
   G ⊢// p : T ->
@@ -812,18 +833,35 @@ Lemma path_elim_repl: forall G p q a T,
 Proof.
   introv Hi Hp Hq.
   destruct (repl_to_invertible_sngl_repl_comp Hi Hp) as [p' [Hc Hpi]].
-  destruct (inv_to_precise_sngl_repl_comp Hpi) as [r' [Hp' Hrc]].
-  destruct (repl_prec_exists Hq) as [U Hq']. clear Hq.
-  destruct (field_typing_comp1 _ Hi Hc Hq') as [T1 Hra].
-  destruct (field_typing_comp2 _ Hi Hrc Hra) as[T2 Hr'a].
-  lets Hper: (path_elim_prec _ Hi Hp' Hr'a).
-  lets Hinv: (ty_precise_inv Hper).
-  assert (G ⊢ r' • a ⟿' p' • a) as Hr'
-      by apply* repl_composition_fld_elim.
-  assert (G ⊢ q • a ⟿' p' • a) as Hr''
-      by apply* repl_composition_fld_elim.
-  lets Hic: (invertible_repl_closure_comp_typed Hi Hinv Hr').
-  apply* replacement_repl_closure_comp_typed_path.
+  destruct (inv_to_precise_sngl_repl_comp Hpi) as [[r' [Hp' Hrc]] | Hp'].
+  {
+    destruct (repl_prec_exists Hq) as [U Hq']. clear Hq.
+    destruct (field_typing_comp1 _ Hi Hc Hq') as [T1 Hra].
+    destruct (field_typing_comp2 _ Hi Hrc Hra) as[T2 Hr'a].
+    lets Hper: (path_elim_prec _ Hi Hp' Hr'a).
+    lets Hinv: (ty_precise_inv Hper).
+    assert (G ⊢ r' • a ⟿' p' • a) as Hr'
+        by apply* repl_composition_fld_elim.
+    assert (G ⊢ q • a ⟿' p' • a) as Hr''
+        by apply* repl_composition_fld_elim.
+    lets Hic: (invertible_repl_closure_comp_typed Hi Hinv Hr').
+    apply* replacement_repl_closure_comp_typed_path.
+  }
+  {
+    destruct (repl_prec_exists Hq) as [U Hq'].
+    destruct (field_typing_comp1 _ Hi Hc Hq') as [T1 Hra].
+    destruct (field_typing_comp2 _ Hi Hp' Hra) as[T2 Hr'a].
+    assert (G ⊢ p • a ⟿' p' • a) as Hr'
+        by apply* repl_composition_fld_elim.
+    assert (G ⊢ q • a ⟿' p' • a) as Hr''
+        by apply* repl_composition_fld_elim.
+    assert (G ⊢## p • a : {{ p • a }}). {
+      lets H2: pt2_exists Hr'a. destruct H2.
+      apply* ty_self_inv.
+    }
+    lets Hic: (invertible_repl_closure_comp_typed Hi H Hr').
+    apply* replacement_repl_closure_comp_typed_path.
+  }
 Qed.
 
 (** Replacement typing is closed under singleton transitivity with a type [q.type]
@@ -837,20 +875,27 @@ Proof.
   introv Hi Hpq Hq. gen p. induction Hq; introv Hpq; eauto; try solve [apply* replacement_repl_closure_pq].
   - pose proof (pt2_exists H) as [U H'].
     destruct (repl_to_invertible_sngl Hi Hpq H') as [r [S [Hpr [Hq Hrc]]]].
-    destruct (inv_to_precise_sngl Hi Hpr (pt3 Hq)) as [r' [Hpr' Hrc']]. clear Hpr Hpq H'.
-    destruct Hrc, Hrc'; subst.
-    * do 2 constructor. apply* pt3_sngl_trans3.
-    * do 2 constructor. repeat apply* pt3_sngl_trans3.
+    destruct (inv_to_precise_sngl Hi Hpr (pt3 Hq)) as [[r' [Hpr' Hrc']] | Hp].
+    + clear Hpr Hpq H'.
+      destruct Hrc, Hrc'; subst.
+      * do 2 constructor. apply* pt3_sngl_trans3.
+      * do 2 constructor. repeat apply* pt3_sngl_trans3.
+      * lets Hpi: (pt3_invert Hi H H0). destruct_all; subst; auto.
+        ** do 2 constructor. apply* pt3_sngl_trans3.
+        ** apply ty_precise_inv in Hpr'. apply ty_inv_r in Hpr'.
+          apply* replacement_repl_closure_qp3. apply* repl_intro_sngl.
+      * lets Hpi: (pt3_invert Hi H H0). destruct_all; subst.
+        ** do 2 constructor. do 2 apply* pt3_sngl_trans3.
+        ** do 2 constructor. apply* pt3_sngl_trans3.
+        ** apply ty_precise_inv in Hpr'. apply ty_inv_r in Hpr'.
+          lets Hc: (replacement_repl_closure_pq3 Hi Hpr' H1 Hq (repl_intro_sngl r' r)).
+          apply* replacement_repl_closure_qp3. apply* repl_intro_sngl.
+  + destruct Hrc; subst.
+    * eauto.
     * lets Hpi: (pt3_invert Hi H H0). destruct_all; subst; auto.
-      ** do 2 constructor. apply* pt3_sngl_trans3.
-      ** apply ty_precise_inv in Hpr'. apply ty_inv_r in Hpr'.
-         apply* replacement_repl_closure_qp3. apply* repl_intro_sngl.
-    * lets Hpi: (pt3_invert Hi H H0). destruct_all; subst.
-      ** do 2 constructor. do 2 apply* pt3_sngl_trans3.
-      ** do 2 constructor. apply* pt3_sngl_trans3.
-      ** apply ty_precise_inv in Hpr'. apply ty_inv_r in Hpr'.
-         lets Hc: (replacement_repl_closure_pq3 Hi Hpr' H1 Hq (repl_intro_sngl r' r)).
-         apply* replacement_repl_closure_qp3. apply* repl_intro_sngl.
+      eapply replacement_repl_closure_qp3. auto.
+      exact H2. exact Hq. apply ty_inv_r. apply* ty_self_inv.
+      apply repl_intro_sngl.
 Qed.
 
 (** Replacement typing is closed under singleton transitivity *)
@@ -865,24 +910,32 @@ Proof.
   - specialize (IHHq Hi _ Hpq). apply ty_bnd_r.
     pose proof (repl_to_inv Hq) as [_ [_ [U Hq']%pt2_exists]%inv_to_prec].
     destruct (repl_to_invertible_sngl Hi Hpq Hq') as [r [S [Hpr [Hs Hor]]]].
-    destruct (inv_to_precise_sngl Hi Hpr (pt3 Hs)) as [r' [Hpr' Hor']]. clear Hpr Hpq.
-    destruct Hor, Hor'; subst.
-    * assert (repl_repeat_typ r p0 (open_typ_p r T) (open_typ_p p0 T)) as Hrr by apply* repl_comp_open_rec.
-      apply* replacement_repl_closure_qp_comp.
-    * assert (repl_repeat_typ r r' (open_typ_p r T) (open_typ_p r' T)) as Hrr by apply* repl_comp_open_rec.
-      lets Hc: (replacement_repl_closure_qp_comp Hi IHHq H0 Hs Hrr).
-      apply pt2_exists in H0 as [? ?].
-      eapply (replacement_repl_closure_qp_comp Hi Hc). apply Hpr'. eauto.
-      apply* repl_comp_open_rec.
-    * assert (repl_repeat_typ p r (open_typ_p p T) (open_typ_p r T)) as Hrr by apply* repl_comp_open_rec.
-      lets Hc: (replacement_repl_closure_pq_comp Hi IHHq H Hs Hrr).
-      apply* replacement_repl_closure_qp_comp. apply* repl_comp_open_rec.
-    * assert (repl_repeat_typ p r (open_typ_p p T) (open_typ_p r T)) as Hrr by apply* repl_comp_open_rec.
-      lets Hc: (replacement_repl_closure_pq_comp Hi IHHq H Hs Hrr).
-      assert (repl_repeat_typ r r' (open_typ_p r T) (open_typ_p r' T)) as Hrr' by apply* repl_comp_open_rec.
-      lets Hc': (replacement_repl_closure_qp_comp Hi Hc H0 Hs Hrr').
-      pose proof (pt2_exists H0) as [? ?].
-      eapply (replacement_repl_closure_qp_comp Hi). auto. apply Hc'. apply Hpr'. eauto. apply* repl_comp_open_rec.
+    destruct (inv_to_precise_sngl Hi Hpr (pt3 Hs)) as [[r' [Hpr' Hor']] | Heq].
+    {
+      clear Hpr Hpq.
+      destruct Hor, Hor'; subst.
+      * assert (repl_repeat_typ r p0 (open_typ_p r T) (open_typ_p p0 T)) as Hrr by apply* repl_comp_open_rec.
+        apply* replacement_repl_closure_qp_comp.
+      * assert (repl_repeat_typ r r' (open_typ_p r T) (open_typ_p r' T)) as Hrr by apply* repl_comp_open_rec.
+        lets Hc: (replacement_repl_closure_qp_comp Hi IHHq H0 Hs Hrr).
+        apply pt2_exists in H0 as [? ?].
+        eapply (replacement_repl_closure_qp_comp Hi Hc). apply Hpr'. eauto.
+        apply* repl_comp_open_rec.
+      * assert (repl_repeat_typ p r (open_typ_p p T) (open_typ_p r T)) as Hrr by apply* repl_comp_open_rec.
+        lets Hc: (replacement_repl_closure_pq_comp Hi IHHq H Hs Hrr).
+        apply* replacement_repl_closure_qp_comp. apply* repl_comp_open_rec.
+      * assert (repl_repeat_typ p r (open_typ_p p T) (open_typ_p r T)) as Hrr by apply* repl_comp_open_rec.
+        lets Hc: (replacement_repl_closure_pq_comp Hi IHHq H Hs Hrr).
+        assert (repl_repeat_typ r r' (open_typ_p r T) (open_typ_p r' T)) as Hrr' by apply* repl_comp_open_rec.
+        lets Hc': (replacement_repl_closure_qp_comp Hi Hc H0 Hs Hrr').
+        pose proof (pt2_exists H0) as [? ?].
+        eapply (replacement_repl_closure_qp_comp Hi). auto. apply Hc'. apply Hpr'. eauto. apply* repl_comp_open_rec.
+    }
+    { subst. destruct Hor; subst.
+      + auto.
+      + assert (repl_repeat_typ p r (open_typ_p p T) (open_typ_p r T)) as Hrr by apply* repl_comp_open_rec.
+        lets Hc: (replacement_repl_closure_pq_comp Hi IHHq H Hs Hrr). exact Hc.
+    }
   - pose proof (path_elim_repl _ Hi Hpq Hq) as Hp0a. specialize (IHHq Hi _ Hp0a). eauto.
 Qed.
 
@@ -899,6 +952,12 @@ Proof.
     apply* repl_fld.
   - Case "ty_sngl_t"%string.
     apply* repl_sngl_trans.
+  - Case "ty_self_t"%string.
+    specialize (IHHp _ Hi eq_refl).
+    lets Hinv: (repl_to_inv IHHp). destruct Hinv as [U Hinv].
+    lets Hp3: (inv_to_prec Hinv). destruct Hp3 as [U' Hp3].
+    lets Hp2: (pt2_exists Hp3). destruct Hp2 as [U'' Hp2].
+    apply ty_inv_r. apply* ty_self_inv.
   - Case "ty_path_elim_t"%string.
     apply* path_elim_repl.
   - Case "ty_rec_elim_t"%string.
@@ -1312,4 +1371,36 @@ Proof.
     apply subtyp_trans with (T:=open_typ y T1).
     * eapply narrow_subtyping. apply* Hst. apply subenv_last. apply* tight_to_general. auto.
     * apply* H0.
+Qed.
+
+Lemma repl_val_to_invertible_new : forall G r0 A T ds U,
+    inert G ->
+    G ⊢//v ν[r0↘A](T)ds : U ->
+    (exists T', G ⊢##v ν[r0↘A](T)ds : μ T').
+Proof.
+  introv Hin Hrv.
+  dependent induction Hrv.
+  - lets Hinvv: (invertible_to_precise_new Hin H).
+    destruct Hinvv as [T' [Heq [Hpv Hr]]].
+    subst. repeat eexists. eauto.
+  - specialize (IHHrv1 _ _ _ _ Hin eq_refl). exact IHHrv1.
+  - specialize (IHHrv _ _ _ _ Hin eq_refl). exact IHHrv.
+  - specialize (IHHrv _ _ _ _ Hin eq_refl). exact IHHrv.
+  - specialize (IHHrv _ _ _ _ Hin eq_refl). exact IHHrv.
+  - specialize (IHHrv _ _ _ _ Hin eq_refl). exact IHHrv.
+  - specialize (IHHrv _ _ _ _ Hin eq_refl). exact IHHrv.
+Qed.
+
+Lemma repl_val_to_precise_new : forall G r0 A T ds U,
+    inert G ->
+    G ⊢//v ν[r0↘A](T)ds : U ->
+    (exists T', G ⊢!v ν[r0↘A](T)ds : μ T').
+Proof.
+  introv Hin Hrv.
+  lets Hinvv: (repl_val_to_invertible_new Hin Hrv).
+  destruct Hinvv as [T' Hinvv].
+  lets Hpv: (invertible_to_precise_new Hin Hinvv).
+  destruct Hpv as [T'' [Heq [Hpv ?]]].
+  inversions Heq.
+  repeat eexists. eauto.
 Qed.

@@ -709,6 +709,15 @@ Proof.
   specialize (IHHp _ _ Hi eq_refl) as [Hq | [r [Hq Hr]]]; eauto.
 Qed.
 
+Lemma last_path_obj G p T :
+  inert G ->
+  G ⊢!!! p : μ(T) ->
+  G ⊢!! p : μ(T) \/ exists q, G ⊢!!! p: {{ q }} /\ G ⊢!! q : μ(T).
+Proof.
+  intros Hi Hp. dependent induction Hp; eauto.
+  specialize (IHHp _ Hi eq_refl) as [Hq | [r [Hq Hr]]]; eauto.
+Qed.
+
 Lemma pt2_qbs_typed G p q T bs V:
   inert G ->
   G ⊢! p : {{ q }} ⪼ {{ q }} ->
@@ -1129,6 +1138,18 @@ Proof.
     }
     apply star_trans with (b:=V). apply star_one. econstructor. repeat eexists. apply H. inversion* H0.
     invert_repl. eauto. apply* IHHr.
+Qed.
+
+Lemma repl_comp_bnd: forall G T T',
+    G ⊢ T ⟿ T' ->
+    G ⊢ μ T ⟿ μ T'.
+Proof.
+  introv Hr.
+  dependent induction Hr; eauto 2. apply star_refl.
+  destruct H. destruct_all.
+  apply star_trans with (b:=μ b).
+  - apply star_one. econstructor. repeat eexists; eauto.
+  - exact IHHr.
 Qed.
 
 Lemma repl_comp_trm_rcd G a T S :

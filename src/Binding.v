@@ -103,10 +103,11 @@ Fixpoint subst_trm (z: var) (u: path) (t: trm) : trm :=
   | trm_path p       => trm_path (subst_path z u p)
   | trm_app x1 x2    => trm_app (subst_path z u x1) (subst_path z u x2)
   | trm_let t1 t2    => trm_let (subst_trm z u t1) (subst_trm z u t2)
+  | trm_case p q A t1 t2 => trm_case (subst_path z u p) (subst_path z u q) A (subst_trm z u t1) (subst_trm z u t2)
   end
 with subst_val (z: var) (u: path) (v: val) : val :=
   match v with
-  | ν(T) ds  => ν(subst_typ z u T) subst_defs z u ds
+  | ν[q↘A](T) ds  => ν[(subst_path z u q)↘A](subst_typ z u T) subst_defs z u ds
   | λ(T) t   => λ(subst_typ z u T) subst_trm z u t
   end
 with subst_def (z: var) (u: path) (d: def) : def :=
@@ -780,13 +781,12 @@ Lemma open_env_rules:
     G1 & x ~ (μ S) & G2 ⊢ T <: U).
 Proof.
   apply rules_mutind; intros; subst; simpl; auto;
-    try solve [fresh_constructor; rewrite <- concat_assoc; (apply* H || apply* H0); rewrite* concat_assoc]; eauto.
+    try solve [fresh_constructor; rewrite <- concat_assoc; (apply* H || apply* H0 || apply* H1); rewrite* concat_assoc]; eauto 4.
   - Case "ty_var"%string.
     destruct (classicT (x=x0)) as [-> | Hn].
     + apply binds_middle_eq_inv in b; subst*. rewrite open_var_typ_eq.
       apply ty_rec_elim. constructor. apply* binds_middle_eq. apply* ok_middle_inv_r.
     + constructor. apply binds_subst in b; auto. apply* binds_weaken. apply* ok_middle_change.
-  Unshelve. all: solve_ex_typ_L.
 Qed.
 
 (** the same for definition-typing only: *)
@@ -796,6 +796,15 @@ Lemma open_env_last_defs z bs G x T ds U :
   z ; bs ; G & x ~ (μ T) ⊢ ds :: U.
 Proof.
   intros Hok Hds. erewrite <- concat_empty_r at 1. apply* open_env_rules.
+  rewrite* concat_empty_r.
+Qed.
+
+Lemma open_env_last_trm G x T t U :
+  ok (G & x ~ open_typ x T) ->
+  G & x ~ open_typ x T ⊢ t : U ->
+  G & x ~ (μ T) ⊢ t : U.
+Proof.
+  introv Hok Ht. erewrite <- concat_empty_r at 1. apply* open_env_rules.
   rewrite* concat_empty_r.
 Qed.
 

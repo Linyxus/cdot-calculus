@@ -186,32 +186,65 @@ Proof.
     end.
   - Case "ty_new_intro"%string.
     fresh_constructor.
-    subst_open_fresh.
-    match goal with
-    | [ |- _; _; _ ⊢ _ _ _ :: _ ] =>
-      assert (pvar z = subst_var_p x p z) as Hxyz by (unfold subst_var_p; rewrite~ If_r);
-      rewrite Hxyz at 1
-    end.
-    rewrite <- Hxyz.
-    subst_open_fresh.
-    rewrite* <- subst_open_commut_typ_p.
-    rewrite* <- subst_open_commut_defs_p.
-    assert (subst_ctx x p G2 & z ~ subst_typ x p (open_typ_p (pvar z) T) =
-    subst_ctx x p (G2 & z ~ open_typ_p (pvar z) T)) as Heq
-    by (unfold subst_ctx; rewrite map_concat, map_single; auto).
-    rewrite <- concat_assoc. rewrite Heq.
-    destruct p as [p_x p_bs].
-    assert (exists p_x0, p_x = avar_f p_x0) as Heq'. {
-      inversions Hn. destruct_all. inversions H0. eauto.
+    { (* part 1: prove the body type *)
+      subst_open_fresh.
+      (* match goal with *)
+      (* | [ |- _; _; _ ⊢ _ _ _ :: _ ] => *)
+      (*   assert (pvar z = subst_var_p x p z) as Hxyz by (unfold subst_var_p; rewrite~ If_r); *)
+      (*   rewrite Hxyz at 1 *)
+      (* end. *)
+      (* rewrite <- Hxyz. *)
+      subst_open_fresh.
+      rewrite* <- subst_open_commut_typ_p.
+      rewrite* <- subst_open_commut_defs_p.
+      assert (subst_ctx x p G2 & z ~ subst_typ x p (open_typ_p (pvar z) T) =
+      subst_ctx x p (G2 & z ~ open_typ_p (pvar z) T)) as Heq
+      by (unfold subst_ctx; rewrite map_concat, map_single; auto).
+      rewrite <- concat_assoc. rewrite Heq.
+      destruct p as [p_x p_bs].
+      assert (exists p_x0, p_x = avar_f p_x0) as Heq'. {
+        inversions Hn. destruct_all. inversions H1. eauto.
+      }
+      destruct Heq' as [p_x0 Heq']; subst.
+      assert (z = subst_var x p_x0 z) as Heq'. {
+        unfolds subst_var; rewrite~ If_r.
+      }
+      rewrite <- open_var_typ_eq, <- open_var_defs_eq.
+      apply* H; try rewrite* concat_assoc.
+      unfolds subst_ctx. rewrite map_concat. rewrite concat_assoc.
+      apply* weaken_ty_trm.
     }
-    destruct Heq' as [p_x0 Heq']; subst.
-    assert (z = subst_var x p_x0 z) as Heq'. {
-      unfolds subst_var; rewrite~ If_r.
+    { (* part 2: prove the type tag *)
+      subst_open_fresh.
+      replace (subst_path x p p0 ↓ A) with (subst_typ x p (p0↓A)); try reflexivity.
+      subst_open_fresh.
+      rewrite* <- subst_open_commut_typ_p.
+      rewrite* <- subst_open_commut_typ_p.
+      assert (subst_ctx x p G2 & z ~ subst_typ x p (open_typ_p (pvar z) T) =
+      subst_ctx x p (G2 & z ~ open_typ_p (pvar z) T)) as Heq
+      by (unfold subst_ctx; rewrite map_concat, map_single; auto).
+      rewrite <- concat_assoc. rewrite Heq.
+      destruct p as [p_x p_bs].
+      assert (exists p_x0, p_x = avar_f p_x0) as Heq'. {
+        inversions Hn. destruct_all. inversions H1. eauto.
+      }
+      destruct Heq' as [p_x0 Heq']. subst.
+      assert (pvar z = subst_var_p x (p_sel (avar_f p_x0) p_bs) z) as Heq''. {
+        unfolds subst_var_p; rewrite~ If_r.
+      }
+      rewrite <- open_var_typ_eq. rewrite Heq''.
+      match goal with
+      | |- _ ⊢ trm_path ?pz : _ =>
+          assert (Hpz: pz = pz •• nil) by (symmetry; apply field_sel_nil)
+      end.
+      replace (trm_path (subst_var_p x (p_sel (avar_f p_x0) p_bs) z)) with (trm_path (subst_var_p x (p_sel (avar_f p_x0) p_bs) z) •• nil).
+      2: { f_equal. auto. }
+      rewrite <- Heq''.
+      rewrite <- open_var_typ_eq. rewrite Heq''.
+      apply* H0; try rewrite* concat_assoc.
+      unfolds subst_ctx. rewrite map_concat. rewrite concat_assoc.
+      apply* weaken_ty_trm.
     }
-    rewrite <- open_var_typ_eq, <- open_var_defs_eq.
-    apply* H; try rewrite* concat_assoc.
-    unfolds subst_ctx. rewrite map_concat. rewrite concat_assoc.
-    apply* weaken_ty_trm.
   - Case "ty_new_elim"%string.
     asserts_rewrite (subst_path x p p0 • a = (subst_path x p p0) • a).
     destruct p0. apply sel_fields_subst. auto.
@@ -235,6 +268,21 @@ Proof.
           rewrite <- B, concat_assoc; unfold subst_ctx;
           auto using weaken_ty_trm, ok_push, ok_concat_map
     end.
+  - Case "ty_case"%string.
+    fresh_constructor.
+    subst_open_fresh.
+    match goal with
+    | [ |- context [_ & subst_ctx ?x ?p ?G2 & ?z ~ ?T] ] =>
+        assert (subst_ctx x p G2 & z ~ T = subst_ctx x p (G2 & z ~ ({{p0}} ∧ (q↓A)))) as B
+    end.
+    {
+      unfold subst_ctx. rewrite map_concat, map_single. reflexivity.
+    }
+    rewrite <- concat_assoc. rewrite B.
+    rewrite* <- subst_open_commut_trm_p.
+    rewrite <- open_var_trm_eq. apply* H1; try rewrite* concat_assoc.
+    rewrite <- B, concat_assoc. unfold subst_ctx.
+    auto using weaken_ty_trm, ok_push, ok_concat_map.
   - Case "ty_path_elim"%string.
     destruct p0, q.
     rewrite sel_fields_subst.
@@ -243,13 +291,19 @@ Proof.
   - Case "ty_rec_intro"%string.
     constructor. rewrite* <- subst_open_commut_typ_p.
   - Case "ty_def_new"%string.
-    specialize (H _ _ _ eq_refl H1 H2 H3 H4).
+    specialize (H _ _ _ eq_refl H2 H3 H4 H5).
+    specialize (H0 _ _ _ eq_refl H2 H3 H4).
     rewrite* subst_open_commut_defs_p in H.
     rewrite* subst_open_commut_typ_p in H.
+    rewrite* subst_open_commut_path_p in H0.
     unfolds subst_var.
     eapply ty_def_new; eauto.
     * replace (μ (subst_typ x0 p T)) with (subst_typ x0 p (μ T)) by auto.
       apply tight_bounds_subst. eauto.
+    * simpl.
+      replace (p_sel (avar_f x) (b :: bs)) with (subst_path x0 p (p_sel (avar_f x) (b :: bs))); eauto.
+      simpl. unfold subst_var_p.
+      case_if*. simpl. rewrite app_nil_r. auto.
     * simpl.
       replace (p_sel (avar_f x) (b :: bs)) with (subst_path x0 p (p_sel (avar_f x) (b :: bs))); eauto.
       simpl. unfold subst_var_p.
@@ -382,6 +436,46 @@ Proof.
   apply* ok_concat_map.
 Qed.
 
+Lemma rename_trms G x z T U:
+  x \notin fv_typ T ->
+  x \notin fv_typ U ->
+  x \notin fv_ctx_types G ->
+  ok (G & z ~ subst_typ x (pvar z) (open_typ x T) & x ~ open_typ x T) ->
+  G & x ~ open_typ x T ⊢ tvar x : open_typ x U ->
+  G & z ~ open_typ z T ⊢ tvar z : open_typ z U.
+Proof.
+  introv Hx Hx' Hx'' Hok HU.
+  assert (Heq1: G & z ~ open_typ z T = G & z ~ open_typ z T & empty) by rewrite* concat_empty_r.
+  assert (Heq2: G & x ~ open_typ x T = G & x ~ open_typ x T & empty) by rewrite* concat_empty_r.
+  rewrite Heq1. rewrite Heq2 in HU. clear Heq1 Heq2.
+  match goal with
+  | H : ok (?G) |- _ =>
+      assert (G = G & empty) as Heq by rewrite* concat_empty_r;
+      rewrite Heq in Hok; clear Heq
+  end.
+  lets Hty: (rename_ty_trm Hx'' HU Hok).
+
+  assert (empty = subst_ctx x (pvar z) empty) as Heq. {
+    unfold subst_ctx. rewrite* map_empty.
+  }
+  rewrite <- Heq in Hty. clear Heq.
+
+  assert (Heq: subst_trm x (pvar z) (tvar x) = tvar z). {
+    unfold subst_trm. unfold subst_path. unfold subst_avar.
+    unfold subst_var_p. cases_if. simpl. auto.
+  }
+  rewrite Heq in Hty. clear Heq.
+  assert (open_typ z T = subst_typ x (pvar z) (open_typ x T)) as Heq. {
+    rewrite open_var_typ_eq. rewrite* <- subst_intro_typ. repeat eexists.
+  }
+  rewrite <- Heq in Hty. clear Heq.
+  assert (open_typ z U = subst_typ x (pvar z) (open_typ x U)) as Heq. {
+    rewrite open_var_typ_eq. rewrite* <- subst_intro_typ. repeat eexists.
+  }
+  rewrite <- Heq in Hty. clear Heq.
+  auto.
+Qed.
+
 (** Replace the this variable with a fresh variable for definition typing: #<br>#:
     if [z.bs; G1, z: T, G2 ⊢ ds: U] then [x.bs; G1, x: T[x/z], G2[x/z] ⊢ ds[x/z]: U[x/z]] *)
 Lemma rename_def_defs :
@@ -402,12 +496,23 @@ Proof.
   - constructor.
   - pose proof (rename_ty_trm H0 t0 H1).
     constructor*.
-  - specialize (H _ _ _ _ eq_refl H1 H2). simpl in *. apply* ty_def_new.
+  - specialize (H _ _ _ _ eq_refl H1 H2).
+    (* specialize (H _ _ _ _ eq_refl H1 H2). *)
+    simpl in *. apply* ty_def_new.
+
     eapply tight_bounds_subst in t. eauto.
+
     rewrite subst_open_commut_defs_p in H; try repeat eexists.
     rewrite subst_open_commut_typ_p in H; try repeat eexists.
     unfold subst_path, subst_avar, subst_var_p in H. case_if.
     simpl in H. rewrite List.app_nil_r in H. simpl. auto.
+
+    lets Hty: (rename_ty_trm H1 t1 H2).
+    rewrite subst_open_commut_typ_p in Hty; try repeat eexists.
+    simpl in Hty.
+    unfold subst_var_p, subst_path in Hty. case_if. destruct q.
+    simpl in Hty. simpl.
+    rewrite List.app_nil_r in Hty. auto.
   - pose proof (rename_ty_trm H0 t H1). econstructor; eauto.
   - constructor*.
   - specialize (H0 _ _ _ _ eq_refl H2 H3). specialize (H _ _ _ _ eq_refl H2 H3).

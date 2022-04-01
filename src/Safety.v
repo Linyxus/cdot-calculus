@@ -7,7 +7,7 @@ Set Implicit Arguments.
 Require Import Coq.Program.Equality List String.
 Require Import Sequences.
 Require Import Binding CanonicalForms Definitions GeneralToTight InvertibleTyping Lookup Narrowing
-        Reduction PreciseTyping RecordAndInertTypes ReplacementTyping
+        Reduction PreciseTyping RecordAndInertTypes ReplacementTyping Replacement
         Subenvironments Substitution TightTyping Weakening.
 
 Close Scope string_scope.
@@ -147,7 +147,7 @@ Proof.
     rewrite app_nil_l in *.
     pose proof (lft_unique Hin Hl1 Hl2) as [=].
   - Case "def_new"%string.
-    pose proof (ty_def_new _ _ eq_refl H6 H7).
+    pose proof (ty_def_new _ _ eq_refl H2 H7 H8).
     assert (z ==> S =b::bs=> μ T0) as Hl1'. {
         eapply lft_cons. eauto. eauto.
     }
@@ -229,7 +229,8 @@ Proof.
     + apply pf_binds in Hp; auto. apply binds_push_eq_inv in Hp as [=].
     + apply pf_sngl in Hp as [? [? [=]%pf_binds%binds_push_eq_inv]]; auto.
   - exists (μ T). assert (inert_typ (μ T)) as Hin. {
-      apply ty_new_intro_p in H. apply* pfv_inert.
+      lets Hv: (ty_new_intro_p T ds H H0).
+      apply* pfv_inert.
     }
     repeat split*. pick_fresh z. assert (z \notin L) as Hz by auto.
     specialize (H z Hz). assert (z # G) as Hz' by auto.
@@ -294,6 +295,26 @@ Ltac solve_IH :=
 Ltac solve_let :=
   invert_red; solve_IH; fresh_constructor; eauto; apply* weaken_rules.
 
+Lemma matched_case_typing: forall γ G p q A T1 T2,
+    inert G ->
+    wf G ->
+    γ ⫶ G ->
+    G ⊢ trm_path p : T1 ->
+    G ⊢ trm_path q : T2 ->
+    matched_case γ p q A ->
+    G ⊢ trm_path p : q ↓ A.
+Proof.
+  introv Hin Hwf Hwt Hp Hq Hm.
+  unfold matched_case in Hm. destruct_all.
+  lets Hcf: (canonical_forms_obj Hin Hwf Hwt H Hp).
+  lets Hx: (path_sel_implies_typed_path Hin Hcf). destruct Hx as [U Hxp].
+  assert (Hx: G ⊢ trm_path (open_path_p p x) : typ_rcd {A >: U <: U}) by apply* precise_to_general3.
+  lets Hd: (path_lookup_implies_sngl_typing Hin Hwf Hwt Hx Hq H0 H1).
+  apply ty_sub with (T:=open_path_p p x ↓ A); auto.
+  apply subtyp_sngl_pq with (p:=(open_path_p p x)) (q:=q) (U:=T2); auto.
+  apply repl_intro_path_sel.
+Qed.
+
 (** **** Preservation (Lemma 5.4) *)
 (** If a term [γ|t] has type [T] and reduces to [γ'|t'] then the latter has
     the same type [T] under an extended environment that is inert, well-typed,
@@ -339,6 +360,16 @@ Proof.
       repeat invert_red.
       exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
       apply* subst_fresh_var_path.
+  - Case "ty_case"%string.
+    inversion Hred. subst.
+    + lets Hcf: (matched_case_typing Hi Hwf Hwt Ht1 Ht2 H2).
+      exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+      eapply subst_fresh_var_path. eauto. apply H.
+      apply ty_and_intro.
+      * eapply ty_self. exact Hcf.
+      * apply Hcf.
+    + subst.
+      exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
   - Case "ty_sub"%string.
     solve_IH.
     match goal with
@@ -370,6 +401,12 @@ Proof.
       { inversion Hn. } eauto.
     + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
       { inversion Hn. } eauto.
+    + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
+      { inversion Hn. } eauto.
+  - Case "ty_case"%string.
+    right. destruct (classicT (matched_case γ p q A)).
+    + eauto.
+    + eauto.
 Qed.
 
 (** *** Safety *)

@@ -93,9 +93,10 @@ Inductive ty_val_p : ctx -> val -> typ -> Prop :=
     [―――――――――――――――――――――――――――――――]       #<br>#
     [G ⊢! ν(T)ds: μ(T)]                     *)
 | ty_new_intro_p
-     : forall (L : fset var) (G : env typ) (T : typ) (ds : defs),
+     : forall (L : fset var) (G : env typ) (p : path) (A : typ_label) (T : typ) (ds : defs),
        (forall x : var, x \notin L -> x; nil; G & x ~ open_typ x T ⊢ open_defs x ds :: open_typ x T) ->
-       G ⊢!v ν(T)ds : μ T
+       (forall x : var, x \notin L -> G & x ~ open_typ x T ⊢ trm_path (pvar x) : open_typ x (p↓A)) ->
+       G ⊢!v ν[p↘A](T)ds : μ T
 
 where "G '⊢!v' v ':' T" := (ty_val_p G v T).
 
@@ -589,4 +590,11 @@ Proof.
       rewrite field_sel_nil in *;
       apply (pf_T_unique Hi Hq) in Hq0 as [= ->];
      apply sel_fields_equal in Heq as ->; auto.
+Qed.
+
+Lemma pfv_new_inv : forall G r0 A T ds U,
+    G ⊢!v ν[r0 ↘ A](T)ds : U ->
+    U = μ T.
+Proof.
+  introv Hpv. inversion Hpv. subst. trivial.
 Qed.

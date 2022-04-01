@@ -54,10 +54,12 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     [z fresh]                          #<br>#
     [―――――――――――――――――――――――――――――――]  #<br>#
     [G ⊢# nu(T)ds :: mu(T)]             *)
-| ty_new_intro_t : forall G ds T L,
+| ty_new_intro_t : forall G ds T p A L,
     (forall z, z \notin L ->
       z; nil; G & (z ~ open_typ z T) ⊢ open_defs z ds :: open_typ z T) ->
-    G ⊢# trm_val (ν(T) ds) : μ T
+    (forall z, z \notin L ->
+      G & z ~ open_typ z T ⊢ trm_path (pvar z) : open_typ z (p ↓ A)) ->
+    G ⊢# trm_val (ν[p↘A](T) ds) : μ T
 
 (** [G ⊢# p: {a: T}] #<br>#
     [―――――――――――――]   #<br>#
@@ -84,6 +86,23 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
       G & x ~ T ⊢ open_trm x u : U) ->
     G ⊢# trm_let t u : U
 
+(** [[
+G ⊢ p: μ(x: T)
+G ⊢ q
+G, y: p.type ∧ q.A ⊢ t1 : T
+G ⊢ t2 : T
+_______________________________________________
+G ⊢ case p of tag q.A y => t1 | else => t2 : T
+]]
+*)
+| ty_case_t : forall L G p S q A t1 t2 T U,
+    G ⊢# trm_path p : S ->
+    G ⊢# trm_path q : U ->
+    (forall y, y \notin L ->
+      G & y ~ ({{ p }} ∧ (q ↓ A)) ⊢ open_trm y t1 : T) ->
+    G ⊢# t2 : T ->
+    G ⊢# trm_case p q A t1 t2 : T
+
 (** [G ⊢# p: q.type]  #<br>#
     [G ⊢# q]          #<br>#
     [―――――――――――――――] #<br>#
@@ -92,6 +111,10 @@ Inductive ty_trm_t : ctx -> trm -> typ -> Prop :=
     G ⊢# trm_path p : {{ q }} ->
     G ⊢# trm_path q : T ->
     G ⊢# trm_path p : T
+
+| ty_self_t : forall G p T,
+    G ⊢# trm_path p : T ->
+    G ⊢# trm_path p : {{ p }}
 
 (** [G ⊢# p.: T]       #<br>#
     [――――――――――――――]   #<br>#
@@ -224,21 +247,6 @@ with subtyp_t : ctx -> typ -> typ -> Prop :=
 | subtyp_sel1_t: forall G p A T,
     G ⊢!!! p : typ_rcd { A >: T <: T } ->
     G ⊢# p↓A <: T
-
-(** [[
-G ⊢# ∀(S1)T1 <: ∀(S2)T2
-T1 and T2 is non-dependent
-S2 is a trivial type
-__________________________
-G ⊢# T1 <: T2
-]]
-*)
-(* | subtyp_all_inv2 : forall G S1 T1 S2 T2, *)
-(*     G ⊢# ∀(S1)T1 <: ∀(S2)T2 -> *)
-(*     (forall x, open_typ x T1 = T1) -> *)
-(*     (forall x, open_typ x T2 = T2) -> *)
-(*     trivial_typ S2 -> *)
-(*     G ⊢# T1 <: T2 *)
 
 (** [G ⊢# S2 <: S1]                #<br>#
     [G, x: S2 ⊢ T1^x <: T2^x]       #<br>#
