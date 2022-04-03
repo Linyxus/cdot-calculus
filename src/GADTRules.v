@@ -354,17 +354,6 @@ Proof.
   apply tight_to_semantic; eauto.
 Qed.
 
-Lemma invert_subtyp_trm_t : forall G a T1 T2,
-    inert G ->
-    G ⊢# typ_rcd {a ⦂ T1} <: typ_rcd {a ⦂ T2} ->
-    G ⊢# T1 <: T2.
-Proof.
-  introv Hi Hs.
-  apply semantic_to_tight.
-  eapply invert_subtyp_trm_s.
-  apply* tight_to_semantic.
-Qed.
-
 (** * Unique typing *)
 
 Lemma invert_subtyp_and2_s : forall G S T U,
@@ -447,6 +436,7 @@ Proof.
     inversion Heqtyp; subst; clear Heqtyp. auto.
   - (* fld *)
     inversion Heqtyp.
+  - inversion Heqtyp.
   - (* andl *)
     apply invert_subtyp_and2_s in Hs as [Hs1 Hs2].
     eauto.
@@ -480,6 +470,7 @@ Proof.
   induction H.
   - (* typ *) inversion HeqT1. subst. apply in_singleton_self.
   - (* fld *) inversion HeqT1.
+  - inversion HeqT1.
   - (* andl *)
     specialize (IHunique_membership1 HeqT1).
     rewrite in_union. left. auto.
@@ -568,6 +559,16 @@ Proof.
   - subst. inv_repl_typ_rec. apply* IHHs.
 Qed.
 
+Lemma subtyp_s_rec_fld_false : forall G U a T,
+    ~ G ⊢{} μ U <: typ_rcd {a ⦂ T}.
+Proof.
+  introv Hs.
+  dependent induction Hs;
+    try solve [inv_repl_typ_rcd; inv_repl_dec;
+      specialize (IHHs _ _ _ eq_refl eq_refl); false* IHHs];
+    try solve [inv_repl_typ_rec; apply* IHHs].
+Qed.
+
 Lemma invert_subtyp_and1_s_rcd : forall G U1 U2 D,
     G ⊢{} typ_and U1 U2 <: typ_rcd D ->
     G ⊢{} U1 <: typ_rcd D \/ G ⊢{} U2 <: typ_rcd D.
@@ -654,7 +655,7 @@ Proof.
     subst A0. apply Hn. trivial.
   - (* fld *)
     eapply subtyp_s_trm_typ_false. apply Ha.
-  (* - apply* subtyp_s_rec_typ_false. *)
+  - apply* subtyp_s_rec_typ_false.
   - (* andl *)
     apply notin_union in Hn. destruct Hn as [Hn1 Hn2].
     apply invert_subtyp_and1_s_rcd in Ha.
@@ -681,6 +682,7 @@ Proof.
     rewrite -> notin_singleton in Hn.
     apply invert_subtyp_fld_s_label in Hs.
     subst a0. false* Hn.
+  - false* subtyp_s_rec_fld_false.
   - (* andl *)
     apply notin_union in Hn. destruct Hn as [Hn1 Hn2].
     apply invert_subtyp_and1_s_rcd in Hs.
@@ -708,7 +710,7 @@ Proof.
     inversion He; subst. auto.
   - (* fld *)
     inversion He.
-  (* - inversion He. *)
+  - inversion He.
   - (* andl *)
     apply invert_subtyp_and1_s_rcd in Hs as [Hs | Hs].
     -- auto.
@@ -777,26 +779,46 @@ Proof.
   auto.
 Qed.
 
-Lemma invert_subtyp_rcd_s : forall G U1 U2 A S1 T1 S2 T2,
+Lemma invert_subtyp_rcd_s : forall G U1 A S1 T1 S2 T2,
     U1 ↘ typ_rcd {A >: S1 <: T1} ->
-    U2 ↘ typ_rcd {A >: S2 <: T2} ->
-    G ⊢{} U1 <: U2 ->
+    G ⊢{} U1 <: typ_rcd {A >: S2 <: T2} ->
     G ⊢# S2 <: S1 /\ G ⊢# T1 <: T2.
 Proof.
-  introv Hu1 Hu2 Hsub.
-  pose proof (reduce_subtyp_rcd_both_s _ _ _ _ _ _ _ _ Hu1 Hu2 Hsub).
-  pose proof (invert_subtyp_typ_s _ _ _ _ _ _ H). auto.
+  introv Hu1 Hsub.
+  lets Hr: (reduce_subtyp_rcd1_s _ _ _ _ _ _ _ Hsub Hu1).
+  apply* invert_subtyp_typ_s.
 Qed.
 
-Lemma invert_subtyp_rcd_t : forall G U1 U2 A S1 T1 S2 T2,
+Lemma invert_subtyp_rcd_t : forall G U1 A S1 T1 S2 T2,
     inert G ->
     U1 ↘ typ_rcd {A >: S1 <: T1} ->
-    U2 ↘ typ_rcd {A >: S2 <: T2} ->
-    G ⊢# U1 <: U2 ->
+    G ⊢# U1 <: typ_rcd {A >: S2 <: T2}  ->
     G ⊢# S2 <: S1 /\ G ⊢# T1 <: T2.
 Proof.
-  introv Hi Hu1 Hu2 Hsub.
+  introv Hi Hu1 Hsub.
   apply* invert_subtyp_rcd_s.
+  apply* tight_to_semantic.
+Qed.
+
+Lemma invert_subtyp_fld_s : forall G U1 a T1 T2,
+    U1 ↘ typ_rcd {a ⦂ T1} ->
+    G ⊢{} U1 <: typ_rcd {a ⦂ T2} ->
+    G ⊢{} T1 <: T2.
+Proof.
+  introv Hu1 Hsub.
+  lets Hr: (reduce_subtyp_fld1_s _ _ _ _ _ Hsub Hu1).
+  apply* invert_subtyp_trm_s.
+Qed.
+
+Lemma invert_subtyp_fld_t : forall G U1 a T1 T2,
+    inert G ->
+    U1 ↘ typ_rcd {a ⦂ T1} ->
+    G ⊢# U1 <: typ_rcd {a ⦂ T2} ->
+    G ⊢# T1 <: T2.
+Proof.
+  introv Hi Hu1 Hsub.
+  apply semantic_to_tight.
+  apply* invert_subtyp_fld_s.
   apply* tight_to_semantic.
 Qed.
 

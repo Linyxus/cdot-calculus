@@ -313,20 +313,24 @@ Proof.
     * eapply H; eauto.
     * eapply H0; eauto.
     * eapply subst_defs_hasnt_label. apply d0.
+  - Case "subtyp_fld_inv"%string.
+    eapply subtyp_fld_inv.
+    -- apply* H.
+    -- pose proof (subst_unique_membership x p _ _ e) as Hg. auto.
   - (* subtyp_rcd_inv1 *)
     eapply subtyp_rcd_inv1.
     -- apply* H.
     -- pose proof (subst_unique_membership x p _ _ e) as Hg.
        exact Hg.
-    -- pose proof (subst_unique_membership x p _ _ e0) as Hg.
-       exact Hg.
+    (* -- pose proof (subst_unique_membership x p _ _ e0) as Hg. *)
+    (*    exact Hg. *)
   - (* subtyp_rcd_inv1 *)
     eapply subtyp_rcd_inv2.
     -- apply* H.
     -- pose proof (subst_unique_membership x p _ _ e) as Hg.
        exact Hg.
-    -- pose proof (subst_unique_membership x p _ _ e0) as Hg.
-       exact Hg.
+    (* -- pose proof (subst_unique_membership x p _ _ e0) as Hg. *)
+    (*    exact Hg. *)
   - Case "subtyp_sngl_pq"%string.
     subst_tydef_solver.
     eapply subtyp_sngl_pq; eauto.
