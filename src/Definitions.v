@@ -577,6 +577,9 @@ Inductive unique_membership : typ -> fset label -> typ -> Prop :=
 | rcd_fld : forall a T,
     unique_membership (typ_rcd (dec_trm a T)) \{label_trm a} (typ_rcd (dec_trm a T))
 
+| rcd_rec : forall T,
+    unique_membership (μ T) \{} (μ T)
+
 | rcd_andl : forall U1 U2 L1 L2 T1 T2,
     unique_membership U1 L1 T1 ->
     unique_membership U2 L2 T2 ->
@@ -941,6 +944,18 @@ G ⊢ {a: T} <: {a: U}
     G ⊢ typ_rcd { a ⦂ T } <: typ_rcd { a ⦂ U }
 
 (** [[
+G ⊢ U1 <: {a: T1}
+U1 ↘ {a: T2}
+_________________
+G ⊢ T1 <: T2
+]]
+*)
+| subtyp_fld_inv: forall G U1 a T1 T2,
+    G ⊢ U1 <: typ_rcd {a ⦂ T2} ->
+    U1 ↘ typ_rcd {a ⦂ T1} ->
+    G ⊢ T1 <: T2
+
+(** [[
 G ⊢ S2 <: S1
 G ⊢ T1 <: T2
 _________________
@@ -953,31 +968,27 @@ G ⊢ {A: S1..T1} <: {A: S2..T2}
     G ⊢ typ_rcd { A >: S1 <: T1 } <: typ_rcd { A >: S2 <: T2 }
 
 (** [[
-G ⊢ U1 <: U2
+G ⊢ U1 <: {A: S2..T2}
 U1 ↘ {A: S1..T1}
-U2 ↘ {A: S2..T2}
 _________________
 G ⊢ S2 <: S1
 ]]
 *)
-| subtyp_rcd_inv1: forall G U1 U2 S1 S2 T1 T2 A,
-    G ⊢ U1 <: U2 ->
+| subtyp_rcd_inv1: forall G U1 S1 S2 T1 T2 A,
+    G ⊢ U1 <: typ_rcd {A >: S2 <: T2} ->
     U1 ↘ typ_rcd {A >: S1 <: T1} ->
-    U2 ↘ typ_rcd {A >: S2 <: T2} ->
     G ⊢ S2 <: S1
 
 (** [[
-G ⊢ U1 <: U2
+G ⊢ U1 <: {A: S2..T2}
 U1 ↘ {A: S1..T1}
-U2 ↘ {A: S2..T2}
 _________________
 G ⊢ T1 <: T2
 ]]
 *)
-| subtyp_rcd_inv2: forall G U1 U2 S1 S2 T1 T2 A,
-    G ⊢ U1 <: U2 ->
+| subtyp_rcd_inv2: forall G U1 S1 S2 T1 T2 A,
+    G ⊢ U1 <: typ_rcd {A >: S2 <: T2} ->
     U1 ↘ typ_rcd {A >: S1 <: T1} ->
-    U2 ↘ typ_rcd {A >: S2 <: T2} ->
     G ⊢ T1 <: T2
 
 (** [[
