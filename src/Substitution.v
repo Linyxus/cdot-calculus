@@ -317,15 +317,15 @@ Proof.
     eapply subtyp_fld_inv.
     -- apply* H.
     -- pose proof (subst_unique_membership x p _ _ e) as Hg. auto.
-  - (* subtyp_rcd_inv1 *)
-    eapply subtyp_rcd_inv1.
+  - Case "subtyp_typ_inv1"%string.
+    eapply subtyp_typ_inv1.
     -- apply* H.
     -- pose proof (subst_unique_membership x p _ _ e) as Hg.
        exact Hg.
     (* -- pose proof (subst_unique_membership x p _ _ e0) as Hg. *)
     (*    exact Hg. *)
-  - (* subtyp_rcd_inv1 *)
-    eapply subtyp_rcd_inv2.
+  - Case "subtyp_typ_inv2"%string.
+    eapply subtyp_typ_inv2.
     -- apply* H.
     -- pose proof (subst_unique_membership x p _ _ e) as Hg.
        exact Hg.

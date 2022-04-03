@@ -974,7 +974,7 @@ _________________
 G ⊢ S2 <: S1
 ]]
 *)
-| subtyp_rcd_inv1: forall G U1 S1 S2 T1 T2 A,
+| subtyp_typ_inv1: forall G U1 S1 S2 T1 T2 A,
     G ⊢ U1 <: typ_rcd {A >: S2 <: T2} ->
     U1 ↘ typ_rcd {A >: S1 <: T1} ->
     G ⊢ S2 <: S1
@@ -986,7 +986,7 @@ _________________
 G ⊢ T1 <: T2
 ]]
 *)
-| subtyp_rcd_inv2: forall G U1 S1 S2 T1 T2 A,
+| subtyp_typ_inv2: forall G U1 S1 S2 T1 T2 A,
     G ⊢ U1 <: typ_rcd {A >: S2 <: T2} ->
     U1 ↘ typ_rcd {A >: S1 <: T1} ->
     G ⊢ T1 <: T2
