@@ -53,67 +53,6 @@ Definition t :=
    }
   ).
 
-Ltac normalize_psel :=
-  match goal with
-  | |- context [ p_sel (avar_f ?x) (?a :: nil) ] =>
-      idtac x; idtac a;
-      assert (HPS: p_sel (avar_f x) (a :: nil) = (pvar x) • a) by trivial;
-      rewrite -> HPS; clear HPS
-  end.
-
-Ltac cleanup :=
-  repeat
-    match goal with
-    | [ H: ?x <> ?y |- _ ] => clear H
-    | [ H: ?x = ?y |- _ ] =>
-      match x with
-      | y => clear H
-      end
-    end.
-
-Ltac var_subtyp :=
-  match goal with
-  | [ |- ?G ⊢ tvar ?x : ?T ] =>
-    match goal with
-    | [ |- context [x ~ ?BT] ] =>
-      apply ty_sub with BT
-    end
-  end.
-
-Ltac solve_bind :=
-  repeat progress (
-    lazymatch goal with
-    | |- binds ?Var ?What (?Left & ?Right) =>
-          match goal with
-          | |- binds Var What (Left & Var ~ ?Sth) =>
-            apply~ binds_concat_right; apply~ binds_single_eq
-          | _ => apply~ binds_concat_left
-          end
-    end).
-
-Ltac solve_subtyp_and :=
-repeat
-  match goal with
-  | [ |- ?G ⊢ ?A ∧ ?B <: ?C ] =>
-    match B with
-    | C =>
-      apply subtyp_and12
-    | _ =>
-      eapply subtyp_trans; try apply subtyp_and11
-    end
-  end.
-
-Ltac var_subtyp_bind :=
-  var_subtyp;
-  [ apply ty_var; solve_bind
-  | solve_subtyp_and].
-
-Ltac false_typing :=
-  match goal with
-  | |- _ ⊢ _ : ?TT =>
-      apply ty_sub with (T:=⊥); try apply subtyp_bot
-  end.
-
 Lemma expr_typing:
   empty ⊢ trm_val t : μ EnvType.
 Proof.
