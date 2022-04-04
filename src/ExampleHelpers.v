@@ -49,24 +49,23 @@ Proof.
        apply subtyp_and11.
 Qed.
 
-Definition ThreeQuestionMarksType := (Lazy ⊥).
+Definition three_question_marks_strict_term :=
+  (trm_let helper_term (trm_app (this•Helperloop) this)).
 
-Definition three_question_marks_value :=
-  λ(⊤) (trm_let helper_term (trm_app (this•Helperloop) this)).
+Notation "???t" := (three_question_marks_strict_term).
 
-Lemma three_question_marks_typing :
-  empty ⊢ trm_val three_question_marks_value : ThreeQuestionMarksType.
+Lemma three_question_marks_strict_term_typing :
+  empty ⊢ ???t : ⊥.
 Proof.
-  fresh_constructor. crush.
-  apply ty_let with (L:=\{z}) (T:=μ HelperType).
-  + lets Hty: (helper_typing). unfold helper_term in Hty.
-    apply~ weaken_ty_trm.
-  + introv Hx. crush.
-    assert (Heq: ⊥ = open_typ_p (pvar x) ⊥) by trivial.
+  unfold three_question_marks_strict_term.
+  fresh_constructor.
+  - apply* helper_typing.
+  - crush.
+    assert (Heq: ⊥ = open_typ_p (pvar z) ⊥) by trivial.
     rewrite Heq.
     apply ty_all_elim with (S:=⊤).
     * rewrite <- Heq. clear Heq.
-      assert (Heq: (p_sel (avar_f x) (Helperloop :: nil) = (pvar x) • Helperloop)) by eauto.
+      assert (Heq: (p_sel (avar_f z) (Helperloop :: nil) = (pvar z) • Helperloop)) by eauto.
       rewrite -> Heq. clear Heq.
       apply ty_new_elim. eapply ty_sub.
       ** apply ty_rec_elim. eauto.
@@ -75,11 +74,17 @@ Proof.
       apply subtyp_top.
 Qed.
 
-Notation "???v" := (three_question_marks_value).
+Definition three_question_marks_lazy_value :=
+  λ(⊤) ???t.
 
-Definition three_question_marks_term := (trm_val ???v).
+Notation "???v" := (three_question_marks_lazy_value).
 
-Notation "???" := (three_question_marks_term).
-
-Opaque three_question_marks_value.
-Opaque three_question_marks_term.
+Lemma three_question_marks_typing :
+  empty ⊢ trm_val ???v : Lazy ⊥.
+Proof.
+  fresh_constructor. crush.
+  lets H: (three_question_marks_strict_term_typing).
+  unfold three_question_marks_strict_term, helper_term in H.
+  simpl in H.
+  apply* weaken_ty_trm.
+Qed.
