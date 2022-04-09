@@ -20,9 +20,9 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
     γ ⟦ p ⤳ defp q ⟧ ->
     (γ, trm_path p) ⟼ (γ, trm_path q)
 
-(** [γ ⊢ q ⤳ λ(T)t ]      #<br>#
+(** [γ ⊢ q ⤳ λ(x: T)t ]      #<br>#
     [―――――――――――――――――――――]      #<br>#
-    [γ | q ρ^λ ⟼ γ | tᵖ]      *)
+    [γ | q ρ^λ ⟼ γ | t[ρ^γ/x]]      *)
 | red_app: forall γ p q T t,
     γ ⟦ q ⤳ defv (λ(T) t) ⟧ ->
     resolved_path γ p ->
@@ -48,7 +48,7 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
     x # γ ->
     (γ, trm_let (trm_val v) t) ⟼ (γ & x ~ v, open_trm x t)
 
-(** [γ | let y = p in t ⟼ γ | tᵖ] *)
+(** [γ | let y = ρ^γ in t ⟼ γ | t[p^γ/y]] *)
 | red_let_path : forall t γ p,
     resolved_path γ p ->
     (γ, trm_let (trm_path p) t) ⟼ (γ, open_trm_p p t)
@@ -63,7 +63,7 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
 (** [γ ⊢ p ⤳ ν[q.A](x: T)ds ]      #<br>#
     [γ ⊢ q ⤳* ρ^γ ]      #<br>#
     [―――――――――――――――――――――]      #<br>#
-    [γ | case p of y: (ρ^γ).A y => t1 else t2 ⟼ γ | t1^p ]      *)
+    [γ | case p of y: (ρ^γ).A y => t1 else t2 ⟼ γ | t1[p/y] ]      *)
 | red_case_match : forall γ p q A T ds r t1 t2,
     resolved_path γ r ->
     γ ⟦ p ⤳ defv (ν[q↘A](T)ds) ⟧ ->
@@ -74,7 +74,7 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
     [γ ⊢ q ⤳* ρ₁^γ ]      #<br>#
     [ρ₁ ≠ ρ₂ ∨ A₁ ≠ A₂]      #<br>#
     [―――――――――――――――――――――]      #<br>#
-    [γ | case p of y: (ρ₂^γ).A₂ y => t1 else t2 ⟼ γ | t1^p ]      *)
+    [γ | case p of y: (ρ₂^γ).A₂ y => t1 else t2 ⟼ γ | t2 ]      *)
 | red_case_else : forall γ p q A1 A2 T ds r1 r2 t1 t2,
     resolved_path γ r1 ->
     resolved_path γ r2 ->
