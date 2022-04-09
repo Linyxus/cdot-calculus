@@ -295,24 +295,64 @@ Ltac solve_IH :=
 Ltac solve_let :=
   invert_red; solve_IH; fresh_constructor; eauto; apply* weaken_rules.
 
-Lemma matched_case_typing: forall γ G p q A T1 T2,
+Lemma matched_case_typing: forall γ G p q r A T0 T ds,
     inert G ->
     wf G ->
     γ ⫶ G ->
-    G ⊢ trm_path p : T1 ->
-    G ⊢ trm_path q : T2 ->
-    matched_case γ p q A ->
-    G ⊢ trm_path p : q ↓ A.
+    G ⊢ trm_path p : T ->
+    γ ⟦ p ⤳ defv (ν [q ↘ A](T0) ds) ⟧ ->
+    γ ⟦ defp (open_path_p p q) ⤳* defp r ⟧ ->
+    G ⊢ trm_path p : r ↓ A.
 Proof.
-  introv Hin Hwf Hwt Hp Hq Hm.
-  unfold matched_case in Hm. destruct_all.
-  lets Hcf: (canonical_forms_obj Hin Hwf Hwt H Hp).
+  introv Hin Hwf Hwt Hp Hm1 Hm2.
+  apply star_one in Hm1.
+  lets Hcf: (canonical_forms_obj Hin Hwf Hwt Hm1 Hp).
   lets Hx: (path_sel_implies_typed_path Hin Hcf). destruct Hx as [U Hxp].
-  assert (Hx: G ⊢ trm_path (open_path_p p x) : typ_rcd {A >: U <: U}) by apply* precise_to_general3.
-  lets Hd: (path_lookup_implies_sngl_typing Hin Hwf Hwt Hx Hq H0 H1).
-  apply ty_sub with (T:=open_path_p p x ↓ A); auto.
-  apply subtyp_sngl_pq with (p:=(open_path_p p x)) (q:=q) (U:=T2); auto.
+  assert (Hx: G ⊢ trm_path (open_path_p p q) : typ_rcd {A >: U <: U}) by apply* precise_to_general3.
+  assert (Hrl: γ ⟦ defp r ⤳* defp r ⟧) by apply star_refl.
+  lets Hrppp: (lookup_pres Hin Hwf Hwt Hxp Hm2). destruct Hrppp as [U0 Hrppp].
+  lets Hrt: (precise_to_general3 Hrppp).
+  lets Hd: (path_lookup_implies_sngl_typing Hin Hwf Hwt Hx Hrt Hm2 Hrl).
+  apply ty_sub with (T:=open_path_p p q ↓ A); auto.
+  apply subtyp_sngl_pq with (p:=(open_path_p p q)) (q:=r) (U:=U0); auto.
   apply repl_intro_path_sel.
+Qed.
+
+Lemma subtyp_and_extend_r : forall G S T U,
+    G ⊢ S <: T ->
+    G ⊢ S ∧ U <: T ∧ U.
+Proof.
+  introv Hsub. apply subtyp_and2.
+  - eapply subtyp_trans. apply subtyp_and11. auto.
+  - apply subtyp_and12.
+Qed.
+
+Lemma subtyp_and_extend_l : forall G S T U,
+    G ⊢ T <: U ->
+    G ⊢ S ∧ T <: S ∧ U.
+Proof.
+  introv Hsub. apply subtyp_and2.
+  - apply subtyp_and11.
+  - eapply subtyp_trans. apply subtyp_and12. auto.
+Qed.
+
+Lemma ty_lookup_trans : forall G γ p q T,
+    inert G ->
+    wf G ->
+    γ ⫶ G ->
+    γ ⟦ p ⤳ defp q ⟧ ->
+    G ⊢ trm_path p : T ->
+    G ⊢ trm_path q : T.
+Proof.
+  introv Hin Hwf Hwt Hl Hp.
+  lets Hpp: (pt3_exists Hin Hp). destruct Hpp as [U Hpp].
+  lets Hps: (lookup_step_sngl Hin Hwf Hwt Hpp Hl).
+  lets Hqp: (lookup_step_pres Hin Hwf Hwt Hpp Hl). destruct Hqp as [U' Hqp].
+  apply precise_to_general3 in Hqp.
+  apply ty_sngl with (q := p).
+  - apply ty_sub with (T := {{q}}). apply* ty_self.
+    eapply subtyp_sngl_qp. exact Hps. exact Hqp. apply repl_intro_sngl.
+  - auto.
 Qed.
 
 (** **** Preservation (Lemma 5.4) *)
@@ -332,16 +372,35 @@ Lemma preservation: forall G γ t γ' t' T,
 Proof.
   introv Hwt Hi Hwf Hred Ht. gen t'.
   induction Ht; intros; try solve [invert_red].
+  - invert_red. exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    apply* ty_lookup_trans.
   - Case "ty_all_elim"%string.
     match goal with
     | [Hp: _ ⊢ trm_path _ : ∀(_) _ |- _] =>
         pose proof (canonical_forms_fun Hi Hwf Hwt Hp) as [L [T' [t [Hl [Hsub Hty]]]]];
         invert_red
     end.
-    lookup_eq.
-    exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
-    pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
-    eapply subst_var_path; eauto. eauto. eauto.
+    + apply star_one in H1. lookup_eq.
+      exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+      pick_fresh y. assert (y \notin L) as FrL by auto. specialize (Hty y FrL).
+      eapply subst_var_path; eauto. eauto. eauto.
+    + (* reducing p in p q *)
+      specialize (IHHt1 Hwt Hi Hwf _ H0). destruct IHHt1 as [G' [Hi' [Hwf' [Hwt' Ht']]]].
+      exists G'. repeat split; auto. apply ty_all_elim with (S:=S). auto.
+      apply* weaken_ty_trm.
+    + (* reducing q in p q *)
+      specialize (IHHt2 Hwt Hi Hwf _ H5). destruct IHHt2 as [G' [Hi' [Hwf' [Hwt' Ht']]]].
+      exists G'. repeat split; auto. inversion H5. subst.
+      lets Hqp: (pt3_exists Hi Ht2). destruct Hqp as [U Hqp].
+      lets Hqs: (lookup_step_sngl Hi Hwf Hwt Hqp H0). apply* weaken_ty_trm.
+      lets Hp': (ty_lookup_trans Hi Hwf Hwt H0 Ht2). auto.
+      apply ty_sub with (T := open_typ_p p' T).
+      * apply ty_all_elim with (S := S). auto. auto.
+      * eapply subtyp_sngl_qp_repeat. exact Hqs. exact Hp'. apply repl_comp_open.
+  - invert_red. exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    apply* ty_lookup_trans.
+  - invert_red. exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    apply* ty_lookup_trans.
   - Case "ty_let"%string.
     destruct t; try solve [solve_let].
      + SCase "[t = (let x = v in u)] where v is a value"%string.
@@ -358,18 +417,63 @@ Proof.
          intros. apply* weaken_rules. apply ty_sub with (T:=V); auto. apply* weaken_subtyp.
     + SCase "[t = (let x = p in u)] where a is p variable"%string.
       repeat invert_red.
-      exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
-      apply* subst_fresh_var_path.
+      * exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+        apply* subst_fresh_var_path.
+      * exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+        fresh_constructor. apply* ty_lookup_trans.
   - Case "ty_case"%string.
-    inversion Hred. subst.
-    + lets Hcf: (matched_case_typing Hi Hwf Hwt Ht1 Ht2 H2).
+    inversion Hred; subst.
+    + (* matched *)
+      lets Hcf: (matched_case_typing Hi Hwf Hwt Ht1 H10 H11).
       exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
       eapply subst_fresh_var_path. eauto. apply H.
       apply ty_and_intro.
       * eapply ty_self. exact Hcf.
       * apply Hcf.
-    + subst.
+    + (* unmatched: tag mismatch *)
+      subst.
       exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    + (* unmatched: func value *)
+      subst.
+      exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    + (* reducing scrutinee path *)
+      inversions H2.
+      exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+      fresh_constructor. apply* ty_lookup_trans. exact Ht2.
+      apply~ narrow_typing. apply~ subenv_last.
+      apply subtyp_and_extend_r.
+      lets Hpppp: (pt3_exists Hi Ht1). destruct Hpppp as [U0 Hpppp].
+      lets Hlpp': (lookup_step_sngl Hi Hwf Hwt Hpppp H3).
+      lets Hp': (ty_lookup_trans Hi Hwf Hwt H3 Ht1).
+      eapply subtyp_sngl_qp. exact Hlpp'. exact Hp'. apply repl_intro_sngl.
+    + (* reducing pattern path *)
+      inversions H10.
+      exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+      fresh_constructor. exact Ht1. apply* ty_lookup_trans.
+      apply~ narrow_typing. apply~ subenv_last.
+      apply subtyp_and_extend_l.
+      lets Hqppp: (pt3_exists Hi Ht2). destruct Hqppp as [U0 Hqppp].
+      lets Hlpp': (lookup_step_sngl Hi Hwf Hwt Hqppp H2).
+      lets Hr': (ty_lookup_trans Hi Hwf Hwt H2 Ht2).
+      eapply subtyp_sngl_qp. exact Hlpp'. exact Hr'. apply repl_intro_path_sel.
+  - invert_red.
+    exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    apply~ ty_lookup_trans. eauto. eauto. apply* ty_sngl.
+  - invert_red.
+    exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    apply~ ty_lookup_trans. eauto. eauto. apply* ty_self.
+  - invert_red.
+    exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    apply~ ty_lookup_trans. eauto. eauto. apply* ty_path_elim.
+  - invert_red.
+    exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    apply~ ty_lookup_trans. eauto. eauto. apply* ty_rec_intro.
+  - invert_red.
+    exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    apply~ ty_lookup_trans. eauto. eauto.
+  - invert_red.
+    exists (@empty typ). rewrite concat_empty_r. repeat split; auto.
+    apply~ ty_lookup_trans. eauto. eauto. constructor*.
   - Case "ty_sub"%string.
     solve_IH.
     match goal with
@@ -388,25 +492,93 @@ Lemma progress: forall G γ t T,
     wf G ->
     γ ⫶ G ->
     G ⊢ t : T ->
-    norm_form t \/ exists γ' t', (γ, t) ⟼ (γ', t').
+    norm_form γ t \/ exists γ' t', (γ, t) ⟼ (γ', t').
 Proof.
   introv Hi Hwf Hwt Ht.
   induction Ht; eauto.
-  - Case "ty_all_elim"%string.
-    pose proof (canonical_forms_fun Hi Hwf Hwt Ht1). destruct_all. right*.
+  - apply ty_var in H. apply (pt3_exists Hi) in H as [U Hppp].
+    apply (typ_to_lookup3 Hi Hwf Hwt) in Hppp as Hl. destruct Hl as [t Hl].
+    destruct t; eauto.
+  - specialize (IHHt1 Hi Hwf Hwt).
+    destruct IHHt1.
+    + inversions H.
+      pose proof (canonical_forms_fun Hi Hwf Hwt Ht1). destruct_all.
+      right*. apply star_one in H0 as Hl. lookup_eq.
+      specialize (IHHt2 Hi Hwf Hwt). destruct IHHt2.
+      * repeat eexists. eapply red_app. exact H0. inversions H. exact H6.
+      * destruct_all. inversions H.
+        repeat eexists. apply red_ctx_app2. eexists. exact H0.
+        apply red_resolve. exact H5.
+    + right*. destruct_all. inversions H.
+      repeat eexists. apply red_ctx_app1.
+      apply red_resolve. exact H1.
+  - apply ty_new_elim in Ht.
+    apply (pt3_exists Hi) in Ht as Hpppp. destruct Hpppp as [U Hpppp].
+    apply (typ_to_lookup3 Hi Hwf Hwt) in Hpppp as Hl. destruct Hl as [t Hl].
+    destruct t.
+    + right*.
+    + left*.
+  - apply ty_rcd_intro in Ht.
+    apply (pt3_exists Hi) in Ht as Hpppp. destruct Hpppp as [U Hpppp].
+    apply (typ_to_lookup3 Hi Hwf Hwt) in Hpppp as Hl. destruct Hl as [t Hl].
+    destruct t.
+    + right*.
+    + left*.
   - Case "ty_let"%string.
-    right. destruct t; eauto.
-    + pick_fresh z. exists (γ & z ~ v). eauto.
-    + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
+    destruct t; eauto.
+    + right. pick_fresh z. exists (γ & z ~ v). eauto.
+    + right. specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
+      { inversion Hn. } eauto.
+    + right. specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
       { inversion Hn. } eauto.
     + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
-      { inversion Hn. } eauto.
-    + specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
+      { right. inversion Hn. subst. destruct_all. repeat eexists. apply red_let_path.
+        exists x. auto.
+      } eauto.
+    + right. specialize (IHHt Hi Hwf Hwt) as [Hn | [γ' [t' Hr]]].
       { inversion Hn. } eauto.
   - Case "ty_case"%string.
-    right. destruct (classicT (matched_case γ p q A)).
-    + eauto.
-    + eauto.
+    right.
+    apply (pt3_exists Hi) in Ht1 as Hpppp. destruct Hpppp as [U0 Hpppp].
+    apply (typ_to_lookup3 Hi Hwf Hwt) in Hpppp as Hl. destruct Hl as [t Hl].
+    destruct t.
+    + repeat eexists. apply red_ctx_case1. eauto.
+    + apply (pt3_exists Hi) in Ht2 as Hqppp. destruct Hqppp as [U1 Hqppp].
+      apply (typ_to_lookup3 Hi Hwf Hwt) in Hqppp as Hl2. destruct Hl2 as [t' Hl2].
+      destruct t'.
+      * repeat eexists. apply red_ctx_case2. exists v. auto. eauto.
+      * destruct v.
+        {
+          destruct (classicT (t = A)).
+          { subst. apply star_one in Hl as Hll.
+            lets Hcf: (canonical_forms_obj Hi Hwf Hwt Hll Ht1).
+            lets Hcfp0: (resolve_typeable_path_sel Hi Hwf Hwt Hcf).
+            destruct Hcfp0 as [v [r0 [Hp0r Hrv]]].
+            destruct (classicT (r0 = q)).
+            - subst. repeat eexists. eapply red_case_match.
+              eexists. exact Hrv.
+              exact Hl. exact Hp0r.
+            - repeat eexists. eapply red_case_else.
+              eexists. eauto. eexists. eauto. eauto. eauto. left*.
+          }
+          {
+            apply star_one in Hl as Hll.
+            lets Hcf: (canonical_forms_obj Hi Hwf Hwt Hll Ht1).
+            lets Hcfp0: (resolve_typeable_path_sel Hi Hwf Hwt Hcf).
+            destruct Hcfp0 as [v [r0 [Hp0r Hrv]]].
+            repeat eexists. eapply red_case_else.
+            eexists. eauto. eexists. eauto. eauto. eauto. right*.
+          }
+        }
+        {
+          repeat eexists. eapply red_case_lambda. eauto.
+        }
+  - lets Ht: (ty_path_elim a Ht1 Ht2).
+    apply (pt3_exists Hi) in Ht as Hpppp. destruct Hpppp as [U0 Hpppp].
+    apply (typ_to_lookup3 Hi Hwf Hwt) in Hpppp as Hl. destruct Hl as [t Hl].
+    destruct t.
+    + right*.
+    + left*.
 Qed.
 
 (** *** Safety *)
@@ -426,7 +598,7 @@ Lemma safety_helper G t1 t2 γ1 γ2 T :
                γ3 ⫶ G3 /\
                wf G3 /\
                inert G3) \/
-  (exists G2, norm_form t2 /\ G2 ⊢ t2 : T /\
+  (exists G2, norm_form γ2 t2 /\ G2 ⊢ t2 : T /\
                γ2 ⫶ G2 /\
                wf G2 /\
                inert G2).
@@ -454,7 +626,7 @@ Theorem safety t T :
   empty ⊢ t : T ->
   diverges (empty, t) \/
   (exists γ u G, (empty, t) ⟼* (γ, u) /\
-            norm_form u /\
+            norm_form γ u /\
             G ⊢ u : T /\
             γ ⫶ G /\
             wf G /\
@@ -577,7 +749,8 @@ Section ExtendedSafety.
             + intros st [du [-> Hinf]].
               inversions Hinf. destruct b, du; try solve [inversion H].
               eexists; split*; apply* er_lookup.
-              inversions H0. inversion H1.
+              inversions H0. inversion H1. false* lookup_irred.
+              false* lookup_irred.
             + eexists. split*. simpl. auto.
           }
           assert (star extended_red (empty, t) (γ, trm_path p)). {

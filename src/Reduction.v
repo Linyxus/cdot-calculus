@@ -25,6 +25,7 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
     [γ | q p ⟼ γ | tᵖ]      *)
 | red_app: forall γ p q T t,
     γ ⟦ q ⤳ defv (λ(T) t) ⟧ ->
+    resolved_path γ p ->
     (γ, trm_app q p) ⟼ (γ, open_trm_p p t)
 
 (** [γ | q ⟼ q' ]      #<br>#
@@ -66,7 +67,7 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
 | red_case_match : forall γ p q A T ds r t1 t2,
     resolved_path γ r ->
     γ ⟦ p ⤳ defv (ν[q↘A](T)ds) ⟧ ->
-    γ ⟦ defp q ⤳* defp r ⟧ ->
+    γ ⟦ defp (open_path_p p q) ⤳* defp r ⟧ ->
     (γ, trm_case p r A t1 t2) ⟼ (γ, open_trm_p p t1)
 
 (** [γ ⊢ p ⤳ ν[q.A](x: T)ds ]      #<br>#
@@ -74,13 +75,13 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
     [ρ₁ ≠ ρ₂]      #<br>#
     [―――――――――――――――――――――]      #<br>#
     [γ | case p of y: (ρ₂^γ).A y => t1 else t2 ⟼ γ | t1^p ]      *)
-| red_case_else : forall γ p q A T ds r1 r2 t1 t2,
+| red_case_else : forall γ p q A1 A2 T ds r1 r2 t1 t2,
     resolved_path γ r1 ->
     resolved_path γ r2 ->
-    γ ⟦ p ⤳ defv (ν[q↘A](T)ds) ⟧ ->
-    γ ⟦ defp q ⤳* defp r1 ⟧ ->
-    r1 <> r2 ->
-    (γ, trm_case p r2 A t1 t2) ⟼ (γ, t2)
+    γ ⟦ p ⤳ defv (ν[q ↘ A1](T)ds) ⟧ ->
+    γ ⟦ defp (open_path_p p q) ⤳* defp r1 ⟧ ->
+    (r1 <> r2 \/ A1 <> A2) ->
+    (γ, trm_case p r2 A2 t1 t2) ⟼ (γ, t2)
 
 (** [γ ⊢ p ⤳ λ(x: T)t ]      #<br>#
     [―――――――――――――――――――――]      #<br>#
@@ -93,7 +94,7 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
     [―――――――――――――――――――――]      #<br>#
     [γ | case p of y: r.A y => t1 else t2 ⟼ γ | case p' of tag r.A y => t1 else t2 ]      *)
 | red_ctx_case1 : forall γ p p' r A t1 t2,
-    γ ⟦ p ⤳ defp p' ⟧ ->
+    (γ, trm_path p) ⟼ (γ, trm_path p') ->
     (γ, trm_case p r A t1 t2) ⟼ (γ, trm_case p' r A t1 t2)
 
 (** [γ ⊢ r ⤳ r' ]      #<br>#
@@ -101,7 +102,7 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
     [γ | case ρ^λ of y: r'.A y => t1 else t2 ⟼ γ | case ρ^γ of tag r'.A y => t1 else t2 ]      *)
 | red_ctx_case2 : forall γ p r r' A t1 t2,
     resolved_path γ p ->
-    γ ⟦ r ⤳ defp r' ⟧ ->
+    (γ, trm_path r) ⟼ (γ, trm_path r') ->
     (γ, trm_case p r A t1 t2) ⟼ (γ, trm_case p r' A t1 t2)
 
 where "t1 '⟼' t2" := (red t1 t2).

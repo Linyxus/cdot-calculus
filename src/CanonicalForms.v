@@ -1349,6 +1349,28 @@ Proof.
     + eexists. eapply star_trans. apply Hs. apply* star_one.
 Qed.
 
+Lemma typed_path_lookup3_typ G γ p A T :
+  inert G ->
+  wf G ->
+  γ ⫶ G ->
+  G ⊢!!! p: typ_rcd {A >: T <: T}  ->
+  exists v, γ ⟦ defp p ⤳* defv v ⟧.
+Proof.
+  introv Hin Hwf Hwt Hppp.
+  lets Hpp: (last_path_typ Hin Hppp). destruct Hpp as [Hpp | [q [Hpq Hqpp]]].
+  - apply pt2_to_pf in Hpp; eauto. destruct Hpp as [U Hpp].
+    apply (pf_bnd_T2 Hin) in Hpp as Heq. destruct Heq as [U0 Heq]. subst.
+    apply pf_reset in Hpp.
+    apply* typed_path_lookup3_obj.
+  - apply pt2_to_pf in Hqpp; eauto. destruct Hqpp as [U Hqpp].
+    apply (pf_bnd_T2 Hin) in Hqpp as Heq. destruct Heq as [U0 Heq]. subst.
+    apply pf_reset in Hqpp.
+    assert (Hqppp: G ⊢!!! q : μ U0). { apply pt3. apply* pt2. }
+    lets H0: (typed_path_lookup3_obj Hin Hwf Hwt Hqppp). destruct H0 as [v Hqv].
+    lets Lpq: (typed_path_lookup_helper_obj Hin Hwf Hwt Hpq Hqpp).
+    eexists. eapply star_trans. exact Lpq. exact Hqv.
+Qed.
+
 (** If a path has a III-level function type then the path can be
     looked up in the value environment in a finite number of steps
     to a value of the same type. *)
@@ -1434,6 +1456,43 @@ Proof.
   introv Hin Hsel. proof_recipe.
   lets Hr: path_sel_repl_inv' Hin Hsel.
   destruct_all. eexists; eauto.
+Qed.
+
+Lemma typeable_path_sel_lookup_terminate: forall γ G p q A,
+  inert G ->
+  wf G ->
+  γ ⫶ G ->
+  G ⊢ trm_path p: q ↓ A ->
+  exists v, γ ⟦ defp q ⤳* defv v ⟧.
+Proof.
+  introv Hin Hwf Hwt Ht.
+  lets Hqppp: (path_sel_implies_typed_path Hin Ht). destruct Hqppp as [T Hqppp].
+  apply* typed_path_lookup3_typ.
+Qed.
+
+Lemma resolve_path_lookup_helper: forall γ p v,
+    γ ⟦ defp p ⤳* defv v ⟧ ->
+    exists q, γ ⟦ defp p ⤳* defp q ⟧ /\ γ ⟦ q ⤳ defv v ⟧.
+Proof.
+  introv Hl.
+  dependent induction Hl.
+  destruct b.
+  + specialize (IHHl _ _ eq_refl eq_refl). destruct IHHl as [q [IH1 IH2]].
+    exists q. split; eauto.
+  + lets Heq: (lookup_val_inv Hl). inversions Heq.
+    eexists. split; eauto.
+Qed.
+
+Lemma resolve_typeable_path_sel: forall γ G p q A,
+  inert G ->
+  wf G ->
+  γ ⫶ G ->
+  G ⊢ trm_path p: q ↓ A ->
+  exists v r, γ ⟦ defp q ⤳* defp r ⟧ /\ γ ⟦ r ⤳ defv v ⟧.
+Proof.
+  introv Hin Hwf Hwt HT.
+  lets H: (typeable_path_sel_lookup_terminate Hin Hwf Hwt HT).
+  destruct H. eexists. apply* resolve_path_lookup_helper.
 Qed.
 
 Lemma path_lookup_implies_sngl_typing: forall γ G p q T1 T2 r,

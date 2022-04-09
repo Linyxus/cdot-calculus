@@ -718,6 +718,15 @@ Proof.
   specialize (IHHp _ Hi eq_refl) as [Hq | [r [Hq Hr]]]; eauto.
 Qed.
 
+Lemma last_path_typ G p A T :
+  inert G ->
+  G ⊢!!! p : typ_rcd {A >: T <: T} ->
+  G ⊢!! p : typ_rcd {A >: T <: T} \/ exists q, G ⊢!!! p: {{ q }} /\ G ⊢!! q : typ_rcd {A >: T <: T}.
+Proof.
+  intros Hi Hp. dependent induction Hp; eauto.
+  specialize (IHHp _ _ Hi eq_refl) as [Hq | [r [Hq Hr]]]; eauto.
+Qed.
+
 Lemma pt2_qbs_typed G p q T bs V:
   inert G ->
   G ⊢! p : {{ q }} ⪼ {{ q }} ->
