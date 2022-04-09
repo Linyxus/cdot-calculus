@@ -22,7 +22,7 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
 
 (** [γ ⊢ q ⤳ λ(T)t ]      #<br>#
     [―――――――――――――――――――――]      #<br>#
-    [γ | q p ⟼ γ | tᵖ]      *)
+    [γ | q ρ^λ ⟼ γ | tᵖ]      *)
 | red_app: forall γ p q T t,
     γ ⟦ q ⤳ defv (λ(T) t) ⟧ ->
     resolved_path γ p ->
@@ -70,11 +70,11 @@ Inductive red : sta * trm -> sta * trm -> Prop :=
     γ ⟦ defp (open_path_p p q) ⤳* defp r ⟧ ->
     (γ, trm_case p r A t1 t2) ⟼ (γ, open_trm_p p t1)
 
-(** [γ ⊢ p ⤳ ν[q.A](x: T)ds ]      #<br>#
+(** [γ ⊢ p ⤳ ν[q.A₁](x: T)ds ]      #<br>#
     [γ ⊢ q ⤳* ρ₁^γ ]      #<br>#
-    [ρ₁ ≠ ρ₂]      #<br>#
+    [ρ₁ ≠ ρ₂ ∨ A₁ ≠ A₂]      #<br>#
     [―――――――――――――――――――――]      #<br>#
-    [γ | case p of y: (ρ₂^γ).A y => t1 else t2 ⟼ γ | t1^p ]      *)
+    [γ | case p of y: (ρ₂^γ).A₂ y => t1 else t2 ⟼ γ | t1^p ]      *)
 | red_case_else : forall γ p q A1 A2 T ds r1 r2 t1 t2,
     resolved_path γ r1 ->
     resolved_path γ r2 ->
