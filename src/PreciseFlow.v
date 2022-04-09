@@ -598,3 +598,10 @@ Lemma pfv_new_inv : forall G r0 A T ds U,
 Proof.
   introv Hpv. inversion Hpv. subst. trivial.
 Qed.
+
+Lemma pf_reset : forall G p T U,
+    G ⊢! p : T ⪼ U ->
+    G ⊢! p : T ⪼ T.
+Proof.
+  introv Hpf. dependent induction Hpf; eauto.
+Qed.
