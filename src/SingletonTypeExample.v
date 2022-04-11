@@ -5,29 +5,34 @@ Require Import ExampleTactics.
 
 Section SingletonTypeExample.
 
-Variables C D : typ_label.
+Variables C D Any : typ_label.
 Variables d incr decr : trm_label.
 
 Hypothesis CD: C <> D.
+Hypothesis AnyC: C <> Any.
+Hypothesis AnyD: D <> Any.
 Hypothesis di: incr <> decr.
+
+Notation T := (μ(typ_rcd {incr ⦂ {{ this }} } ∧ typ_rcd {decr ⦂ {{ this }} })).
 
 Notation t :=
   (trm_let (trm_val
-              (ν(typ_rcd {C >: μ(typ_rcd {incr ⦂ {{ this }} })
+              (ν[this↘Any]
+                (typ_rcd {Any >: ⊤ <: ⊤} ∧
+                 typ_rcd {C >: μ(typ_rcd {incr ⦂ {{ this }} })
                           <: μ(typ_rcd {incr ⦂ {{ this }} })} ∧
                  typ_rcd {D >: μ(super↓C ∧ typ_rcd {decr ⦂ {{ this }} })
                           <: μ(super↓C ∧ typ_rcd {decr ⦂ {{ this }} })} ∧
                  typ_rcd {d ⦂ Lazy (super↓D)})
                 defs_nil Λ
+                {Any ⦂= ⊤} Λ
                 {C ⦂= μ(typ_rcd {incr ⦂ {{ this }} }) } Λ
                 {D ⦂= μ(super↓C ∧ typ_rcd {decr ⦂ {{ this }} })} Λ
                 {d := lazy (let_trm (trm_val
-                                       (ν(typ_rcd {incr ⦂ {{ this }} } ∧ typ_rcd {decr ⦂ {{ this }} })
+                                       (ν[ssuper↘Any](typ_rcd {incr ⦂ {{ this }} } ∧ typ_rcd {decr ⦂ {{ this }} })
                                          defs_nil Λ {incr :=p this} Λ {decr :=p this})))}))
            (trm_let (trm_app this•d this)
                     (trm_path this•incr•decr))).
-
-Notation T := (μ(typ_rcd {incr ⦂ {{ this }} } ∧ typ_rcd {decr ⦂ {{ this }} })).
 
 Lemma typecheck : empty ⊢ t : T.
 Proof.
@@ -46,6 +51,15 @@ Proof.
       repeat apply ty_defs_cons; crush.
       * apply ty_defs_one. econstructor. apply Hb.
       * econstructor. apply Hb.
+      * (* tag: z↓Any *)
+        crush. eapply ty_sub.
+        ** apply ty_var. eauto.
+        ** eapply subtyp_trans. apply subtyp_top.
+           apply subtyp_sel2 with (T:=⊤).
+           eapply ty_sub. apply ty_var. eauto.
+           eapply subtyp_trans. apply subtyp_and11.
+           eapply subtyp_trans. apply subtyp_and11.
+           eapply subtyp_trans. apply subtyp_and11. auto.
     + crush.
       match goal with
         | [H: _ |- _ & z ~ ?Tz' & _ ~ _ & y0 ~ ?Ty0' ⊢ _ : _ ] =>
@@ -69,6 +83,15 @@ Proof.
         }
        apply ty_rec_intro. crush. eapply ty_sub; eauto.
       * eapply ty_sub; eauto.
+    + (* tag: y0: z↓Any *)
+      crush. eapply ty_sub.
+      ** apply ty_var. eauto.
+      ** eapply subtyp_trans. apply subtyp_top.
+          apply subtyp_sel2 with (T:=⊤).
+          eapply ty_sub. apply ty_var. eauto.
+          eapply subtyp_trans. apply subtyp_and11.
+          eapply subtyp_trans. apply subtyp_and11.
+          eapply subtyp_trans. apply subtyp_and11. auto.
   - crush.
     match goal with
     | [ H: _ |- _ & (z ~ μ(?T1' ∧ ?T2') ∧ ?T3') ⊢ _ : _] =>
@@ -84,7 +107,8 @@ Proof.
     }
     fresh_constructor; eauto.
     + econstructor.
-      * apply ty_new_elim. eapply ty_sub. apply Hb. rewrite HeqT3. crush.
+      * apply ty_new_elim. eapply ty_sub. apply Hb.
+        rewrite HeqT3. crush.
       * eapply ty_sub; eauto.
     + crush.
       assert (G & y ~ ((pvar z)↓D) ⊢ tvar y : μ((pvar z↓C) ∧ typ_rcd {decr ⦂ {{this}}})) as Hy. {
@@ -104,7 +128,9 @@ Proof.
         eapply ty_sngl; eauto.
       * apply ty_rec_intro. crush. apply ty_and_intro; eauto.
       Unshelve.
-      exact ⊤. exact \{}. exact ⊤. exact \{}.
+      exact ⊤. exact \{}.
+      exact ⊤. exact \{}.
+      exact ⊤. exact \{}.
 Qed.
 
 End SingletonTypeExample.

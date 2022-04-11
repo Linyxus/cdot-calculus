@@ -7,11 +7,12 @@ Require Import String.
 
 Section ListExample.
 
-Variables A List : typ_label.
+Variables A List Any : typ_label.
 Variables Nil Cons head tail : trm_label.
 
 Hypothesis NC: Nil <> Cons.
 Hypothesis HT: head <> tail.
+Hypothesis HA: List <> Any.
 
 Notation ListTypeA list_level A_lower A_upper A_level :=
   (typ_rcd { A >: A_lower <: A_upper } ∧
@@ -25,14 +26,15 @@ Notation ListObjType :=
    typ_rcd { Cons ⦂ ∀(typ_rcd { A >: ⊥ <: ⊤ })                       (* x: {A} *)
                     ∀(this↓A)                                        (* y: x.A *)
                     ∀(ssuper↓List ∧ typ_rcd { A >: ⊥ <: super↓A })   (* ys: sci.List ∧ {A <: x.A} *)
-                     (sssuper↓List ∧ typ_rcd { A >: ⊥ <: ssuper↓A }) }).
+                     (sssuper↓List ∧ typ_rcd { A >: ⊥ <: ssuper↓A }) } ∧
+   typ_rcd { Any >: ⊤ <: ⊤ }).
 
 Definition t :=
- trm_val (ν (ListObjType)
+ trm_val (ν[this↘Any] (ListObjType)
             defs_nil Λ
             { List ⦂= μ (ListType ssuper) } Λ
             { Nil := defv (λ(typ_rcd { A >: ⊥ <: ⊤ })
-                            let_trm (trm_val (ν(ListTypeA sssuper ⊥ ⊥ super)
+                            let_trm (trm_val (ν[ssuper↘Any](ListTypeA sssuper ⊥ ⊥ super)
                                                defs_nil Λ
                                                { A ⦂= ⊥ } Λ
                                                { head := defv (λ(⊤) trm_app super•head this) } Λ
@@ -40,11 +42,12 @@ Definition t :=
             { Cons := defv (λ(typ_rcd { A >: ⊥ <: ⊤ })
                    trm_val (λ(this↓A)
                    trm_val (λ(ssuper↓List ∧ typ_rcd { A >: ⊥ <: super↓A })
-                             let_trm (trm_val (ν(ListTypeA sssssuper (sssuper↓A) (sssuper↓A) ssssuper)
+                             let_trm (trm_val (ν[ssssuper↘Any](ListTypeA sssssuper (sssuper↓A) (sssuper↓A) ssssuper)
                                         defs_nil Λ
                                         { A ⦂= sssuper↓A } Λ
                                         { head := lazy (trm_path sssuper) } Λ
-                                        { tail := lazy (trm_path ssuper)}))))) }).
+                                        { tail := lazy (trm_path ssuper)}))))) } Λ
+            { Any ⦂= ⊤ }).
 
 Lemma list_typing :
   empty ⊢ t : μ ListObjType.
@@ -81,6 +84,13 @@ Proof.
         ** eapply ty_sub.
            { constructor*. }
            auto.
+      * (* tag: y0: z↓Any *)
+        crush. eapply ty_sub.
+        ** apply ty_var. eauto.
+        ** eapply subtyp_trans. apply subtyp_top.
+           apply subtyp_sel2 with (T:=⊤).
+           eapply ty_sub. apply ty_var. eauto.
+           eapply subtyp_trans. apply subtyp_and12. auto.
     + (* y0: ListType ⊢ y0: List ∧ {A<:} *)
      remember_ctx G.
      unfold open_trm. simpl. case_if.
@@ -116,7 +126,9 @@ Proof.
             rewrite HeqG.
             constructor*.
           }
-          eapply subtyp_trans; apply subtyp_and11.
+          eapply subtyp_trans. apply subtyp_and11.
+          eapply subtyp_trans. apply subtyp_and11.
+          eapply subtyp_trans. apply subtyp_and11. auto.
      * eapply ty_sub. apply Hpy1. apply subtyp_typ; auto.
   - Case "Cons"%string.
     constructor. do 3 (fresh_constructor; crush). fresh_constructor.
@@ -131,6 +143,13 @@ Proof.
         constructor*. eapply subtyp_trans. apply subtyp_and11. eauto.
       * SCase "tail"%string.
         constructor. fresh_constructor. crush.
+      * (* tag: y0: z↓Any *)
+        crush. eapply ty_sub.
+        ** apply ty_var. eauto.
+        ** eapply subtyp_trans. apply subtyp_top.
+           apply subtyp_sel2 with (T:=⊤).
+           eapply ty_sub. apply ty_var. eauto.
+           eapply subtyp_trans. apply subtyp_and12. auto.
     + (* y2: ListType ⊢ y2: List ∧ {A<:} *)
       remember_ctx G. crush.
       remember (p_sel (avar_f y2) nil) as py0.
@@ -163,8 +182,17 @@ Proof.
                eapply subtyp_sel2. apply* weaken_ty_trm. rewrite HeqG. repeat apply* ok_push.
         ** rewrite HeqG in *.
            eapply subtyp_sel2. eapply ty_sub. constructor*.
-           eapply subtyp_trans. apply subtyp_and11. eapply subtyp_and11.
+           eapply subtyp_trans. apply subtyp_and11.
+           eapply subtyp_trans. apply subtyp_and11.
+           eapply subtyp_and11.
       * eapply ty_sub. apply Hpy1. apply subtyp_typ; auto.
+  - (* tag: y0: z↓Any *)
+    crush. eapply ty_sub.
+    + apply ty_var. eauto.
+    + eapply subtyp_trans. apply subtyp_top.
+      apply subtyp_sel2 with (T:=⊤).
+      eapply ty_sub. apply ty_var. eauto.
+      eapply subtyp_trans. apply subtyp_and12. auto.
 Qed.
 
 End ListExample.

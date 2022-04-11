@@ -8,12 +8,13 @@ Require Import String.
 
 Section CompilerExample.
 
-Variables DottyCore Tpe Symbol : typ_label.
+Variables DottyCore Tpe Symbol Any : typ_label.
 Variables dottyCore types typeRef symbols symbol symb tpe denotation srcPos : trm_label.
 
 Notation TpeImpl := (μ(typ_rcd {denotation ⦂ Id})).
 Notation SymbolImpl := (μ(typ_rcd {srcPos ⦂ Id})).
 
+Hypothesis AD: Any <> DottyCore.
 Hypothesis TS: types <> symbols.
 Hypothesis ST: symb <> denotation.
 Hypothesis TS': tpe <> srcPos.
@@ -34,39 +35,50 @@ Notation DottyCoreAbstract := (DottyCorePackage ⊥ ⊤ ⊥ ⊤).
 Notation DottyCoreTight := (DottyCorePackage TpeImpl TpeImpl SymbolImpl SymbolImpl).
 
 Definition t := (trm_val
-(ν(typ_rcd {DottyCore >: μ DottyCoreAbstract <: μ DottyCoreAbstract} ∧
+(ν[this↘Any]
+  (typ_rcd {Any >: ⊤ <: ⊤} ∧
+   typ_rcd {DottyCore >: μ DottyCoreAbstract <: μ DottyCoreAbstract} ∧
    typ_rcd {dottyCore ⦂ Lazy (super ↓ DottyCore)})
   defs_nil Λ
+  {Any ⦂= ⊤} Λ
   {DottyCore ⦂= μ DottyCoreAbstract} Λ
   {dottyCore :=
-     lazy (let_trm (trm_val (ν(DottyCoreTight)
+     lazy (let_trm (trm_val (ν[ssuper↘Any](DottyCoreTight)
                               defs_nil Λ
                               {types :=
-                                 defv (ν(typesType TpeImpl TpeImpl)
+                                 defv (ν[sssuper↘Any](typesType TpeImpl TpeImpl)
                                         defs_nil Λ
                                         {Tpe ⦂= TpeImpl} Λ
                                         {typeRef :=
                                            defv (λ(super•symbols↓Symbol)
-                                                  (let_trm (trm_val (ν(typ_rcd {symb ⦂ ({{ super }}) } ∧
+                                                  (let_trm (trm_val (ν[sssssuper↘Any](typ_rcd {symb ⦂ ({{ super }}) } ∧
                                                                        typ_rcd {denotation ⦂ Id})
                                                                       defs_nil Λ
                                                                       {symb := defp super} Λ
                                                                       {denotation := defv id})))) }) } Λ
                               {symbols :=
-                                 defv (ν(symbolsType SymbolImpl SymbolImpl)
+                                 defv (ν[sssuper↘Any](symbolsType SymbolImpl SymbolImpl)
                                         defs_nil Λ
                                         {Symbol ⦂= SymbolImpl} Λ
                                         {symbol :=
                                            defv (λ(super•types↓Tpe)
-                                                  (let_trm (trm_val (ν(typ_rcd {tpe ⦂ {{ super }}} ∧
+                                                  (let_trm (trm_val (ν[sssssuper↘Any](typ_rcd {tpe ⦂ {{ super }}} ∧
                                                                        typ_rcd {srcPos ⦂ Id})
                                                                       defs_nil Λ
                                                                       {tpe := defp super} Λ
                                                                       {srcPos := defv id}))))})})))})).
 
 Notation T :=
-  (μ(typ_rcd {DottyCore >: μ DottyCoreAbstract <: μ DottyCoreAbstract} ∧
+  (μ(typ_rcd {Any >: ⊤ <: ⊤} ∧
+     typ_rcd {DottyCore >: μ DottyCoreAbstract <: μ DottyCoreAbstract} ∧
      typ_rcd {dottyCore ⦂ Lazy (super ↓ DottyCore)})).
+
+Ltac solve_tag :=
+  crush; eapply ty_sub; try solve [apply ty_var; eauto];
+  eapply subtyp_trans; try solve [apply subtyp_top];
+  apply subtyp_sel2 with (T := ⊤);
+  eapply ty_sub; try solve [subst; apply ty_var; eauto];
+  repeat (eapply subtyp_trans; apply subtyp_and11).
 
 Lemma compiler_typecheck :
   empty ⊢ t : T.
@@ -96,6 +108,8 @@ Proof.
                  eapply ty_sub. rewrite HeqG. constructor*. eauto.
                  crush.
             **** constructor. fresh_constructor. crush.
+            **** (* object tag *)
+              solve_tag.
         *** match goal with
             | H: _ |- _ & ?y0 ~ ?T0' & ?y1 ~ ?T1' & ?y2 ~ ?T2' ⊢ _ : _ =>
               remember T0' as T0; remember T1' as T1; remember T2' as T2
@@ -138,6 +152,27 @@ Proof.
                  rewrite HeqT0' in Hy0. apply ty_new_elim, ty_rec_elim in Hy0.
                  unfold open_typ_p in Hy0. simpl in *. eapply ty_sub.
                  apply Hy0. eauto.
+        ***
+          crush.
+          Ltac clean_path_sel :=
+            match goal with
+            | |- _ ⊢ trm_path (p_sel (avar_f ?y) (?a :: nil)) : _ => idtac y; idtac a;
+              assert (HES: p_sel (avar_f y) (a :: nil) = (pvar y) • a) by trivial;
+              rewrite HES; clear HES
+            end.
+          clean_path_sel.
+          eapply ty_sub.
+          eapply ty_new_elim.
+          Ltac solve_and_typing :=
+            (apply subtyp_and12 || apply subtyp_and11).
+          Ltac solve_object_typing :=
+            crush; eapply ty_sub; try solve [subst; apply ty_var; eauto];
+            solve_and_typing.
+          solve_object_typing.
+          eapply subtyp_trans; try solve [apply subtyp_top].
+          apply subtyp_sel2 with (T := ⊤).
+          eapply ty_sub; try solve [subst; apply ty_var; eauto].
+          repeat (eapply subtyp_trans; apply subtyp_and11).
       * eapply ty_def_new; eauto.
         { repeat econstructor. }
         crush. apply ty_defs_cons; crush.
@@ -155,6 +190,7 @@ Proof.
                  eapply ty_sub. apply ty_rec_elim. constructor.
                  eapply ty_sub. rewrite HeqG. constructor*. eauto. crush.
             **** constructor. fresh_constructor. crush.
+            **** solve_tag.
         *** match goal with
             | H: _ |- _ & ?y0 ~ ?T0' & ?y1 ~ ?T1' & ?y2 ~ ?T2' ⊢ _ : _ =>
               remember T0' as T0; remember T1' as T1; remember T2' as T2
@@ -196,6 +232,17 @@ Proof.
                  rewrite HeqT0' in Hy0. apply ty_new_elim, ty_rec_elim in Hy0.
                  unfold open_typ_p in Hy0. simpl in *. eapply ty_sub.
                  apply Hy0. eauto.
+        ***
+          crush.
+          clean_path_sel.
+          eapply ty_sub.
+          eapply ty_new_elim.
+          solve_object_typing.
+          eapply subtyp_trans; try solve [apply subtyp_top].
+          apply subtyp_sel2 with (T := ⊤).
+          eapply ty_sub; try solve [subst; apply ty_var; eauto].
+          repeat (eapply subtyp_trans; apply subtyp_and11).
+      * solve_tag.
     + unfold open_trm. simpl. case_if.
       match goal with
       | H: _ |- ?G' & _ ~ ?T0' ⊢ _ : _ =>
@@ -249,6 +296,8 @@ Proof.
            }
            eapply ty_sub. apply Ht. eauto.
         ** eapply ty_sub. apply Ht. eauto.
+  - solve_tag.
+  Unshelve. exact ⊤. exact \{}.
 Qed.
 
 End CompilerExample.
