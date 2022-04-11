@@ -1,0 +1,182 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="assets/resources/coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="assets/resources/coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="assets/resources/config.js"></script>
+<script type="text/javascript" src="assets/resources/coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">Narrowing</h1>
+
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab42"></a><h1 class="section">Narrowing Lemma</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Set Implicit Arguments</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <span class="id" title="library">Coq.Program.Equality</span>.<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="Definitions.html#"><span class="id" title="library">Definitions</span></a> <a class="idref" href="Subenvironments.html#"><span class="id" title="library">Subenvironments</span></a> <a class="idref" href="Weakening.html#"><span class="id" title="library">Weakening</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The narrowing lemma states that typing is preserved under subenvironments.
+    The lemma corresponds to Lemma 3.11 in the paper.
+    The proof is by mutual induction on term typing, definition typing,
+    and subtyping. 
+<div class="paragraph"> </div>
+
+ <span class="inlinecode"><span class="id" title="var">G</span></span> <span class="inlinecode">⊢</span> <span class="inlinecode"><span class="id" title="var">t</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span></span>                 <br>
+    <span class="inlinecode"><span class="id" title="var">G'</span></span> <span class="inlinecode"><span class="id" title="var">subG</span></span> <span class="inlinecode"><span class="id" title="var">G</span></span>                <br>
+    <span class="inlinecode"><span class="id" title="var">ok</span></span> <span class="inlinecode"><span class="id" title="var">G'</span></span>                    <br>
+    <span class="inlinecode">―――――――――――――――――</span>        <br>
+    <span class="inlinecode"><span class="id" title="var">G'</span></span> <span class="inlinecode">⊢</span> <span class="inlinecode"><span class="id" title="var">t</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span></span>
+
+<div class="paragraph"> </div>
+
+    and
+
+<div class="paragraph"> </div>
+
+    <span class="inlinecode"><span class="id" title="var">G</span></span> <span class="inlinecode">⊢</span> <span class="inlinecode"><span class="id" title="var">d</span>:</span> <span class="inlinecode"><span class="id" title="var">D</span></span>                 <br>
+    <span class="inlinecode"><span class="id" title="var">G'</span></span> <span class="inlinecode"><span class="id" title="var">subG</span></span> <span class="inlinecode"><span class="id" title="var">G</span></span>                <br>
+    <span class="inlinecode"><span class="id" title="var">ok</span></span> <span class="inlinecode"><span class="id" title="var">G'</span></span>                    <br>
+    <span class="inlinecode">―――――――――――――――――</span>        <br>
+    <span class="inlinecode"><span class="id" title="var">G'</span></span> <span class="inlinecode">⊢</span> <span class="inlinecode"><span class="id" title="var">d</span>:</span> <span class="inlinecode"><span class="id" title="var">D</span></span>
+
+<div class="paragraph"> </div>
+
+    and
+
+<div class="paragraph"> </div>
+
+    <span class="inlinecode"><span class="id" title="var">G</span></span> <span class="inlinecode">⊢</span> <span class="inlinecode"><span class="id" title="var">ds</span></span> <span class="inlinecode">::</span> <span class="inlinecode"><span class="id" title="var">T</span></span>              <br>
+    <span class="inlinecode"><span class="id" title="var">G'</span></span> <span class="inlinecode"><span class="id" title="var">subG</span></span> <span class="inlinecode"><span class="id" title="var">G</span></span>                <br>
+    <span class="inlinecode"><span class="id" title="var">ok</span></span> <span class="inlinecode"><span class="id" title="var">G'</span></span>                    <br>
+    <span class="inlinecode">―――――――――――――――――</span>        <br>
+    <span class="inlinecode"><span class="id" title="var">G'</span></span> <span class="inlinecode">⊢</span> <span class="inlinecode"><span class="id" title="var">ds</span></span> <span class="inlinecode">::</span> <span class="inlinecode"><span class="id" title="var">T</span></span>
+
+<div class="paragraph"> </div>
+
+    and
+
+<div class="paragraph"> </div>
+
+    <span class="inlinecode"><span class="id" title="var">G</span></span> <span class="inlinecode">⊢</span> <span class="inlinecode"><span class="id" title="var">S</span></span> <span class="inlinecode">&lt;:</span> <span class="inlinecode"><span class="id" title="var">U</span></span>               <br>
+    <span class="inlinecode"><span class="id" title="var">G'</span></span> <span class="inlinecode"><span class="id" title="var">subG</span></span> <span class="inlinecode"><span class="id" title="var">G</span></span>                <br>
+    <span class="inlinecode"><span class="id" title="var">ok</span></span> <span class="inlinecode"><span class="id" title="var">G'</span></span>                    <br>
+    <span class="inlinecode">―――――――――――――――――</span>        <br>
+    <span class="inlinecode"><span class="id" title="var">G'</span></span> <span class="inlinecode">⊢</span> <span class="inlinecode"><span class="id" title="var">S</span></span> <span class="inlinecode">&lt;:</span> <span class="inlinecode"><span class="id" title="var">U</span></span>              <br>
+
+<div class="paragraph"> </div>
+
+Note: for simplicity, the definition typing judgements and <span class="inlinecode"><span class="id" title="var">ok</span></span> conditions
+      are omitted from the paper formulation. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="narrow_rules" class="idref" href="#narrow_rules"><span class="id" title="lemma">narrow_rules</span></a>:<br/>
+&nbsp;&nbsp;<span class="id" title="notation">(</span><span class="id" title="keyword">∀</span> <a id="G:1" class="idref" href="#G:1"><span class="id" title="binder">G</span></a> <a id="t:2" class="idref" href="#t:2"><span class="id" title="binder">t</span></a> <a id="T:3" class="idref" href="#T:3"><span class="id" title="binder">T</span></a>, <a class="idref" href="Narrowing.html#G:1"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#t:2"><span class="id" title="variable">t</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="Narrowing.html#T:3"><span class="id" title="variable">T</span></a> <span class="id" title="notation">→</span> <span class="id" title="keyword">∀</span> <a id="G':4" class="idref" href="#G':4"><span class="id" title="binder">G'</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Narrowing.html#G':4"><span class="id" title="variable">G'</span></a> <a class="idref" href="Subenvironments.html#8d2edb2d53aefda0fb906bca2c603282"><span class="id" title="notation">⪯</span></a> <a class="idref" href="Narrowing.html#G:1"><span class="id" title="variable">G</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Narrowing.html#G':4"><span class="id" title="variable">G'</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#t:2"><span class="id" title="variable">t</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="Narrowing.html#T:3"><span class="id" title="variable">T</span></a><span class="id" title="notation">)</span><br/>
+<span class="id" title="notation">∧</span> <span class="id" title="notation">(</span><span class="id" title="keyword">∀</span> <a id="z:5" class="idref" href="#z:5"><span class="id" title="binder">z</span></a> <a id="bs:6" class="idref" href="#bs:6"><span class="id" title="binder">bs</span></a> <a id="G:7" class="idref" href="#G:7"><span class="id" title="binder">G</span></a> <a id="d:8" class="idref" href="#d:8"><span class="id" title="binder">d</span></a> <a id="D:9" class="idref" href="#D:9"><span class="id" title="binder">D</span></a>, <a class="idref" href="Narrowing.html#z:5"><span class="id" title="variable">z</span></a><a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">;</span></a> <a class="idref" href="Narrowing.html#bs:6"><span class="id" title="variable">bs</span></a><a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">;</span></a> <a class="idref" href="Narrowing.html#G:7"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#d:8"><span class="id" title="variable">d</span></a> <a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">:</span></a> <a class="idref" href="Narrowing.html#D:9"><span class="id" title="variable">D</span></a> <span class="id" title="notation">→</span> <span class="id" title="keyword">∀</span> <a id="G':10" class="idref" href="#G':10"><span class="id" title="binder">G'</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Narrowing.html#G':10"><span class="id" title="variable">G'</span></a> <a class="idref" href="Subenvironments.html#8d2edb2d53aefda0fb906bca2c603282"><span class="id" title="notation">⪯</span></a> <a class="idref" href="Narrowing.html#G:7"><span class="id" title="variable">G</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Narrowing.html#z:5"><span class="id" title="variable">z</span></a><a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">;</span></a> <a class="idref" href="Narrowing.html#bs:6"><span class="id" title="variable">bs</span></a><a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">;</span></a> <a class="idref" href="Narrowing.html#G':10"><span class="id" title="variable">G'</span></a> <a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#d:8"><span class="id" title="variable">d</span></a> <a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">:</span></a> <a class="idref" href="Narrowing.html#D:9"><span class="id" title="variable">D</span></a><span class="id" title="notation">)</span><br/>
+<span class="id" title="notation">∧</span> <span class="id" title="notation">(</span><span class="id" title="keyword">∀</span> <a id="z:11" class="idref" href="#z:11"><span class="id" title="binder">z</span></a> <a id="bs:12" class="idref" href="#bs:12"><span class="id" title="binder">bs</span></a> <a id="G:13" class="idref" href="#G:13"><span class="id" title="binder">G</span></a> <a id="ds:14" class="idref" href="#ds:14"><span class="id" title="binder">ds</span></a> <a id="T:15" class="idref" href="#T:15"><span class="id" title="binder">T</span></a>, <a class="idref" href="Narrowing.html#z:11"><span class="id" title="variable">z</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Narrowing.html#bs:12"><span class="id" title="variable">bs</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Narrowing.html#G:13"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#ds:14"><span class="id" title="variable">ds</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">::</span></a> <a class="idref" href="Narrowing.html#T:15"><span class="id" title="variable">T</span></a> <span class="id" title="notation">→</span> <span class="id" title="keyword">∀</span> <a id="G':16" class="idref" href="#G':16"><span class="id" title="binder">G'</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Narrowing.html#G':16"><span class="id" title="variable">G'</span></a> <a class="idref" href="Subenvironments.html#8d2edb2d53aefda0fb906bca2c603282"><span class="id" title="notation">⪯</span></a> <a class="idref" href="Narrowing.html#G:13"><span class="id" title="variable">G</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Narrowing.html#z:11"><span class="id" title="variable">z</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Narrowing.html#bs:12"><span class="id" title="variable">bs</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Narrowing.html#G':16"><span class="id" title="variable">G'</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#ds:14"><span class="id" title="variable">ds</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">::</span></a> <a class="idref" href="Narrowing.html#T:15"><span class="id" title="variable">T</span></a><span class="id" title="notation">)</span><br/>
+<span class="id" title="notation">∧</span> <span class="id" title="notation">(</span><span class="id" title="keyword">∀</span> <a id="G:17" class="idref" href="#G:17"><span class="id" title="binder">G</span></a> <a id="S:18" class="idref" href="#S:18"><span class="id" title="binder">S</span></a> <a id="U:19" class="idref" href="#U:19"><span class="id" title="binder">U</span></a>, <a class="idref" href="Narrowing.html#G:17"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#S:18"><span class="id" title="variable">S</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">&lt;:</span></a> <a class="idref" href="Narrowing.html#U:19"><span class="id" title="variable">U</span></a> <span class="id" title="notation">→</span> <span class="id" title="keyword">∀</span> <a id="G':20" class="idref" href="#G':20"><span class="id" title="binder">G'</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Narrowing.html#G':20"><span class="id" title="variable">G'</span></a> <a class="idref" href="Subenvironments.html#8d2edb2d53aefda0fb906bca2c603282"><span class="id" title="notation">⪯</span></a> <a class="idref" href="Narrowing.html#G:17"><span class="id" title="variable">G</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Narrowing.html#G':20"><span class="id" title="variable">G'</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#S:18"><span class="id" title="variable">S</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">&lt;:</span></a> <a class="idref" href="Narrowing.html#U:19"><span class="id" title="variable">U</span></a><span class="id" title="notation">)</span>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="Definitions.html#rules_mutind"><span class="id" title="definition">rules_mutind</span></a>; <span class="id" title="tactic">intros</span>; <span class="id" title="tactic">eauto</span> 4;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">try</span> <span class="id" title="tactic">solve</span> [<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="keyword">goal</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id" title="var">H</span> : <span class="id" title="var">_</span> <a class="idref" href="Subenvironments.html#8d2edb2d53aefda0fb906bca2c603282"><span class="id" title="notation">⪯</span></a> <span class="id" title="var">_</span> |- <span class="id" title="var">_</span> ] ⇒ <span class="id" title="tactic">destruct</span> (<a class="idref" href="Subenvironments.html#subenv_implies_ok"><span class="id" title="lemma">subenv_implies_ok</span></a> <span class="id" title="var">H</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">fresh_constructor</span>].<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">induction</span> <span class="id" title="var">H</span>; <span class="id" title="tactic">auto</span>. <span class="id" title="tactic">apply</span> <span class="id" title="lemma">binds_push_inv</span> <span class="id" title="tactic">in</span> <span class="id" title="var">b</span>; <span class="id" title="var">destruct_all</span>; <span class="id" title="tactic">subst</span>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="Definitions.html#ty_sub"><span class="id" title="constructor">ty_sub</span></a> <span class="id" title="keyword">with</span> (<span class="id" title="var">T</span>:=<span class="id" title="var">T0</span>); <span class="id" title="tactic">auto</span>. <span class="id" title="tactic">apply</span>× <a class="idref" href="Weakening.html#weaken_subtyp"><span class="id" title="lemma">weaken_subtyp</span></a>.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span>× <a class="idref" href="Weakening.html#weaken_ty_trm"><span class="id" title="lemma">weaken_ty_trm</span></a>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The narrowing lemma, formulated only for term typing. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="narrow_typing" class="idref" href="#narrow_typing"><span class="id" title="lemma">narrow_typing</span></a>: <span class="id" title="keyword">∀</span> <a id="G:21" class="idref" href="#G:21"><span class="id" title="binder">G</span></a> <a id="G':22" class="idref" href="#G':22"><span class="id" title="binder">G'</span></a> <a id="t:23" class="idref" href="#t:23"><span class="id" title="binder">t</span></a> <a id="T:24" class="idref" href="#T:24"><span class="id" title="binder">T</span></a>,<br/>
+&nbsp;&nbsp;<a class="idref" href="Narrowing.html#G:21"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#t:23"><span class="id" title="variable">t</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="Narrowing.html#T:24"><span class="id" title="variable">T</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;<a class="idref" href="Narrowing.html#G':22"><span class="id" title="variable">G'</span></a> <a class="idref" href="Subenvironments.html#8d2edb2d53aefda0fb906bca2c603282"><span class="id" title="notation">⪯</span></a> <a class="idref" href="Narrowing.html#G:21"><span class="id" title="variable">G</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;<a class="idref" href="Narrowing.html#G':22"><span class="id" title="variable">G'</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#t:23"><span class="id" title="variable">t</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="Narrowing.html#T:24"><span class="id" title="variable">T</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span>. <span class="id" title="tactic">apply</span>× <a class="idref" href="Narrowing.html#narrow_rules"><span class="id" title="lemma">narrow_rules</span></a>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The narrowing lemma, formulated only for subtyping. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="narrow_subtyping" class="idref" href="#narrow_subtyping"><span class="id" title="lemma">narrow_subtyping</span></a>: <span class="id" title="keyword">∀</span> <a id="G:25" class="idref" href="#G:25"><span class="id" title="binder">G</span></a> <a id="G':26" class="idref" href="#G':26"><span class="id" title="binder">G'</span></a> <a id="S:27" class="idref" href="#S:27"><span class="id" title="binder">S</span></a> <a id="U:28" class="idref" href="#U:28"><span class="id" title="binder">U</span></a>,<br/>
+&nbsp;&nbsp;<a class="idref" href="Narrowing.html#G:25"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#S:27"><span class="id" title="variable">S</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">&lt;:</span></a> <a class="idref" href="Narrowing.html#U:28"><span class="id" title="variable">U</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;<a class="idref" href="Narrowing.html#G':26"><span class="id" title="variable">G'</span></a> <a class="idref" href="Subenvironments.html#8d2edb2d53aefda0fb906bca2c603282"><span class="id" title="notation">⪯</span></a> <a class="idref" href="Narrowing.html#G:25"><span class="id" title="variable">G</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;<a class="idref" href="Narrowing.html#G':26"><span class="id" title="variable">G'</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#S:27"><span class="id" title="variable">S</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">&lt;:</span></a> <a class="idref" href="Narrowing.html#U:28"><span class="id" title="variable">U</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span>. <span class="id" title="tactic">apply</span>× <a class="idref" href="Narrowing.html#narrow_rules"><span class="id" title="lemma">narrow_rules</span></a>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+The narrowing lemma, formulated only for definition typing. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="narrow_defs" class="idref" href="#narrow_defs"><span class="id" title="lemma">narrow_defs</span></a>: <span class="id" title="keyword">∀</span> <a id="G:29" class="idref" href="#G:29"><span class="id" title="binder">G</span></a> <a id="G':30" class="idref" href="#G':30"><span class="id" title="binder">G'</span></a> <a id="ds:31" class="idref" href="#ds:31"><span class="id" title="binder">ds</span></a> <a id="T:32" class="idref" href="#T:32"><span class="id" title="binder">T</span></a> <a id="z:33" class="idref" href="#z:33"><span class="id" title="binder">z</span></a> <a id="bs:34" class="idref" href="#bs:34"><span class="id" title="binder">bs</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Narrowing.html#z:33"><span class="id" title="variable">z</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Narrowing.html#bs:34"><span class="id" title="variable">bs</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Narrowing.html#G:29"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#ds:31"><span class="id" title="variable">ds</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">::</span></a> <a class="idref" href="Narrowing.html#T:32"><span class="id" title="variable">T</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Narrowing.html#G':30"><span class="id" title="variable">G'</span></a> <a class="idref" href="Subenvironments.html#8d2edb2d53aefda0fb906bca2c603282"><span class="id" title="notation">⪯</span></a> <a class="idref" href="Narrowing.html#G:29"><span class="id" title="variable">G</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Narrowing.html#z:33"><span class="id" title="variable">z</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Narrowing.html#bs:34"><span class="id" title="variable">bs</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Narrowing.html#G':30"><span class="id" title="variable">G'</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Narrowing.html#ds:31"><span class="id" title="variable">ds</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">::</span></a> <a class="idref" href="Narrowing.html#T:32"><span class="id" title="variable">T</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span>. <span class="id" title="tactic">apply</span>× <a class="idref" href="Narrowing.html#narrow_rules"><span class="id" title="lemma">narrow_rules</span></a>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>

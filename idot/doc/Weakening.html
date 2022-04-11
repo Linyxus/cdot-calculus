@@ -1,0 +1,200 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link href="assets/resources/coqdoc.css" rel="stylesheet" type="text/css" />
+<link href="assets/resources/coqdocjs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="assets/resources/config.js"></script>
+<script type="text/javascript" src="assets/resources/coqdocjs.js"></script>
+</head>
+
+<body onload="document.getElementById('content').focus()">
+  <div id="header">
+    <span class="left">
+      <span class="modulename"> <script> document.write(document.title) </script> </span>
+    </span>
+
+    <span class="button" id="toggle-proofs"></span>
+
+    <span class="right">
+      <a href="./indexpage.html"> Index </a>
+      <a href="./toc.html"> Table of Contents </a>
+    </span>
+</div>
+    <div id="content" tabindex="-1" onblur="document.getElementById('content').focus()">
+    <div id="main">
+<h1 class="libtitle">Weakening</h1>
+
+<div class="code">
+
+<br/>
+</div>
+
+<div class="doc">
+<a id="lab29"></a><h1 class="section">Weakening Lemma</h1>
+
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Set Implicit Arguments</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Require</span> <span class="id" title="keyword">Import</span> <a class="idref" href="Definitions.html#"><span class="id" title="library">Definitions</span></a>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Weakening states that typing is preserved in extended environments. 
+<div class="paragraph"> </div>
+
+ <span class="inlinecode"><span class="id" title="var">G1</span>,</span> <span class="inlinecode"><span class="id" title="var">G3</span></span> <span class="inlinecode">|-</span> <span class="inlinecode"><span class="id" title="var">t</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span></span>                    <br>
+    <span class="inlinecode"><span class="id" title="var">ok</span>(<span class="id" title="var">G1</span>,</span> <span class="inlinecode"><span class="id" title="var">G2</span>,</span> <span class="inlinecode"><span class="id" title="var">G3</span>)</span>                   <br>
+    <span class="inlinecode">――――――――――――――――――――</span>             <br>
+    <span class="inlinecode"><span class="id" title="var">G1</span>,</span> <span class="inlinecode"><span class="id" title="var">G2</span>,</span> <span class="inlinecode"><span class="id" title="var">G3</span></span> <span class="inlinecode">|-</span> <span class="inlinecode"><span class="id" title="var">t</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span></span> <br> <br>
+
+<div class="paragraph"> </div>
+
+    and
+
+<div class="paragraph"> </div>
+
+    <span class="inlinecode"><span class="id" title="var">G1</span>,</span> <span class="inlinecode"><span class="id" title="var">G3</span></span> <span class="inlinecode">|-</span> <span class="inlinecode"><span class="id" title="var">d</span>:</span> <span class="inlinecode"><span class="id" title="var">D</span></span>                    <br>
+    <span class="inlinecode"><span class="id" title="var">ok</span>(<span class="id" title="var">G1</span>,</span> <span class="inlinecode"><span class="id" title="var">G2</span>,</span> <span class="inlinecode"><span class="id" title="var">G3</span>)</span>                   <br>
+    <span class="inlinecode">――――――――――――――――――――</span>             <br>
+    <span class="inlinecode"><span class="id" title="var">G1</span>,</span> <span class="inlinecode"><span class="id" title="var">G2</span>,</span> <span class="inlinecode"><span class="id" title="var">G3</span></span> <span class="inlinecode">|-</span> <span class="inlinecode"><span class="id" title="var">d</span>:</span> <span class="inlinecode"><span class="id" title="var">D</span></span> <br> <br>
+
+<div class="paragraph"> </div>
+
+    and
+
+<div class="paragraph"> </div>
+
+    <span class="inlinecode"><span class="id" title="var">G1</span>,</span> <span class="inlinecode"><span class="id" title="var">G3</span></span> <span class="inlinecode">|-</span> <span class="inlinecode"><span class="id" title="var">ds</span></span> <span class="inlinecode">::</span> <span class="inlinecode"><span class="id" title="var">T</span></span>                 <br>
+    <span class="inlinecode"><span class="id" title="var">ok</span>(<span class="id" title="var">G1</span>,</span> <span class="inlinecode"><span class="id" title="var">G2</span>,</span> <span class="inlinecode"><span class="id" title="var">G3</span>)</span>                   <br>
+    <span class="inlinecode">――――――――――――――――――――</span>             <br>
+    <span class="inlinecode"><span class="id" title="var">G1</span>,</span> <span class="inlinecode"><span class="id" title="var">G2</span>,</span> <span class="inlinecode"><span class="id" title="var">G3</span></span> <span class="inlinecode">|-</span> <span class="inlinecode"><span class="id" title="var">ds</span></span> <span class="inlinecode">::</span> <span class="inlinecode"><span class="id" title="var">T</span></span> <br> <br>
+
+<div class="paragraph"> </div>
+
+    and
+
+<div class="paragraph"> </div>
+
+    <span class="inlinecode"><span class="id" title="var">G1</span>,</span> <span class="inlinecode"><span class="id" title="var">G3</span></span> <span class="inlinecode">|-</span> <span class="inlinecode"><span class="id" title="var">T</span></span> <span class="inlinecode">&lt;:</span> <span class="inlinecode"><span class="id" title="var">U</span></span>                  <br>
+    <span class="inlinecode"><span class="id" title="var">ok</span>(<span class="id" title="var">G1</span>,</span> <span class="inlinecode"><span class="id" title="var">G2</span>,</span> <span class="inlinecode"><span class="id" title="var">G3</span>)</span>                   <br>
+    <span class="inlinecode">――――――――――――――――――――</span>             <br>
+    <span class="inlinecode"><span class="id" title="var">G1</span>,</span> <span class="inlinecode"><span class="id" title="var">G2</span>,</span> <span class="inlinecode"><span class="id" title="var">G3</span></span> <span class="inlinecode">|-</span> <span class="inlinecode"><span class="id" title="var">T</span></span> <span class="inlinecode">&lt;:</span> <span class="inlinecode"><span class="id" title="var">U</span></span> <br> <br>
+
+<div class="paragraph"> </div>
+
+    The proof is by mutual induction on term typing, definition typing, and subtyping. 
+</div>
+<div class="code">
+
+<br/>
+<span class="id" title="keyword">Lemma</span> <a id="weaken_rules" class="idref" href="#weaken_rules"><span class="id" title="lemma">weaken_rules</span></a>:<br/>
+&nbsp;&nbsp;<span class="id" title="notation">(</span><span class="id" title="keyword">∀</span> <a id="G:1" class="idref" href="#G:1"><span class="id" title="binder">G</span></a> <a id="t:2" class="idref" href="#t:2"><span class="id" title="binder">t</span></a> <a id="T:3" class="idref" href="#T:3"><span class="id" title="binder">T</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#G:1"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#t:2"><span class="id" title="variable">t</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="Weakening.html#T:3"><span class="id" title="variable">T</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <a id="G1:4" class="idref" href="#G1:4"><span class="id" title="binder">G1</span></a> <a id="G2:5" class="idref" href="#G2:5"><span class="id" title="binder">G2</span></a> <a id="G3:6" class="idref" href="#G3:6"><span class="id" title="binder">G3</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#G:1"><span class="id" title="variable">G</span></a> <span class="id" title="notation">=</span> <a class="idref" href="Weakening.html#G1:4"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G3:6"><span class="id" title="variable">G3</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="inductive">ok</span> (<a class="idref" href="Weakening.html#G1:4"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:5"><span class="id" title="variable">G2</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G3:6"><span class="id" title="variable">G3</span></a>) <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#G1:4"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:5"><span class="id" title="variable">G2</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G3:6"><span class="id" title="variable">G3</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#t:2"><span class="id" title="variable">t</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="Weakening.html#T:3"><span class="id" title="variable">T</span></a><span class="id" title="notation">)</span> <span class="id" title="notation">∧</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">(</span><span class="id" title="keyword">∀</span> <a id="x:7" class="idref" href="#x:7"><span class="id" title="binder">x</span></a> <a id="bs:8" class="idref" href="#bs:8"><span class="id" title="binder">bs</span></a> <a id="G:9" class="idref" href="#G:9"><span class="id" title="binder">G</span></a> <a id="d:10" class="idref" href="#d:10"><span class="id" title="binder">d</span></a> <a id="D:11" class="idref" href="#D:11"><span class="id" title="binder">D</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#x:7"><span class="id" title="variable">x</span></a><a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">;</span></a> <a class="idref" href="Weakening.html#bs:8"><span class="id" title="variable">bs</span></a><a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">;</span></a> <a class="idref" href="Weakening.html#G:9"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#d:10"><span class="id" title="variable">d</span></a> <a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">:</span></a> <a class="idref" href="Weakening.html#D:11"><span class="id" title="variable">D</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <a id="G1:12" class="idref" href="#G1:12"><span class="id" title="binder">G1</span></a> <a id="G2:13" class="idref" href="#G2:13"><span class="id" title="binder">G2</span></a> <a id="G3:14" class="idref" href="#G3:14"><span class="id" title="binder">G3</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#G:9"><span class="id" title="variable">G</span></a> <span class="id" title="notation">=</span> <a class="idref" href="Weakening.html#G1:12"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G3:14"><span class="id" title="variable">G3</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="inductive">ok</span> (<a class="idref" href="Weakening.html#G1:12"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:13"><span class="id" title="variable">G2</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G3:14"><span class="id" title="variable">G3</span></a>) <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#x:7"><span class="id" title="variable">x</span></a><a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">;</span></a> <a class="idref" href="Weakening.html#bs:8"><span class="id" title="variable">bs</span></a><a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">;</span></a> <a class="idref" href="Weakening.html#G1:12"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:13"><span class="id" title="variable">G2</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G3:14"><span class="id" title="variable">G3</span></a> <a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#d:10"><span class="id" title="variable">d</span></a> <a class="idref" href="Definitions.html#ae7a57a11402d7c5d6d3a8914fe4ced3"><span class="id" title="notation">:</span></a> <a class="idref" href="Weakening.html#D:11"><span class="id" title="variable">D</span></a><span class="id" title="notation">)</span> <span class="id" title="notation">∧</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">(</span><span class="id" title="keyword">∀</span> <a id="x:15" class="idref" href="#x:15"><span class="id" title="binder">x</span></a> <a id="bs:16" class="idref" href="#bs:16"><span class="id" title="binder">bs</span></a> <a id="G:17" class="idref" href="#G:17"><span class="id" title="binder">G</span></a> <a id="ds:18" class="idref" href="#ds:18"><span class="id" title="binder">ds</span></a> <a id="T:19" class="idref" href="#T:19"><span class="id" title="binder">T</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#x:15"><span class="id" title="variable">x</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Weakening.html#bs:16"><span class="id" title="variable">bs</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Weakening.html#G:17"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#ds:18"><span class="id" title="variable">ds</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">::</span></a> <a class="idref" href="Weakening.html#T:19"><span class="id" title="variable">T</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <a id="G1:20" class="idref" href="#G1:20"><span class="id" title="binder">G1</span></a> <a id="G2:21" class="idref" href="#G2:21"><span class="id" title="binder">G2</span></a> <a id="G3:22" class="idref" href="#G3:22"><span class="id" title="binder">G3</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#G:17"><span class="id" title="variable">G</span></a> <span class="id" title="notation">=</span> <a class="idref" href="Weakening.html#G1:20"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G3:22"><span class="id" title="variable">G3</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="inductive">ok</span> (<a class="idref" href="Weakening.html#G1:20"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:21"><span class="id" title="variable">G2</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G3:22"><span class="id" title="variable">G3</span></a>) <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#x:15"><span class="id" title="variable">x</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Weakening.html#bs:16"><span class="id" title="variable">bs</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Weakening.html#G1:20"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:21"><span class="id" title="variable">G2</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G3:22"><span class="id" title="variable">G3</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#ds:18"><span class="id" title="variable">ds</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">::</span></a> <a class="idref" href="Weakening.html#T:19"><span class="id" title="variable">T</span></a><span class="id" title="notation">)</span> <span class="id" title="notation">∧</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">(</span><span class="id" title="keyword">∀</span> <a id="G:23" class="idref" href="#G:23"><span class="id" title="binder">G</span></a> <a id="T:24" class="idref" href="#T:24"><span class="id" title="binder">T</span></a> <a id="U:25" class="idref" href="#U:25"><span class="id" title="binder">U</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#G:23"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#T:24"><span class="id" title="variable">T</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">&lt;:</span></a> <a class="idref" href="Weakening.html#U:25"><span class="id" title="variable">U</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">∀</span> <a id="G1:26" class="idref" href="#G1:26"><span class="id" title="binder">G1</span></a> <a id="G2:27" class="idref" href="#G2:27"><span class="id" title="binder">G2</span></a> <a id="G3:28" class="idref" href="#G3:28"><span class="id" title="binder">G3</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#G:23"><span class="id" title="variable">G</span></a> <span class="id" title="notation">=</span> <a class="idref" href="Weakening.html#G1:26"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G3:28"><span class="id" title="variable">G3</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="inductive">ok</span> (<a class="idref" href="Weakening.html#G1:26"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:27"><span class="id" title="variable">G2</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G3:28"><span class="id" title="variable">G3</span></a>) <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#G1:26"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:27"><span class="id" title="variable">G2</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G3:28"><span class="id" title="variable">G3</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#T:24"><span class="id" title="variable">T</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">&lt;:</span></a> <a class="idref" href="Weakening.html#U:25"><span class="id" title="variable">U</span></a><span class="id" title="notation">)</span>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">apply</span> <a class="idref" href="Definitions.html#rules_mutind"><span class="id" title="definition">rules_mutind</span></a>; <span class="id" title="tactic">intros</span>; <span class="id" title="tactic">subst</span>;<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">eauto</span> 4 <span class="id" title="keyword">using</span> <span class="id" title="lemma">binds_weaken</span>;<br/>
+&nbsp;&nbsp;<span class="id" title="var">fresh_constructor</span>; <span class="id" title="tactic">auto</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="keyword">goal</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;| [ <span class="id" title="var">H</span>: <span class="id" title="keyword">∀</span> <a id="z:31" class="idref" href="#z:31"><span class="id" title="binder">z</span></a>, <a class="idref" href="Weakening.html#z:29"><span class="id" title="variable">z</span></a> <span class="id" title="notation">\</span><span class="id" title="notation">notin</span> ?<span class="id" title="var">L</span> <span class="id" title="notation">→</span> <span class="id" title="keyword">∀</span> <a id="G:32" class="idref" href="#G:32"><span class="id" title="binder">G</span></a>, <span class="id" title="var">_</span>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="var">Hok</span>: <span class="id" title="inductive">ok</span> (?<span class="id" title="var">G1</span> <span class="id" title="notation">&amp;</span> ?<span class="id" title="var">G2</span> <span class="id" title="notation">&amp;</span> ?<span class="id" title="var">G3</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|- <span class="id" title="keyword">context</span> [?<span class="id" title="var">z</span> <span class="id" title="notation">~</span> ?<span class="id" title="var">T</span>] ] ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">assert</span> (<span class="id" title="var">zL</span> : <span class="id" title="var">z</span> <span class="id" title="notation">\</span><span class="id" title="notation">notin</span> <span class="id" title="var">L</span>) <span class="id" title="tactic">by</span> <span class="id" title="tactic">auto</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">specialize</span> (<span class="id" title="var">H</span> <span class="id" title="var">z</span> <span class="id" title="var">zL</span> <span class="id" title="var">G1</span> <span class="id" title="var">G2</span> (<span class="id" title="var">G3</span> <span class="id" title="notation">&amp;</span> <span class="id" title="var">z</span> <span class="id" title="notation">~</span> <span class="id" title="var">T</span>));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span>? <span class="id" title="lemma">concat_assoc</span> <span class="id" title="tactic">in</span> <span class="id" title="var">H</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">apply</span>~ <span class="id" title="var">H</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+<span class="id" title="keyword">Ltac</span> <span class="id" title="var">weaken_specialize</span> :=<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">intros</span>;<br/>
+&nbsp;&nbsp;<span class="id" title="keyword">match</span> <span class="id" title="keyword">goal</span> <span class="id" title="keyword">with</span><br/>
+&nbsp;&nbsp;| [ <span class="id" title="var">Hok</span>: <span class="id" title="inductive">ok</span> (?<span class="id" title="var">G1</span> <span class="id" title="notation">&amp;</span> ?<span class="id" title="var">G2</span>) |- <span class="id" title="var">_</span> ] ⇒<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">assert</span> (<span class="id" title="var">G1</span> <span class="id" title="notation">&amp;</span> <span class="id" title="var">G2</span> <span class="id" title="notation">=</span> <span class="id" title="var">G1</span> <span class="id" title="notation">&amp;</span> <span class="id" title="var">G2</span> <span class="id" title="notation">&amp;</span> <span class="id" title="axiom">empty</span>) <span class="id" title="keyword">as</span> <span class="id" title="var">EqG</span> <span class="id" title="tactic">by</span> <span class="id" title="tactic">rewrite</span>~ <span class="id" title="lemma">concat_empty_r</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> <span class="id" title="var">EqG</span>; <span class="id" title="tactic">apply</span>~ <a class="idref" href="Weakening.html#weaken_rules"><span class="id" title="lemma">weaken_rules</span></a>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="id" title="tactic">rewrite</span> <span class="id" title="lemma">concat_empty_r</span> || <span class="id" title="tactic">rewrite</span> &lt;- <span class="id" title="var">EqG</span>); <span class="id" title="tactic">assumption</span><br/>
+&nbsp;&nbsp;<span class="id" title="keyword">end</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Weakening lemma specialized to term typing. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="weaken_ty_trm" class="idref" href="#weaken_ty_trm"><span class="id" title="lemma">weaken_ty_trm</span></a>: <span class="id" title="keyword">∀</span> <a id="G1:33" class="idref" href="#G1:33"><span class="id" title="binder">G1</span></a> <a id="G2:34" class="idref" href="#G2:34"><span class="id" title="binder">G2</span></a> <a id="t:35" class="idref" href="#t:35"><span class="id" title="binder">t</span></a> <a id="T:36" class="idref" href="#T:36"><span class="id" title="binder">T</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#G1:33"><span class="id" title="variable">G1</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#t:35"><span class="id" title="variable">t</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="Weakening.html#T:36"><span class="id" title="variable">T</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="inductive">ok</span> (<a class="idref" href="Weakening.html#G1:33"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:34"><span class="id" title="variable">G2</span></a>) <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#G1:33"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:34"><span class="id" title="variable">G2</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#t:35"><span class="id" title="variable">t</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="Weakening.html#T:36"><span class="id" title="variable">T</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="var">weaken_specialize</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Weakening lemma specialized to subtyping. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="weaken_subtyp" class="idref" href="#weaken_subtyp"><span class="id" title="lemma">weaken_subtyp</span></a>: <span class="id" title="keyword">∀</span> <a id="G1:37" class="idref" href="#G1:37"><span class="id" title="binder">G1</span></a> <a id="G2:38" class="idref" href="#G2:38"><span class="id" title="binder">G2</span></a> <a id="S:39" class="idref" href="#S:39"><span class="id" title="binder">S</span></a> <a id="U:40" class="idref" href="#U:40"><span class="id" title="binder">U</span></a>,<br/>
+&nbsp;&nbsp;<a class="idref" href="Weakening.html#G1:37"><span class="id" title="variable">G1</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#S:39"><span class="id" title="variable">S</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">&lt;:</span></a> <a class="idref" href="Weakening.html#U:40"><span class="id" title="variable">U</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;<span class="id" title="inductive">ok</span> (<a class="idref" href="Weakening.html#G1:37"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:38"><span class="id" title="variable">G2</span></a>) <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;<a class="idref" href="Weakening.html#G1:37"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:38"><span class="id" title="variable">G2</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#S:39"><span class="id" title="variable">S</span></a> <a class="idref" href="Definitions.html#d77433d9a5f06bee50380b6ca9a3f271"><span class="id" title="notation">&lt;:</span></a> <a class="idref" href="Weakening.html#U:40"><span class="id" title="variable">U</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="var">weaken_specialize</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+
+<br/>
+</div>
+
+<div class="doc">
+Weakening lemma specialized to definition-typing 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="weaken_ty_defs" class="idref" href="#weaken_ty_defs"><span class="id" title="lemma">weaken_ty_defs</span></a>: <span class="id" title="keyword">∀</span> <a id="G1:41" class="idref" href="#G1:41"><span class="id" title="binder">G1</span></a> <a id="G2:42" class="idref" href="#G2:42"><span class="id" title="binder">G2</span></a> <a id="z:43" class="idref" href="#z:43"><span class="id" title="binder">z</span></a> <a id="bs:44" class="idref" href="#bs:44"><span class="id" title="binder">bs</span></a> <a id="ds:45" class="idref" href="#ds:45"><span class="id" title="binder">ds</span></a> <a id="T:46" class="idref" href="#T:46"><span class="id" title="binder">T</span></a>,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#z:43"><span class="id" title="variable">z</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Weakening.html#bs:44"><span class="id" title="variable">bs</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Weakening.html#G1:41"><span class="id" title="variable">G1</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#ds:45"><span class="id" title="variable">ds</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">::</span></a> <a class="idref" href="Weakening.html#T:46"><span class="id" title="variable">T</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="id" title="inductive">ok</span> (<a class="idref" href="Weakening.html#G1:41"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:42"><span class="id" title="variable">G2</span></a>) <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Weakening.html#z:43"><span class="id" title="variable">z</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Weakening.html#bs:44"><span class="id" title="variable">bs</span></a><a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">;</span></a> <a class="idref" href="Weakening.html#G1:41"><span class="id" title="variable">G1</span></a> <span class="id" title="notation">&amp;</span> <a class="idref" href="Weakening.html#G2:42"><span class="id" title="variable">G2</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Weakening.html#ds:45"><span class="id" title="variable">ds</span></a> <a class="idref" href="Definitions.html#ed2865d5b6635aaa6d875cc0fd7c034b"><span class="id" title="notation">::</span></a> <a class="idref" href="Weakening.html#T:46"><span class="id" title="variable">T</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="var">weaken_specialize</span>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
+</div>
+</div>
+<div id="footer">
+  Generated by <a href="http://coq.inria.fr/">coqdoc</a> and improved with <a href="https://github.com/tebbi/coqdocjs">CoqdocJS</a>
+</div>
+</div>
+</body>
+
+</html>
