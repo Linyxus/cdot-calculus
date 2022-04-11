@@ -1,35 +1,25 @@
-> The version used to encode the lambda-2Gmu calculus is on the
-> [lambda-2Gmu](https://github.com/Linyxus/extended-pdot-calculus/tree/lambda-2Gmu)
-> branch.
 
-![Extended pDOT Subtyping](assets/extended-pdot-subtyping.png)
 
-# Soundness Proof for Extended pDOT Calculus
+# Structure
 
-This repository contains type safety proof for the extended pDOT system,
-mechanized in Coq.
+- The `idot/` directory contains sources of the mechanization of the iDOT calculus.
+  The proof is an extension of [pDOT soundness proof](https://github.com/amaurremi/dot-calculus/tree/master/src/extensions/paths).
+- The `lambda2GMu/` directory contains sources of the mechanization of the Lambda2Gmu calculus and `lambda2GMu_annot/` contains sources of the variant with additional type annotations, as described in the paper.
+- The `translation/` directory contains lemmas related to the translation: the typing of the `lib` term and an example showing inversion of tuple equality using our added inversion rules.
 
-The calculus is extended with the following record subtyping inversion rules,
-which will facilitate the formalization of GADT reasoning in pDOT.
+## Building the proofs
+
+The proofs require Coq 8.13.0 and the TLC library. The easiest way to obtain them is to use OPAM:
 
 ```
-G ⊢ U1 <: U2
-U1 ↘ {A: S1..T1}
-U2 ↘ {A: S2..T2}
-_________________
-G ⊢ S2 <: S1
-
-G ⊢ U1 <: U2
-U1 ↘ {A: S1..T1}
-U2 ↘ {A: S2..T2}
-_________________
-G ⊢ T1 <: T2
+opam repo add coq-released http://coq.inria.fr/opam/released
+opam pin add coq 8.13.0
+opam install -j4 coq-tlc
 ```
 
-The relation `U ↘ {A: S..T}` states that `U` is an intersection type with all
-components being fields, type members or recursive types, the type labels are
-unique, and it has the type member `{A: S..T}`.
+Then, in each directory the proofs can be built using the `make` command.
 
-The proof is modified from [pDOT soundness
-proof](https://github.com/amaurremi/dot-calculus/tree/master/src/extensions/paths).
+The `translation` proofs rely on `idot`, so the `idot` directory should be built first before attempting to build `translation`.
+Similarly, `lambda2GMu_annot` depends on `lambda2GMu` so it also should be compiled in the proper order.
 
+The builds were tested on a Linux machine, running Ubuntu 18.04.6 LTS, but it should be possible to reproduce them on other systems as well - the details of retrieving the specific version of Coq may vary slightly.
