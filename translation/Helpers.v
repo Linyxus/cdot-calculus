@@ -1,3 +1,5 @@
+(* This file contains some helper tactics and lemmas showing properties of iDOT. *)
+
 Require Export Predefs.
 Require Export TLC.LibTactics.
 Require Export TLC.LibLN.

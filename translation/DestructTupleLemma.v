@@ -4,7 +4,6 @@ Exactly the same technique can be used for inverting equalities of GADTs, in fac
 *)
 Require Import Helpers.
 Require Import Library.
-Require Import TestHelpers.
 
 Lemma destruct_tuple_lemma : forall G TT A B C D,
     G ⊢ (pvar lib) ↓ Tuple =:= μ(TT) ->

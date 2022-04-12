@@ -7,5 +7,4 @@ Predefs.v
 Helpers.v
 Library.v
 Translation.v
-TestHelpers.v
 DestructTupleLemma.v
