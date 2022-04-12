@@ -194,7 +194,8 @@ Lemma sub_exfalso : forall G X Y,
     G ⊢ X <: Y.
 Proof.
   intros.
-  apply* subtyp_trans.
+  apply subtyp_trans with ⊥; auto.
+  apply subtyp_trans with ⊤; auto.
 Qed.
 
 Lemma eq_exfalso : forall G X Y,
@@ -206,16 +207,29 @@ Proof.
     apply~ sub_exfalso.
 Qed.
 
+Lemma member_is_subtyp : forall G X A T,
+    X ↘ {A == T} ->
+    G ⊢ X <: {A == T}.
+  destruct 1.
+  induction H; auto.
+  - apply subtyp_trans with U1; auto.
+  - apply subtyp_trans with U2; auto.
+Qed.
+
 Lemma eq_inv : forall G X1 X2 T1 T2 A,
     G ⊢ X1 =:= X2 ->
     X1 ↘ {A >: T1 <: T1} ->
     X2 ↘ {A >: T2 <: T2} ->
     G ⊢ T1 =:= T2.
 Proof.
-  introv [S1 S2]; intros.
+  introv [S1 S2] M1 M2.
+  lets~ MS1: member_is_subtyp G M1.
+  lets~ MS2: member_is_subtyp G M2.
+  lets~ : subtyp_trans S1 MS2.
+  lets~ : subtyp_trans S2 MS1.
   constructor.
-  - lets*: subtyp_rcd_inv1.
-  - lets*: subtyp_rcd_inv2.
+  - eapply subtyp_typ_inv2; eauto.
+  - eapply subtyp_typ_inv1; eauto.
 Qed.
 
 Lemma eq_inv_direct : forall G T1 T2 A,

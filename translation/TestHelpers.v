@@ -30,37 +30,37 @@ with lift_rec_dec (k: nat) (u: nat) (D: dec): dec :=
   | { a ⦂ T } => { a ⦂ lift_rec_typ k u T }
   end.
 
-Fixpoint lift_rec_trm (k: nat) (u: nat) (t: trm): trm :=
-  match t with
-  | trm_val v      => trm_val (lift_rec_val k u v)
-  | trm_path p     => trm_path (lift_rec_path k u p)
-  | trm_app p q    => trm_app (lift_rec_path k u p) (lift_rec_path k u q)
-  | trm_let t1 t2  => trm_let (lift_rec_trm k u t1) (lift_rec_trm (S k) u t2)
-  end
-with lift_rec_val (k: nat) (u: nat) (v: val): val :=
-  match v with
-  | ν(T)ds   => ν (lift_rec_typ (S k) u T) lift_rec_defs (S k) u ds
-  | λ(T) e  => λ(lift_rec_typ k u T) lift_rec_trm (S k) u e
-  end
-with lift_rec_def (k: nat) (u: nat) (d: def): def :=
-  match d with
-  | def_typ A T => def_typ A (lift_rec_typ k u T)
-  | { a := t } => { a := lift_rec_defrhs k u t }
-  end
-with lift_rec_defs (k: nat) (u: nat) (ds: defs): defs :=
-  match ds with
-  | defs_nil => defs_nil
-  | defs_cons tl d => defs_cons (lift_rec_defs k u tl) (lift_rec_def k u d)
-  end
-with lift_rec_defrhs (k: nat) (u: nat) (drhs: def_rhs) : def_rhs :=
-  match drhs with
-  | defp p => defp (lift_rec_path k u p)
-  | defv v => defv (lift_rec_val k u v)
-  end.
+(* Fixpoint lift_rec_trm (k: nat) (u: nat) (t: trm): trm := *)
+(*   match t with *)
+(*   | trm_val v      => trm_val (lift_rec_val k u v) *)
+(*   | trm_path p     => trm_path (lift_rec_path k u p) *)
+(*   | trm_app p q    => trm_app (lift_rec_path k u p) (lift_rec_path k u q) *)
+(*   | trm_let t1 t2  => trm_let (lift_rec_trm k u t1) (lift_rec_trm (S k) u t2) *)
+(*   end *)
+(* with lift_rec_val (k: nat) (u: nat) (v: val): val := *)
+(*   match v with *)
+(*   | ν[p ↘ A](T)ds   => ν[p ↘ A] (lift_rec_typ (S k) u T) lift_rec_defs (S k) u ds *)
+(*   | λ(T) e  => λ(lift_rec_typ k u T) lift_rec_trm (S k) u e *)
+(*   end *)
+(* with lift_rec_def (k: nat) (u: nat) (d: def): def := *)
+(*   match d with *)
+(*   | def_typ A T => def_typ A (lift_rec_typ k u T) *)
+(*   | { a := t } => { a := lift_rec_defrhs k u t } *)
+(*   end *)
+(* with lift_rec_defs (k: nat) (u: nat) (ds: defs): defs := *)
+(*   match ds with *)
+(*   | defs_nil => defs_nil *)
+(*   | defs_cons tl d => defs_cons (lift_rec_defs k u tl) (lift_rec_def k u d) *)
+(*   end *)
+(* with lift_rec_defrhs (k: nat) (u: nat) (drhs: def_rhs) : def_rhs := *)
+(*   match drhs with *)
+(*   | defp p => defp (lift_rec_path k u p) *)
+(*   | defv v => defv (lift_rec_val k u v) *)
+(*   end. *)
 
-Definition shift1_typ (t : typ) : typ := lift_rec_typ 0 1 t.
-Definition shift1_trm (t : trm) : trm := lift_rec_trm 0 1 t.
-Definition shift1_p (p : path) : path := lift_rec_path 0 1 p.
+(* Definition shift1_typ (t : typ) : typ := lift_rec_typ 0 1 t. *)
+(* Definition shift1_trm (t : trm) : trm := lift_rec_trm 0 1 t. *)
+(* Definition shift1_p (p : path) : path := lift_rec_path 0 1 p. *)
 
 Coercion trm_path : path >-> trm.
 
@@ -122,31 +122,31 @@ Ltac var_subtyp_bind :=
   [ apply ty_var; solve_bind
   | solve_subtyp_and].
 
-Definition make_fun_apply (f : trm) (arg : trm) (withlet : bool) : trm :=
-  let wrap t :=
-      if withlet then (let_trm t) else t in
-  match f with
-  | trm_path pf =>
-    match arg with
-    | trm_path pa =>
-      wrap (trm_app pf pa)
-    | _ =>
-      trm_let arg (wrap (trm_app (shift1_p pf) this))
-    end
-  | _ =>
-    trm_let
-      f
-      (trm_let (shift1_trm arg)
-               (wrap (trm_app super this))
-      )
-  end.
+(* Definition make_fun_apply (f : trm) (arg : trm) (withlet : bool) : trm := *)
+(*   let wrap t := *)
+(*       if withlet then (let_trm t) else t in *)
+(*   match f with *)
+(*   | trm_path pf => *)
+(*     match arg with *)
+(*     | trm_path pa => *)
+(*       wrap (trm_app pf pa) *)
+(*     | _ => *)
+(*       trm_let arg (wrap (trm_app (shift1_p pf) this)) *)
+(*     end *)
+(*   | _ => *)
+(*     trm_let *)
+(*       f *)
+(*       (trm_let (shift1_trm arg) *)
+(*                (wrap (trm_app super this)) *)
+(*       ) *)
+(*   end. *)
 
-Notation "f $ a" := (make_fun_apply f a false) (at level 42).
-Notation "f $$ a" := (make_fun_apply f a true) (at level 42).
+(* Notation "f $ a" := (make_fun_apply f a false) (at level 42). *)
+(* Notation "f $$ a" := (make_fun_apply f a true) (at level 42). *)
 
-Definition TLgen (T : typ) : trm :=
-  let inner := shift1_typ T in
-  let_trm (ν({GenT == inner}) {( {GenT ⦂= inner} )}).
+(* Definition TLgen (T : typ) : trm := *)
+(*   let inner := shift1_typ T in *)
+(*   let_trm (ν({GenT == inner}) {( {GenT ⦂= inner} )}). *)
 
 Ltac invert_label :=
   match goal with

@@ -1,6 +1,9 @@
 -R . Top
 -R ../idot/ ""
+-R ../lambda2Gmu GMu
+-R ../lambda2Gmu_annotated GMuAnnot
 
+Predefs.v
 Helpers.v
 Library.v
 TestHelpers.v
@@ -8,3 +11,4 @@ TestEqualityEnv.v
 TestEquality.v
 TestEquality2.v
 TestEquality3.v
+DestructTupleLemma.v
