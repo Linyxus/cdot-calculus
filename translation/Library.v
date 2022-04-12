@@ -93,16 +93,17 @@ Definition libInternalType (unitRef : path) :=
 
 Definition libTrm : Target.trm :=
   (let_trm
-    (ν[ref 0 ↘ Any](libInternalType (ref 1)) {(
+     (ν[ref 0 ↘ Any](libInternalType (ref 1)) {(
+                           { Any ⦂= ⊤ },
                            { Unit ⦂= { Unit >: ⊥ <: ⊤ } },
                            { Tuple ⦂= tupleTyp },
-                           { mkUnit := ν[ref 0 ↘ Unit]({ Unit == ⊤ }) {( {Unit ⦂= ⊤} )} },
+                           { mkUnit := ν[ref 1 ↘ Unit]({ Unit == ⊤ }) {( {Unit ⦂= ⊤} )} },
                            { mkTuple :=
                                λ ({ T1 >: ⊥ <: ⊤} ∧ { T2 >: ⊥ <: ⊤ })
                                  λ ((ref 0) ↓ T1)
                                  λ ((ref 1) ↓ T2)
                                  let_trm (
-                                   ν[ref 3 ↘ Tuple](internalTupleTyp)
+                                   ν[ref 4 ↘ Tuple](internalTupleTyp)
                                     {(
                                         {T1 ⦂= (ref 3) ↓ T1},
                                         {T2 ⦂= (ref 3) ↓ T2},
@@ -155,77 +156,135 @@ Proof.
   unfold libInternalType.
   cbn.
 
-  unfold libPreTypeHelp.
-  unfold libInternalType.
-  apply ty_new_intro.
-  1: {
-    let F := gather_vars in
-    apply ty_let with F (μ { Unit == ⊤ }).
-    - apply_fresh ty_new_intro as u.
-      crush.
-    - intros u Fru.
-      crush.
-      apply ty_sub with {Unit == ⊤}.
-      + assert (HU: typ_rcd {Unit == ⊤} = open_typ_p (pvar u) {Unit == ⊤}) by crush.
-        rewrite HU.
-        apply ty_rec_elim.
-        apply~ ty_var.
-      + apply~ subtyp_typ.
+  apply_fresh ty_new_intro as selfLib;
+    cbn; repeat case_if; cleanup.
+  2: {
+    var_subtyp2.
+    apply subtyp_trans with ⊤; auto.
+    eapply subtyp_sel2.
+    var_subtyp2. solve_subtyp_and.
   }
 
-  intros u Fru.
-  crush.
-  let F := gather_vars in
-  apply ty_let with F (μ libInternalType (pvar u)).
-  - cbv.
-    apply_fresh ty_new_intro as z.
-    crush.
-    repeat apply ty_defs_cons; try apply ty_defs_one.
-    + apply ty_def_typ.
-    + apply ty_def_typ.
-    + crush. destructs diff. false.
-    + apply~ ty_def_path.
-    + crush.
-    + apply ty_def_all.
-      apply_fresh ty_all_intro as tl.
-      apply_fresh ty_all_intro as x1.
-      apply_fresh ty_all_intro as x2.
-      cbv. repeat case_if.
-      clear - Frz Frtl Frx1 Frx2.
-      eapply ty_let.
-      * apply_fresh ty_new_intro as w.
-        crush.
-        repeat apply ty_defs_cons; try apply ty_defs_one;
-          auto; try crush.
-        -- inversion C. destructs diff. false.
-        -- apply~ ty_def_path.
-        -- apply~ ty_def_path.
-        -- inversion C. destructs diff. false.
+  repeat constructor; crush;
+    try solve [inversions C; lets*: diff].
+  - inversions C0; lets*: diff.
+  - apply ty_def_new with (pvar selfLib); cbn; auto.
+    apply ty_sub with {Unit == ⊤}.
+    + assert (HR: typ_rcd {Unit == ⊤} = open_typ_p (p_sel (avar_f selfLib) [mkUnit]) {Unit == ⊤}) by crush;
+        rewrite HR; clear HR.
+      apply ty_rec_elim.
+      assert (HR: (trm_path (pvar selfLib) • mkUnit) = trm_path (p_sel (avar_f selfLib) [mkUnit])) by crush;
+        rewrite <- HR; clear HR.
+      apply ty_new_elim.
+      cbn.
+      var_subtyp2. solve_subtyp_and.
+    + eapply subtyp_sel2.
+      var_subtyp2.
+      eapply subtyp_trans; try apply subtyp_and11.
+      eapply subtyp_trans; try apply subtyp_and11.
+      eapply subtyp_trans; try apply subtyp_and11.
+      eapply subtyp_trans; try apply subtyp_and12.
+      apply~ subtyp_typ.
+  - apply_fresh ty_all_intro as tl.
+    apply_fresh ty_all_intro as x1.
+    apply_fresh ty_all_intro as x2.
+    cbv; repeat case_if; cleanup.
+    (* match goal with *)
+    (* | [ _: _ |- ?G1 ⊢ ?t : ?T ] => *)
+    (*   assert (HTUP: forall tup, *)
+    (*       G1 & tup ~ *)
+    (*         ((({T1 == pvar tl ↓ T1} ∧ {T2 == pvar tl ↓ T2}) ∧ {fst_v ⦂ {{pvar x1}}}) *)
+    (*          ∧ {snd_v ⦂ {{pvar x2}}}) ⊢ tvar tup *)
+    (*       : μ (({T1 >: ⊥ <: ⊤} ∧ {T2 >: ⊥ <: ⊤}) ∧ {fst_v ⦂ this ↓ T1}) ∧ {snd_v ⦂ this ↓ T2} *)
+    (*     ) *)
+    (* end. *)
+    eapply ty_let.
+    + apply_fresh ty_new_intro as w.
+      crush.
+      repeat apply ty_defs_cons; try apply ty_defs_one;
+        auto; try crush;
+          try solve [inversion C; lets*: diff].
+      * apply~ ty_def_path.
+      * apply~ ty_def_path.
       * crush.
-        let F := gather_vars in
-        intros tup Frtup;
-          instantiate (1:=F) in Frtup.
-        repeat apply ty_and_intro.
-        -- eapply ty_sub with (μ (({T1 >: ⊥ <: ⊤} ∧ {T2 >: ⊥ <: ⊤}) ∧ {fst_v ⦂ this ↓ T1}) ∧ {snd_v ⦂ this ↓ T2}).
-           ++ apply ty_rec_intro.
-              crush.
-              repeat apply ty_and_intro.
-              ** match goal with
-                 | [ |- context[tup ~ μ ?T] ] =>
-                   apply ty_sub with T
-                 end.
-                 --- match goal with
-                     | [ |- ?G ⊢ tvar tup : ?T ] =>
-                       assert (Hre: T = open_typ_p (pvar tup) T) by (cbn; auto);
-                         rewrite Hre;
-                         clear Hre
-                     end.
-                     apply ty_rec_elim. cbn. apply~ ty_var.
-                 --- eapply subtyp_trans; try apply subtyp_and11.
+        apply ty_sub with (μ (({T1 >: ⊥ <: ⊤} ∧ {T2 >: ⊥ <: ⊤}) ∧ {fst_v ⦂ this ↓ T1}) ∧ {snd_v ⦂ this ↓ T2}).
+        -- apply ty_rec_intro.
+           crush.
+           repeat apply ty_and_intro.
+           ** var_subtyp2.
+              solve_subtyp_and.
+              apply~ subtyp_typ.
+           ** var_subtyp2.
+              eapply subtyp_trans; try apply subtyp_and11.
+              eapply subtyp_trans; try apply subtyp_and11.
+              eapply subtyp_trans; try apply subtyp_and12.
+              apply~ subtyp_typ.
+           ** apply ty_rcd_intro.
+              apply ty_sngl with (pvar x1).
+              --- apply ty_new_elim.
+                  var_subtyp2.
+                  eapply subtyp_trans; try apply subtyp_and11.
+                  apply subtyp_and12.
+              --- apply ty_sub with (pvar tl ↓ T1); auto.
+                  eapply subtyp_sel2.
+                  var_subtyp2.
+                  eapply subtyp_trans; try apply subtyp_and11.
+                  eapply subtyp_trans; apply subtyp_and11.
+           ** apply ty_rcd_intro.
+              apply ty_sngl with (pvar x2).
+              --- apply ty_new_elim.
+                  var_subtyp2.
+                  apply subtyp_and12.
+              --- apply ty_sub with (pvar tl ↓ T2); auto.
+                  eapply subtyp_sel2.
+                  var_subtyp2.
+                  eapply subtyp_trans; try apply subtyp_and11.
+                  eapply subtyp_trans; try apply subtyp_and11.
+                  eapply subtyp_trans; try apply subtyp_and12.
+                  auto.
+        -- eapply subtyp_sel2.
+           var_subtyp2.
+           eapply subtyp_trans; try apply subtyp_and11.
+           eapply subtyp_trans; try apply subtyp_and11.
+           apply subtyp_and12.
+    + crush.
+      let F := gather_vars in
+      intros tup Frtup;
+        instantiate (1:=F) in Frtup.
+      repeat apply ty_and_intro.
+      * eapply ty_sub with (μ (({T1 >: ⊥ <: ⊤} ∧ {T2 >: ⊥ <: ⊤}) ∧ {fst_v ⦂ this ↓ T1}) ∧ {snd_v ⦂ this ↓ T2}).
+        -- apply ty_rec_intro.
+           crush.
+           repeat apply ty_and_intro.
+           ++ var_subtyp_mu2.
+              eapply subtyp_trans; try apply subtyp_and11.
+              eapply subtyp_trans; try apply subtyp_and11.
+              eapply subtyp_trans; try apply subtyp_and11.
+              apply~ subtyp_typ.
+           ++ var_subtyp_mu2.
+              eapply subtyp_trans; try apply subtyp_and11.
+              eapply subtyp_trans; try apply subtyp_and11.
+              eapply subtyp_trans; try apply subtyp_and12.
+              apply~ subtyp_typ.
+           ++ apply ty_rcd_intro.
+              apply ty_sngl with (pvar x1).
+              ** apply ty_new_elim.
+                 var_subtyp_mu2.
+                 eapply subtyp_trans; try apply subtyp_and11.
+                 apply subtyp_and12.
+              ** apply ty_sub with (pvar tl ↓ T1).
+                 --- auto.
+                 --- eapply subtyp_sel2.
+                     var_subtyp_mu2.
                      eapply subtyp_trans; try apply subtyp_and11.
                      eapply subtyp_trans; try apply subtyp_and11.
-                     apply~ subtyp_typ.
-              ** match goal with
+           ++ apply ty_rcd_intro.
+              apply ty_sngl with (pvar x2).
+              ** apply ty_new_elim.
+                 var_subtyp_mu2.
+              ** apply ty_sub with (pvar tl ↓ T2); auto.
+                 eapply subtyp_sel2.
+                 match goal with
                  | [ |- context[tup ~ μ ?T] ] =>
                    apply ty_sub with T
                  end.
@@ -239,163 +298,17 @@ Proof.
                  --- eapply subtyp_trans; try apply subtyp_and11.
                      eapply subtyp_trans; try apply subtyp_and11.
                      eapply subtyp_trans; try apply subtyp_and12.
-                     apply~ subtyp_typ.
-              ** apply ty_rcd_intro.
-                 apply ty_sngl with (pvar x1).
-                 --- apply ty_new_elim.
-                     match goal with
-                     | [ |- context[tup ~ μ ?T] ] =>
-                       apply ty_sub with T
-                     end.
-                     +++ match goal with
-                         | [ |- ?G ⊢ tvar tup : ?T ] =>
-                           assert (Hre: T = open_typ_p (pvar tup) T) by (cbn; auto);
-                             rewrite Hre;
-                             clear Hre
-                         end.
-                         apply ty_rec_elim. cbn. apply~ ty_var.
-                     +++ eapply subtyp_trans; try apply subtyp_and11.
-                         eapply subtyp_trans; try apply subtyp_and12.
-                         apply subtyp_refl.
-                 --- apply ty_sub with (pvar tl ↓ T1).
-                     +++ auto.
-                     +++ eapply subtyp_sel2.
-                         match goal with
-                         | [ |- context[tup ~ μ ?T] ] =>
-                           apply ty_sub with T
-                         end.
-                         *** match goal with
-                             | [ |- ?G ⊢ tvar tup : ?T ] =>
-                               assert (Hre: T = open_typ_p (pvar tup) T) by (cbn; auto);
-                                 rewrite Hre;
-                                 clear Hre
-                             end.
-                             apply ty_rec_elim. cbn. apply~ ty_var.
-                         *** eapply subtyp_trans; try apply subtyp_and11.
-                             eapply subtyp_trans; try apply subtyp_and11.
-              ** apply ty_rcd_intro.
-                 apply ty_sngl with (pvar x2).
-                 --- apply ty_new_elim.
-                     match goal with
-                     | [ |- context[tup ~ μ ?T] ] =>
-                       apply ty_sub with T
-                     end.
-                     +++ match goal with
-                         | [ |- ?G ⊢ tvar tup : ?T ] =>
-                           assert (Hre: T = open_typ_p (pvar tup) T) by (cbn; auto);
-                             rewrite Hre;
-                             clear Hre
-                         end.
-                         apply ty_rec_elim. cbn. apply~ ty_var.
-                     +++ eapply subtyp_trans; try apply subtyp_and12.
-                         apply subtyp_refl.
-                 --- apply ty_sub with (pvar tl ↓ T2).
-                     +++ auto.
-                     +++ eapply subtyp_sel2.
-                         match goal with
-                         | [ |- context[tup ~ μ ?T] ] =>
-                           apply ty_sub with T
-                         end.
-                         *** match goal with
-                             | [ |- ?G ⊢ tvar tup : ?T ] =>
-                               assert (Hre: T = open_typ_p (pvar tup) T) by (cbn; auto);
-                                 rewrite Hre;
-                                 clear Hre
-                             end.
-                             apply ty_rec_elim. cbn. apply~ ty_var.
-                         *** eapply subtyp_trans; try apply subtyp_and11.
-                             eapply subtyp_trans; try apply subtyp_and11.
-                             eapply subtyp_trans; try apply subtyp_and12.
-                             auto.
-           ++ eapply subtyp_sel2.
-              match goal with
-              | [ |- context [z ~ ?T] ] =>
-                apply ty_sub with T
-              end.
-              ** apply~ ty_var.
-              ** eapply subtyp_trans; try apply subtyp_and11.
-                 eapply subtyp_trans; try apply subtyp_and11.
-                 apply subtyp_and12.
-        -- apply ty_sub with (({T1 == pvar tl ↓ T1} ∧ {T2 == pvar tl ↓ T2}) ∧ {fst_v ⦂ {{pvar x1}}} ∧ {snd_v ⦂ {{pvar x2}}}).
-           ++ match goal with
-              | [ |- ?G ⊢ tvar tup : ?T ] =>
-                assert (Hre: T = open_typ_p (pvar tup) T) by (cbn; auto);
-                  rewrite Hre;
-                  clear Hre
-              end.
-              apply ty_rec_elim.
-              cbn in *.
-              apply ty_var. auto.
-           ++ repeat (eapply subtyp_trans; try apply subtyp_and11).
-        -- apply ty_sub with (({T1 == pvar tl ↓ T1} ∧ {T2 == pvar tl ↓ T2}) ∧ {fst_v ⦂ {{pvar x1}}} ∧ {snd_v ⦂ {{pvar x2}}}).
-           ++ match goal with
-              | [ |- ?G ⊢ tvar tup : ?T ] =>
-                assert (Hre: T = open_typ_p (pvar tup) T) by (cbn; auto);
-                  rewrite Hre;
-                  clear Hre
-              end.
-              apply ty_rec_elim.
-              cbn in *.
-              apply ty_var. auto.
-           ++ eapply subtyp_trans; try apply subtyp_and11.
-              eapply subtyp_trans; try apply subtyp_and11.
-              apply subtyp_and12.
-    + crush.
-      inversion C17. destructs diff. false.
-  - intros x Frx.
-    cbv. crush.
-    apply ty_rec_intro.
-    crush.
-    repeat apply ty_and_intro.
-    + match goal with
-      | [ |- context [ x ~ (μ ?B) ] ] =>
-        apply ty_sub with (open_typ_p (pvar x) B)
-      end.
-      * apply~ ty_rec_elim.
-      * crush.
-        eapply subtyp_trans; try apply subtyp_and11.
-        eapply subtyp_trans; try apply subtyp_and11.
-        eapply subtyp_trans; try apply subtyp_and11.
-        apply~ subtyp_typ.
-    + match goal with
-      | [ |- context [ x ~ (μ ?B) ] ] =>
-        apply ty_sub with (open_typ_p (pvar x) B)
-      end.
-      * apply~ ty_rec_elim.
-      * crush.
-        eapply subtyp_trans; try apply subtyp_and11.
-        eapply subtyp_trans; try apply subtyp_and11.
-        eapply subtyp_trans; try apply subtyp_and12.
-        apply~ subtyp_refl.
-    + apply ty_rcd_intro.
-      apply ty_sngl with (pvar u).
-      * apply ty_new_elim.
-        match goal with
-        | [ |- context [ x ~ (μ ?B) ] ] =>
-          apply ty_sub with (open_typ_p (pvar x) B)
-        end.
-        -- apply~ ty_rec_elim.
-        -- crush.
+                     auto.
+        -- eapply subtyp_sel2.
+           var_subtyp2.
+           eapply subtyp_trans; try apply subtyp_and11.
            eapply subtyp_trans; try apply subtyp_and11.
            eapply subtyp_trans; try apply subtyp_and12.
-           apply subtyp_refl.
-      * apply ty_sub with ({Unit >: ⊥ <: ⊤}).
-        -- auto.
-        -- eapply subtyp_sel2.
-           match goal with
-           | [ |- context [ x ~ (μ ?B) ] ] =>
-             apply ty_sub with (open_typ_p (pvar x) B)
-           end.
-           ++ apply~ ty_rec_elim.
-           ++ crush.
-              eapply subtyp_trans; try apply subtyp_and11.
-              eapply subtyp_trans; try apply subtyp_and11.
-    + match goal with
-      | [ |- context [ x ~ (μ ?B) ] ] =>
-        apply ty_sub with (open_typ_p (pvar x) B)
-      end.
-      ++ apply~ ty_rec_elim.
-      ++ crush.
+           auto.
+      * var_subtyp_mu2.
+        solve_subtyp_and.
+      * var_subtyp_mu2.
+        solve_subtyp_and.
 Qed.
 
 Definition TupleT (TT1 TT2 : Target.typ) : Target.typ :=

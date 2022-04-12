@@ -6,9 +6,6 @@
 Predefs.v
 Helpers.v
 Library.v
+Translation.v
 TestHelpers.v
-TestEqualityEnv.v
-TestEquality.v
-TestEquality2.v
-TestEquality3.v
 DestructTupleLemma.v
