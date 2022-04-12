@@ -240,3 +240,85 @@ Proof.
   lets*: eq_inv EQ.
 Qed.
 
+Ltac cleanup :=
+  repeat
+    match goal with
+    | [ H: ?x <> ?y |- _ ] => clear H
+    | [ H: ?x = ?y |- _ ] =>
+      match x with
+      | y => clear H
+      end
+    end.
+
+Ltac var_subtyp :=
+  match goal with
+  | [ |- ?G ⊢ tvar ?x : ?T ] =>
+    match goal with
+    | [ |- context [x ~ ?BT] ] =>
+      apply ty_sub with BT
+    end
+  end.
+
+Ltac solve_bind :=
+  repeat progress (
+           lazymatch goal with
+           | |- binds ?Var ?What (?Left & ?Right) =>
+    match goal with
+    | |- binds Var What (Left & Var ~ ?Sth) =>
+      apply~ binds_concat_right; apply~ binds_single_eq
+    | _ => apply~ binds_concat_left
+    end
+           end).
+Ltac subsel2 :=
+  match goal with
+  | [ |- ?G ⊢ ?A <: ?B ] =>
+    apply subtyp_sel2 with A
+  end.
+
+Ltac subsel1 :=
+  match goal with
+  | [ |- ?G ⊢ ?A <: ?B ] =>
+    apply subtyp_sel1 with B
+  end.
+
+Ltac solve_subtyp_and :=
+repeat
+  match goal with
+  | [ |- ?G ⊢ ?A ∧ ?B <: ?C ] =>
+    match B with
+    | C =>
+      apply subtyp_and12
+    | _ =>
+      eapply subtyp_trans; try apply subtyp_and11
+    end
+  end.
+
+Ltac var_subtyp_bind :=
+  var_subtyp;
+  [ apply ty_var; solve_bind
+  | solve_subtyp_and].
+
+Ltac invert_label :=
+  match goal with
+  | [ H: label_typ ?A = label_typ ?B |- _ ] =>
+    inversion H
+  | [ H: label_trm ?A = label_trm ?B |- _ ] =>
+    inversion H
+  end.
+Ltac var_subtyp_mu :=
+  match goal with
+  | [ |- ?G ⊢ tvar ?x : ?T ] =>
+    match goal with
+    | [ |- context [x ~ μ ?BT] ] =>
+      apply ty_sub with (open_typ_p (pvar x) BT)
+    end
+  end.
+Ltac var_subtyp_mu2 :=
+  var_subtyp_mu; [
+    apply ty_rec_elim; apply ty_var; solve_bind
+  | crush
+  ].
+Ltac var_subtyp2 :=
+  var_subtyp; [
+    apply ty_var; solve_bind
+  | idtac ].
