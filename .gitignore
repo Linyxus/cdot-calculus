@@ -13,4 +13,4 @@ doc/graph.png
 CoqMakefile.conf
 Makefile.conf
 .Makefile.coq.d
-
+.Makefile.d

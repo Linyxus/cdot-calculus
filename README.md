@@ -2,7 +2,7 @@
 
 # Structure
 
-- The `idot/` directory contains sources of the mechanization of the iDOT calculus.
+- The `cdot/` directory contains sources of the mechanization of the iDOT calculus.
   The proof is an extension of [pDOT soundness proof](https://github.com/amaurremi/dot-calculus/tree/master/src/extensions/paths).
 - The `lambda2GMu/` directory contains sources of the mechanization of the Lambda2Gmu calculus and `lambda2GMu_annotated/` contains sources of the variant with additional type annotations, as described in the paper.
 - The `translation/` directory contains lemmas related to the translation: the typing of the `lib` term and an example showing inversion of tuple equality using our added inversion rules.
@@ -19,7 +19,7 @@ opam install -j4 coq-tlc
 
 Then, in each directory the proofs can be built using the `make` command.
 
-The `translation` proofs rely on `idot`, so the `idot` directory should be built first before attempting to build `translation`.
+The `translation` proofs rely on `cdot`, so the `cdot` directory should be built first before attempting to build `translation`.
 Similarly, `lambda2GMu_annotated` depends on `lambda2GMu` so it also should be compiled in the proper order.
 
 The builds were tested on a Linux machine, running Ubuntu 18.04.6 LTS, but it should be possible to reproduce them on other systems as well - the details of retrieving the specific version of Coq may vary slightly.

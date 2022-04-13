@@ -1,5 +1,5 @@
 -R . Top
--R ../idot/ ""
+-R ../cdot/ ""
 -R ../lambda2Gmu GMu
 -R ../lambda2Gmu_annotated GMuAnnot
 
