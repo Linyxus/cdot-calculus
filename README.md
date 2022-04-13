@@ -22,4 +22,4 @@ Then, in each directory the proofs can be built using the `make` command.
 The `translation` proofs rely on `cdot`, so the `cdot` directory should be built first before attempting to build `translation`.
 Similarly, `lambda2GMu_annotated` depends on `lambda2GMu` so it also should be compiled in the proper order.
 
-The builds were tested on a Linux machine, running Ubuntu 18.04.6 LTS, but it should be possible to reproduce them on other systems as well - the details of retrieving the specific version of Coq may vary slightly.
+The builds were tested on a Linux machine, running Ubuntu 18.04.6 LTS and on macOS (12.3.1), but it should be possible to reproduce them on other systems as well - the details of retrieving the specific version of Coq may vary slightly.
