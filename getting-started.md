@@ -38,5 +38,7 @@ cd cdot/
 make
 ```
 
+The translation proofs rely on cdot, so the cdot directory should be built first before attempting to build translation. Similarly, lambda2GMu_annotated depends on lambda2GMu so it also should be compiled in the proper order.
+
 If `make` exits without error, the proof is compiled successfully.
 
