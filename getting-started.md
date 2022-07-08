@@ -12,14 +12,14 @@ This is the Coq proof artifacts of the paper /A case for DOT: Theoretical Founda
 To compile the proof, the following softwares and libraries are needed.
 
 - Coq 8.13.0
+
 - TLC library
 
-There are two ways to setup these requirements, even with OPAM or using a Docker container.
+There are two ways to setup these requirements, using either OPAM or Docker.
 
 ### Setting up with OPAM
 
-The easiest way is to use OPAM.
-
+This requires you to install OPAM first. After properly setting up OPAM, run the following commands to install the prerequisites:
 ```
 opam repo add coq-released http://coq.inria.fr/opam/released
 opam pin add coq 8.13.0
@@ -28,17 +28,25 @@ opam install -j4 coq-tlc
 
 ### Using a Docker container
 
-TODO
+We have built a Docker image containing all necessary prerequisites and pushed it to [Docker Hub](https://hub.docker.com/r/linyxus/cdot-artifact-env).
+
+To use this image, you should first install Docker if it is not installed yet. Then, you can launch a container using this image with the following command:
+```
+docker run -it --rm linyxus/cdot-artifact-env
+```
+You will be attached to the shell of the container after the image gets pulled and the container is launched. In the shell, you will be in a Git respository of our proof artifact, with all prerequisites in the environment. You can now compile the proof artifacts following the instructions in the next section.
+
+The docker image is built on the Coq docker [image](https://hub.docker.com/r/coqorg/coq/).
 
 ## Compiling the Proof
 
-We provide a Makefile for each part of our proof. To compile them, `cd` to the corresponding directory and execute `make`. For example, to compile the mechanization of cDOT calculus, assuming that you are at the root directory of our artifact:
+We provide a Makefile for each part of our proof. The translation proofs rely on `cdot` and `lambda2GMu_annotated`, and `lambda2GMu_annotated` itself relies on `lambda2GMu`. So the proof artifacts have to be compiled in the proper order.
+
+To compile each of them, `cd` to the corresponding directory and execute `make`. For example, to compile the mechanization of cDOT calculus, assuming that you are at the root directory of our artifact:
 ```
 cd cdot/
 make
 ```
-
-The translation proofs rely on cdot, so the cdot directory should be built first before attempting to build translation. Similarly, lambda2GMu_annotated depends on lambda2GMu so it also should be compiled in the proper order.
 
 If `make` exits without error, the proof is compiled successfully.
 
