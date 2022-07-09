@@ -1,6 +1,6 @@
 # Getting Started Guide
 
-This is the Coq proof artifacts of the paper /A case for DOT: Theoretical Foundations for Objects With Pattern Matching and GADT-style Reasoning/. It consists of the following parts:
+This is the Coq proof artifacts of the paper *A case for DOT: Theoretical Foundations for Objects With Pattern Matching and GADT-style Reasoning*. It consists of the following parts:
 
 - The `cdot/` directory contains sources of the mechanization of the cDOT calculus.
   The proof is an extension of [pDOT soundness proof](https://github.com/amaurremi/dot-calculus/tree/master/src/extensions/paths).
