@@ -1439,11 +1439,9 @@ Lemma canonical_forms_obj : forall γ G p r0 A T U ds,
     G ⊢ trm_path p : U ->
     G ⊢ trm_path p : open_path_p p r0 ↓ A.
 Proof.
-  Check lookup_preservation_prec2_obj.
   introv Hin Hwf Hwt Hl Hp.
   lets Hppp: (pt3_exists Hin Hp). destruct Hppp as [U' Hppp].
   lets Hpp: (pt2_exists Hppp). destruct Hpp as [U'' Hpp].
-  Check lookup_preservation_prec2_obj.
   lets Hlp: (lookup_preservation_prec2_obj Hin Hwf Hwt Hl Hpp).
   auto.
 Qed.
