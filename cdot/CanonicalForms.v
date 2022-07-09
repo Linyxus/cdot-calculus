@@ -1522,3 +1522,16 @@ Proof.
       apply repl_intro_sngl.
 Qed.
 
+Lemma tag_resolution: forall γ G p q A r0 T ds U,
+  inert G ->
+  wf G ->
+  γ ⫶ G ->
+  γ ⟦ defp p ⤳* defv (ν[r0↘A](T)ds) ⟧ ->
+  G ⊢ trm_path p : U ->
+  q = open_path_p p r0 ->
+  exists v r, γ ⟦ defp q ⤳* defp r ⟧ /\ γ ⟦ r ⤳ defv v ⟧.
+Proof.
+  introv Hin Hwf Hwt Hl Hp Hq.
+  lets Hc: (canonical_forms_obj Hin Hwf Hwt Hl Hp).
+  rewrite <- Hq in Hc. apply* resolve_typeable_path_sel.
+Qed.
