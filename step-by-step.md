@@ -46,17 +46,17 @@ The mechanization of cDOT is in the `cdot/` directory. Based on the [soundness p
 
 #### Theorems
 
-| Theorem                                    | Artifact File            | Name                  |
-| ------------------------------------------ | ------------------------ | --------------------- |
-| Theorem 4.1 (Type Safety)                  | cdot/Safety.v            | `safety`              |
-| Theorem 4.2 (Preservation)                 | cdot/Safety.v            | `preservation`        |
-| Theorem 4.3 (Progress)                     | cdot/Safety.v            | `progress`            |
-| Lemma 4.1 (Tag Resolution)                 | cdot/CanonicalForms.v    | `tag_resolution`      |
-| Lemma 4.2 (Field Inversion)                | cdot/GADTRules.v         | `invert_subtyp_fld_t` |
-| Lemma 4.3 (Type Member Inversion)          | cdot/GADTRules.v         | `invert_subtyp_rcd_t` |
-| Lemma 4.4 ($<:_{\#}$ to $<:_{\#\#}$)       | cdot/SemanticSubtyping.v | `tight_to_semantic`   |
-| Lemma 4.5 ($<:_{\#\#}$ to $<:_{\#}$)       | cdot/SemanticSubtyping.v | `semantic_to_tight`   |
-| Lemma 4.6 (Field Inversion in $<:_{\#\#}$) | cdot/GADTRules.v         | `invert_subtyp_fld_s` |
+| Theorem                             | Artifact File            | Name                  |
+| ----------------------------------- | ------------------------ | --------------------- |
+| Theorem 4.1 (Type Safety)           | cdot/Safety.v            | `safety`              |
+| Theorem 4.2 (Preservation)          | cdot/Safety.v            | `preservation`        |
+| Theorem 4.3 (Progress)              | cdot/Safety.v            | `progress`            |
+| Lemma 4.1 (Tag Resolution)          | cdot/CanonicalForms.v    | `tag_resolution`      |
+| Lemma 4.2 (Field Inversion)         | cdot/GADTRules.v         | `invert_subtyp_fld_t` |
+| Lemma 4.3 (Type Member Inversion)   | cdot/GADTRules.v         | `invert_subtyp_rcd_t` |
+| Lemma 4.4 (<:# to <:##)             | cdot/SemanticSubtyping.v | `tight_to_semantic`   |
+| Lemma 4.5 (<:## to <:#)             | cdot/SemanticSubtyping.v | `semantic_to_tight`   |
+| Lemma 4.6 (Field Inversion in <:##) | cdot/GADTRules.v         | `invert_subtyp_fld_s` |
 
 ### $\lambda_{2,G\mu}$ Calculus
 
@@ -85,5 +85,3 @@ The `translation/` directory contains the formalization of our encoding. It cont
 | The `lib`               | Page 26 | translation/Library.v            | `libTrm`               |
 | Lemma A.2               | Page 28 | translation/Library.v            | `libTypes`             |
 | Tuple inversion example |         | translation/DestructTupleLemma.v | `destruct_tuple_lemma` |
-
-
