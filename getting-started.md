@@ -36,7 +36,7 @@ docker run -it --rm linyxus/cdot-artifact-env
 ```
 You will be attached to the shell of the container after the image gets pulled and the container is launched. In the shell, you will be in a Git repository of our proof artifact, with all prerequisites in the environment. You can now compile the proof artifacts following the instructions in the next section.
 
-The docker image is built on the Coq docker [image](https://hub.docker.com/r/coqorg/coq/). We use [this Dockerfile](https://github.com/Linyxus/cdot-calculus/blob/paper/Dockerfile) to build the image. Compared to the publicly available Coq image, our image have the TLC library pre-installed and have the Git respository of our proof artifacts.
+The docker image is built on the Coq docker [image](https://hub.docker.com/r/coqorg/coq/). We use [this Dockerfile](https://github.com/Linyxus/cdot-calculus/blob/paper/Dockerfile) to build the image. Compared to the publicly available Coq image, our image have the TLC library pre-installed and have the Git repository of our proof artifacts.
 
 ## Compiling the Proof
 
