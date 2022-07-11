@@ -355,7 +355,7 @@ Proof.
   - auto.
 Qed.
 
-(** **** Preservation (Lemma 5.4) *)
+(** **** Preservation (Theorem 4.2) *)
 (** If a term [γ|t] has type [T] and reduces to [γ'|t'] then the latter has
     the same type [T] under an extended environment that is inert, well-typed,
     and well-formed. *)
@@ -484,7 +484,7 @@ Proof.
     end.
 Qed.
 
-(** **** Progress (Lemma 5.3) *)
+(** **** Progress (Theorem 4.3) *)
 (** Any well-typed term is either in normal form (i.e. a path or value) or can
     take a reduction step. *)
 Lemma progress: forall G γ t T,
@@ -617,7 +617,7 @@ Qed.
 Definition diverges := infseq red.
 Definition cyclic_path γ p := infseq (lookup_step γ) (defp p).
 
-(** **** Type Soundness (Theorem 5.1) *)
+(** **** Type Soundness (Theorem 4.1) *)
 (** Reducing any well-typed program (i.e. term that can be typed in an empty context)
     results either
     - in a normal form (i.e. path or value) in a finite number of steps,
