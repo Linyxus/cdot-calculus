@@ -4,14 +4,13 @@
 (** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
-(** * Semantic subtyping ⊢{} *)
+(** * Invertible subtyping ⊢{} *)
 
 
 Require Import Coq.Program.Equality.
 Require Import Definitions RecordAndInertTypes PreciseTyping TightTyping InvertibleTyping Narrowing Replacement Binding Subenvironments Weakening.
 
 Reserved Notation "G '⊢{}' T '<:' U" (at level 40, T at level 59).
-Reserved Notation "G '⊢{}s' T '<:' U" (at level 40, T at level 59).
 
 Inductive subtyp_s : ctx -> typ -> typ -> Prop :=
 
