@@ -80,8 +80,8 @@ The `lambda2Gmu/` and `lambda2Gmu_annotated/` directories contain the mechanizat
 
 The `translation/` directory contains the formalization of our encoding. It contains the typing of the `lib` term and an example showing inversion of tuple equality using the inversion rules in cDOT.
 
-| Definition/Theorem      | Paper   | Artifact File                    | Name                   |
-| ----------------------- | ------- | -------------------------------- | ---------------------- |
-| The `lib`               | Page 26 | translation/Library.v            | `libTrm`               |
-| Lemma A.2               | Page 28 | translation/Library.v            | `libTypes`             |
-| Tuple inversion example |         | translation/DestructTupleLemma.v | `destruct_tuple_lemma` |
+| Definition/Theorem      | Paper   | Artifact File                         | Name                   |
+| ----------------------- | ------- | ------------------------------------- | ---------------------- |
+| The `lib`               | Page 26 | translation/Library.v                 | `libTrm`               |
+| Lemma A.2               | Page 28 | translation/Library.v                 | `libTypes`             |
+| Tuple inversion example |         | translation/<br/>DestructTupleLemma.v | `destruct_tuple_lemma` |

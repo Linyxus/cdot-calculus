@@ -4,6 +4,8 @@
 (** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
+(** * Lemmas for inversion rules *)
+
 Require Import Coq.Program.Equality.
 Require Import Definitions TightTyping SemanticSubtyping PreciseTyping.
 Require Import Replacement Binding Narrowing Subenvironments Weakening.
@@ -157,6 +159,7 @@ Proof.
         split; auto. destruct repl_swap as [Hs _]. eauto.
 Qed.
 
+(** ** Lemma 4.6 (Field inversion in <:##) *)
 Lemma invert_subtyp_trm_s : forall G a T1 T2,
     G ⊢{} typ_rcd {a ⦂ T1} <: typ_rcd {a ⦂ T2} ->
     G ⊢{} T1 <: T2.
@@ -789,6 +792,7 @@ Proof.
   apply* invert_subtyp_typ_s.
 Qed.
 
+(** ** Lemma 4.3 (Type member inversion) *)
 Lemma invert_subtyp_rcd_t : forall G U1 A S1 T1 S2 T2,
     inert G ->
     U1 ↘ typ_rcd {A >: S1 <: T1} ->
@@ -810,6 +814,9 @@ Proof.
   apply* invert_subtyp_trm_s.
 Qed.
 
+(** ** Lemma 4.2 (Field inversion)
+    In an inert environment G, if G ⊢# U <: {a : T2} and U ↘ {a : T1},
+    then G ⊢# T1 <: T2. *)
 Lemma invert_subtyp_fld_t : forall G U1 a T1 T2,
     inert G ->
     U1 ↘ typ_rcd {a ⦂ T1} ->

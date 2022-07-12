@@ -820,6 +820,8 @@ Proof.
 Qed.
 
 
+(** ** <:## to <:# (Lemma 4.5)
+    In any environment G, if G ⊢## S <: T then G ⊢# S <: T. *)
 Theorem semantic_to_tight : forall G S T,
     G ⊢{} S <: T -> G ⊢# S <: T.
 Proof.
@@ -835,6 +837,8 @@ Proof.
 Qed.
 
 
+(** ** <:## to <:# (Lemma 4.4)
+    In an inert environment G, if G ⊢# S <: T then G ⊢## S <: T. *)
 Theorem tight_to_semantic : forall G S T,
     inert G ->
     G ⊢# S <: T -> G ⊢{} S <: T.

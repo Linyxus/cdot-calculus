@@ -1522,6 +1522,9 @@ Proof.
       apply repl_intro_sngl.
 Qed.
 
+(** Tag resolution theorem (Lemma 4.1)
+
+    If G is inert and wellformed, γ ⫶ G, γ ⊢ p ⤳ ν[r.A](x: T)d then ∃ρ^γ, γ ⊢ r ⤳* ρ^γ. *)
 Lemma tag_resolution: forall γ G p q A r0 T ds U,
   inert G ->
   wf G ->
