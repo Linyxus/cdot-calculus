@@ -56,7 +56,7 @@ The mechanization of cDOT is in the `cdot/` directory. Based on the [soundness p
 | Lemma 4.3 (Type Member Inversion)   | cdot/GADTRules.v         | `invert_subtyp_rcd_t` |
 | Lemma 4.4 (<:# to <:##)             | cdot/SemanticSubtyping.v | `tight_to_semantic`   |
 | Lemma 4.5 (<:## to <:#)             | cdot/SemanticSubtyping.v | `semantic_to_tight`   |
-| Lemma 4.6 (Field Inversion in <:##) | cdot/GADTRules.v         | `invert_subtyp_fld_s` |
+| Lemma 4.6 (Field Inversion in <:##) | cdot/GADTRules.v         | `invert_subtyp_trm_s` |
 
 ### $\lambda_{2,G\mu}$ Calculus
 
