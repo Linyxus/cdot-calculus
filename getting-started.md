@@ -1,9 +1,9 @@
 # Getting Started Guide
 
-This is the Coq proof artifacts of the paper *A case for DOT: Theoretical Foundations for Objects With Pattern Matching and GADT-style Reasoning*. It consists of the following parts:
+This guide explains how to prepare your local environment for compiling the mechanised proof of soundness. 
 
 - The `cdot/` directory contains sources of the mechanization of the cDOT calculus.
-  The proof is an extension of [pDOT soundness proof](https://github.com/amaurremi/dot-calculus/tree/master/src/extensions/paths).
+  The proof is an extension of [the proof of soundness for pDOT](https://github.com/amaurremi/dot-calculus/tree/master/src/extensions/paths).
 - The `lambda2GMu/` directory contains sources of the mechanization of the Lambda2Gmu calculus and `lambda2GMu_annotated/` contains sources of the variant with additional type annotations, as described in the paper.
 - The `translation/` directory contains lemmas related to the translation: the typing of the `lib` term and an example showing inversion of tuple equality using our added inversion rules.
 
@@ -39,7 +39,7 @@ docker run -it --rm linyxus/cdot-artifact-env
 
 You will be attached to the shell of the container after the image gets pulled and the container is launched. In the shell, you will be in a Git repository of our proof artifact, with all prerequisites in the environment. You can now compile the proof artifacts following the instructions in the next section.
 
-The docker image is built on the Coq docker [image](https://hub.docker.com/r/coqorg/coq/). We use [this Dockerfile](https://github.com/Linyxus/cdot-calculus/blob/paper/Dockerfile) to build the image. Compared to the publicly available Coq image, our image have the TLC library pre-installed and have the Git repository of our proof artifacts.
+The docker image is built on the Coq [Docker image](https://hub.docker.com/r/coqorg/coq/). We use [this Dockerfile](https://github.com/Linyxus/cdot-calculus/blob/paper/Dockerfile) to build the image. Compared to the publicly available Coq image, our image has the TLC library pre-installed and have the Git repository of our proof artifacts.
 
 ## Compiling the Proof
 

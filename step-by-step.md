@@ -1,6 +1,6 @@
 # Step By Step Instructions
 
-This is a step-by-step guide for compiling and evaluating the proof artifacts of our paper *A case for DOT: Theoretical Foundations for Objects With Pattern Matching and GADT-style Reasoning*.
+This guide explains step-by-step how to compile and evaluate our mechanised proof.
 
 Our proof artifacts consist of the following parts:
 
@@ -24,9 +24,9 @@ make -C translation/
 
 If each of the `make` command exits without error, all the proof artifacts are compiled successfully.
 
-## Paper-to-Artifact Correspondance
+## Paper-to-Artifact Correspondence
 
-Now we explain the correspondance between important definitions and lemmas in the paper and the formalization in our artifacts.
+Now we explain the correspondence between important definitions and lemmas in the paper and their mechanised versions.
 
 ### cDOT Calculus
 
@@ -34,15 +34,15 @@ The mechanization of cDOT is in the `cdot/` directory. Based on the [soundness p
 
 #### Definitions
 
-| Definition                 | Paper           | Artifact File            | Name of Formalization | Proof Notation                           |
-| -------------------------- | --------------- | ------------------------ | --------------------- | ---------------------------------------- |
-| Abstract syntax            | Page 10, Fig. 2 | cdot/Definitions.v       | `typ`, `trm`          |                                          |
-| Term typing rules          | Page 11, Fig. 3 | cdot/Definitions.v       | `ty_trm`              | `G ⊢ t : T`                              |
-| Definition typing rules    | Page 11, Fig. 3 | cdot/Definitions.v       | `ty_def`, `ty_defs`   | `x; bs; G ⊢ d : D`, `x; bs; G ⊢ ds :: T` |
-| Subtyping rules            | Page 13, Fig. 4 | cdot/Definitions.v       | `subtyp`              | `G ⊢ T <: U`                             |
-| Invertible subtyping rules | Page 18, Fig. 8 | cdot/SemanticSubtyping.v | `subtyp_s`            |                                          |
-| Reduction                  | Page 15, Fig. 5 | cdot/Reduction.v         | `red`                 | `(γ, t) ⟼ (γ', t')`                      |
-| Lookup                     | Page 15, Fig. 5 | cdot/Lookup.v            | `lookup_step`         | `γ ⟦ p ⤳ t ⟧`, `γ ⟦ p ⤳* t ⟧`            |
+| Definition                 | Artifact File            | Name of Formalization | Proof Notation                           |
+| -------------------------- | ------------------------ | --------------------- | ---------------------------------------- |
+| Abstract syntax            | cdot/Definitions.v       | `typ`, `trm`          |                                          |
+| Term typing rules          | cdot/Definitions.v       | `ty_trm`              | `G ⊢ t : T`                              |
+| Definition typing rules    | cdot/Definitions.v       | `ty_def`, `ty_defs`   | `x; bs; G ⊢ d : D`, `x; bs; G ⊢ ds :: T` |
+| Subtyping rules            | cdot/Definitions.v       | `subtyp`              | `G ⊢ T <: U`                             |
+| Invertible subtyping rules | cdot/SemanticSubtyping.v | `subtyp_s`            |                                          |
+| Reduction                  | cdot/Reduction.v         | `red`                 | `(γ, t) ⟼ (γ', t')`                      |
+| Lookup                     | cdot/Lookup.v            | `lookup_step`         | `γ ⟦ p ⤳ t ⟧`, `γ ⟦ p ⤳* t ⟧`            |
 
 #### Theorems
 
@@ -64,10 +64,10 @@ The `lambda2Gmu/` and `lambda2Gmu_annotated/` directories contain the mechanizat
 
 #### Definition
 
-| Definition            | Paper | Artifact File                      | Name of Formalization | Proof Notation |
-| --------------------- | ----- | ---------------------------------- | --------------------- | -------------- |
-| Abstract syntax       |       | lambda2Gmu_annotated/Definitions.v | `term`                |                |
-| Operational semantics |       | lambda2Gmu_annotated/Definitions.v | `red`                 | `e1 --> e2`    |
+| Definition            | Artifact File                      | Name of Formalization | Proof Notation |
+| --------------------- | ---------------------------------- | --------------------- | -------------- |
+| Abstract syntax       | lambda2Gmu_annotated/Definitions.v | `term`                |                |
+| Operational semantics | lambda2Gmu_annotated/Definitions.v | `red`                 | `e1 --> e2`    |
 
 #### Theorems
 
@@ -80,8 +80,8 @@ The `lambda2Gmu/` and `lambda2Gmu_annotated/` directories contain the mechanizat
 
 The `translation/` directory contains the formalization of our encoding. It contains the typing of the `lib` term and an example showing inversion of tuple equality using the inversion rules in cDOT.
 
-| Definition/Theorem      | Paper   | Artifact File                         | Name                   |
-| ----------------------- | ------- | ------------------------------------- | ---------------------- |
-| The `lib`               | Page 26 | translation/Library.v                 | `libTrm`               |
-| Lemma A.2               | Page 28 | translation/Library.v                 | `libTypes`             |
-| Tuple inversion example |         | translation/<br/>DestructTupleLemma.v | `destruct_tuple_lemma` |
+| Definition/Theorem      | Artifact File                    | Name                   |
+| ----------------------- | -------------------------------- | ---------------------- |
+| The `lib` term          | translation/Library.v            | `libTrm`               |
+| Lemma A.2               | translation/Library.v            | `libTypes`             |
+| Tuple inversion example | translation/DestructTupleLemma.v | `destruct_tuple_lemma` |
