@@ -1,6 +1,7 @@
 (** remove printing ~ *)
 
-(** * pDOT Abstract Syntax and Type System *)
+(** * cDOT Abstract Syntax and Type System
+    This is based on pDOT soundness proof by Marianna Rapoport. *)
 
 Set Implicit Arguments.
 
@@ -80,7 +81,8 @@ with dec : Set :=
   - [trm_let t u] represents a let binding [let x = t in u]; since x is bound in [u],
     it is referred to in [u] using the de Bruijn index 0, and is therefore omitted from
     the let-term representation; we will denote let terms as [let t in u];
-  - [trm_path p] represents a path [p]. *)
+  - [trm_path p] represents a path [p].
+  - [trm_case p q A t1 t2] represents a typecase expression case p of y: q.A => t1 else => t2. *)
 Inductive trm : Set :=
   | trm_val  : val -> trm
   | trm_app  : path -> path -> trm
@@ -88,9 +90,9 @@ Inductive trm : Set :=
   | trm_path : path -> trm
   | trm_case : path -> path -> typ_label -> trm -> trm -> trm
 (**
-  - [val_new T ds] represents the object [nu(x: T)ds]; the variable [x] is bound in [T]
+  - [val_new q A T ds] represents the object [nu[q.A](x: T)ds]; the variable [x] is bound in [T]
     and [ds] and is omitted from the representation;
-    we will denote new object definitions as [nu(T)ds];
+    we will denote new object definitions as [nu[q↘A](T)ds];
   - [val_lambda T t] represents a function [lambda(x: T)t]; again, [x] is bound in [t]
     and is omitted;
     we will denote lambda terms as [lambda(T)t. *)
@@ -738,6 +740,12 @@ G ⊢ p: T
     G ⊢ trm_path q : T ->
     G ⊢ trm_path p : T
 
+(** [[
+G ⊢ p: T
+_________________
+G ⊢ p: p.type
+]]
+*)
 | ty_self : forall G p T,
     G ⊢ trm_path p : T ->
     G ⊢ trm_path p : {{ p }}

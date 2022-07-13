@@ -1,35 +1,18 @@
-> The version used to encode the lambda-2Gmu calculus is on the
-> [lambda-2Gmu](https://github.com/Linyxus/extended-pdot-calculus/tree/lambda-2Gmu)
-> branch.
+# cDOT soundness proof
 
-![Extended pDOT Subtyping](assets/extended-pdot-subtyping.png)
+This repository contains the mechanised proof of soundness for the OOPSLA 2022 paper "A case for DOT: Theoretical Foundations for Objects With Pattern Matching and GADT-style Reasoning". 
 
-# Soundness Proof for Extended pDOT Calculus
+# Inspecting the proof
 
-This repository contains type safety proof for the extended pDOT system,
-mechanized in Coq.
+The initial "kick the tires" guide for getting started with the mechanisation can be found [here](getting-started.md) and as a PDF [here](getting-started.pdf).
 
-The calculus is extended with the following record subtyping inversion rules,
-which will facilitate the formalization of GADT reasoning in pDOT.
+The detailed "step by step" guide explaining how to inspect the mechanised proof can be found [here](step-by-step.md) and as a PDF [here](step-by-step.pdf).
 
-```
-G ⊢ U1 <: U2
-U1 ↘ {A: S1..T1}
-U2 ↘ {A: S2..T2}
-_________________
-G ⊢ S2 <: S1
+# Structure
 
-G ⊢ U1 <: U2
-U1 ↘ {A: S1..T1}
-U2 ↘ {A: S2..T2}
-_________________
-G ⊢ T1 <: T2
-```
+- The `cdot/` directory contains sources of the mechanization of the iDOT calculus.
+  The proof is an extension of [pDOT soundness proof](https://github.com/amaurremi/dot-calculus/tree/master/src/extensions/paths).
+- The `lambda2GMu/` directory contains sources of the mechanization of the Lambda2Gmu calculus and `lambda2GMu_annotated/` contains sources of the variant with additional type annotations, as described in the paper.
+- The `translation/` directory contains lemmas related to the translation: the typing of the `lib` term and an example showing inversion of tuple equality using our added inversion rules.
 
-The relation `U ↘ {A: S..T}` states that `U` is an intersection type with all
-components being fields, type members or recursive types, the type labels are
-unique, and it has the type member `{A: S..T}`.
-
-The proof is modified from [pDOT soundness
-proof](https://github.com/amaurremi/dot-calculus/tree/master/src/extensions/paths).
 

@@ -4,14 +4,13 @@
 (** printing ⊢!    %\vdash_!%       #&vdash;<sub>!</sub>#         *)
 (** remove printing ~ *)
 
-(** * Semantic subtyping ⊢{} *)
+(** * Invertible subtyping ⊢{} *)
 
 
 Require Import Coq.Program.Equality.
 Require Import Definitions RecordAndInertTypes PreciseTyping TightTyping InvertibleTyping Narrowing Replacement Binding Subenvironments Weakening.
 
 Reserved Notation "G '⊢{}' T '<:' U" (at level 40, T at level 59).
-Reserved Notation "G '⊢{}s' T '<:' U" (at level 40, T at level 59).
 
 Inductive subtyp_s : ctx -> typ -> typ -> Prop :=
 
@@ -821,6 +820,8 @@ Proof.
 Qed.
 
 
+(** ** <:## to <:# (Lemma 4.5)
+    In any environment G, if G ⊢## S <: T then G ⊢# S <: T. *)
 Theorem semantic_to_tight : forall G S T,
     G ⊢{} S <: T -> G ⊢# S <: T.
 Proof.
@@ -836,6 +837,8 @@ Proof.
 Qed.
 
 
+(** ** <:## to <:# (Lemma 4.4)
+    In an inert environment G, if G ⊢# S <: T then G ⊢## S <: T. *)
 Theorem tight_to_semantic : forall G S T,
     inert G ->
     G ⊢# S <: T -> G ⊢{} S <: T.

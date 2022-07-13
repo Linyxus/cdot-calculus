@@ -1439,11 +1439,9 @@ Lemma canonical_forms_obj : forall γ G p r0 A T U ds,
     G ⊢ trm_path p : U ->
     G ⊢ trm_path p : open_path_p p r0 ↓ A.
 Proof.
-  Check lookup_preservation_prec2_obj.
   introv Hin Hwf Hwt Hl Hp.
   lets Hppp: (pt3_exists Hin Hp). destruct Hppp as [U' Hppp].
   lets Hpp: (pt2_exists Hppp). destruct Hpp as [U'' Hpp].
-  Check lookup_preservation_prec2_obj.
   lets Hlp: (lookup_preservation_prec2_obj Hin Hwf Hwt Hl Hpp).
   auto.
 Qed.
@@ -1524,3 +1522,19 @@ Proof.
       apply repl_intro_sngl.
 Qed.
 
+(** Tag resolution theorem (Lemma 4.1)
+
+    If G is inert and wellformed, γ ⫶ G, γ ⊢ p ⤳ ν[r.A](x: T)d then ∃ρ^γ, γ ⊢ r ⤳* ρ^γ. *)
+Lemma tag_resolution: forall γ G p q A r0 T ds U,
+  inert G ->
+  wf G ->
+  γ ⫶ G ->
+  γ ⟦ defp p ⤳* defv (ν[r0↘A](T)ds) ⟧ ->
+  G ⊢ trm_path p : U ->
+  q = open_path_p p r0 ->
+  exists v r, γ ⟦ defp q ⤳* defp r ⟧ /\ γ ⟦ r ⤳ defv v ⟧.
+Proof.
+  introv Hin Hwf Hwt Hl Hp Hq.
+  lets Hc: (canonical_forms_obj Hin Hwf Hwt Hl Hp).
+  rewrite <- Hq in Hc. apply* resolve_typeable_path_sel.
+Qed.

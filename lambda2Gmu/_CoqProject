@@ -1,0 +1,24 @@
+-R . GMu
+
+CanonicalForms.v
+Definitions.v
+DefinitionsTests.v
+Equations.v
+InfrastructureFV.v
+InfrastructureOpen.v
+InfrastructureSubstPrim.v
+InfrastructureSubst.v
+Infrastructure.v
+Notations.v
+Prelude.v
+Preservation.v
+Progress.v
+Regularity2.v
+Regularity.v
+SubstMatch.v
+TestCommon.v
+TestEquality.v
+Tests2.v
+Tests.v
+TestVector.v
+Zip.v
