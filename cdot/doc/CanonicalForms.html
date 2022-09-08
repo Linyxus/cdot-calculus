@@ -32,7 +32,7 @@
 </div>
 
 <div class="doc">
-<a id="lab79"></a><h1 class="section">Canonical Forms</h1>
+<a id="lab85"></a><h1 class="section">Canonical Forms</h1>
  This module proves the Canonical Forms Lemmas, which allow us
     to retrieve the shape of a value given its type. 
 </div>
@@ -65,7 +65,7 @@ Converting a stable term to a general term
 </div>
 
 <div class="doc">
-<a id="lab80"></a><h2 class="section">Type preservation for path lookup</h2>
+<a id="lab86"></a><h2 class="section">Type preservation for path lookup</h2>
 
 <div class="paragraph"> </div>
 
@@ -833,7 +833,7 @@ If a stable term <span class="inlinecode"><span class="id" title="var">t</span><
 </div>
 
 <div class="doc">
-<a id="lab81"></a><h2 class="section">Looking up well-typed paths</h2>
+<a id="lab87"></a><h2 class="section">Looking up well-typed paths</h2>
  If a path has a precise type then it can be looked up in the value environment 
 </div>
 <div class="code">
@@ -1651,7 +1651,7 @@ If a path has a III-level function type then the path can be
 </div>
 
 <div class="doc">
-<a id="lab82"></a><h2 class="section">Canonical Forms for Functions (Lemma 5.5)</h2>
+<a id="lab88"></a><h2 class="section">Canonical Forms for Functions (Lemma 5.5)</h2>
  If a path has a function type then it can be looked up in the value environment
     in a finite number of steps to a function that has the same function type. 
 </div>
@@ -1690,11 +1690,9 @@ If a path has a III-level function type then the path can be
 &nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="CanonicalForms.html#G:311"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Definitions.html#trm_path"><span class="id" title="constructor">trm_path</span></a> <a class="idref" href="CanonicalForms.html#p:312"><span class="id" title="variable">p</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="CanonicalForms.html#U:316"><span class="id" title="variable">U</span></a> <span class="id" title="notation">→</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="CanonicalForms.html#G:311"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Definitions.html#trm_path"><span class="id" title="constructor">trm_path</span></a> <a class="idref" href="CanonicalForms.html#p:312"><span class="id" title="variable">p</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="Definitions.html#open_path_p"><span class="id" title="definition">open_path_p</span></a> <a class="idref" href="CanonicalForms.html#p:312"><span class="id" title="variable">p</span></a> <a class="idref" href="CanonicalForms.html#r0:313"><span class="id" title="variable">r0</span></a> <a class="idref" href="Definitions.html#56a240108deb0dfbaeb49e48db859cf7"><span class="id" title="notation">↓</span></a> <a class="idref" href="CanonicalForms.html#A:314"><span class="id" title="variable">A</span></a>.<br/>
 <span class="id" title="keyword">Proof</span>.<br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Check</span> <a class="idref" href="CanonicalForms.html#lookup_preservation_prec2_obj"><span class="id" title="lemma">lookup_preservation_prec2_obj</span></a>.<br/>
 &nbsp;&nbsp;<span class="id" title="var">introv</span> <span class="id" title="var">Hin</span> <span class="id" title="var">Hwf</span> <span class="id" title="var">Hwt</span> <span class="id" title="var">Hl</span> <span class="id" title="var">Hp</span>.<br/>
 &nbsp;&nbsp;<span class="id" title="var">lets</span> <span class="id" title="var">Hppp</span>: (<a class="idref" href="GeneralToTight.html#pt3_exists"><span class="id" title="lemma">pt3_exists</span></a> <span class="id" title="var">Hin</span> <span class="id" title="var">Hp</span>). <span class="id" title="tactic">destruct</span> <span class="id" title="var">Hppp</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">U'</span> <span class="id" title="var">Hppp</span>].<br/>
 &nbsp;&nbsp;<span class="id" title="var">lets</span> <span class="id" title="var">Hpp</span>: (<a class="idref" href="PreciseTyping.html#pt2_exists"><span class="id" title="lemma">pt2_exists</span></a> <span class="id" title="var">Hppp</span>). <span class="id" title="tactic">destruct</span> <span class="id" title="var">Hpp</span> <span class="id" title="keyword">as</span> [<span class="id" title="var">U''</span> <span class="id" title="var">Hpp</span>].<br/>
-&nbsp;&nbsp;<span class="id" title="keyword">Check</span> <a class="idref" href="CanonicalForms.html#lookup_preservation_prec2_obj"><span class="id" title="lemma">lookup_preservation_prec2_obj</span></a>.<br/>
 &nbsp;&nbsp;<span class="id" title="var">lets</span> <span class="id" title="var">Hlp</span>: (<a class="idref" href="CanonicalForms.html#lookup_preservation_prec2_obj"><span class="id" title="lemma">lookup_preservation_prec2_obj</span></a> <span class="id" title="var">Hin</span> <span class="id" title="var">Hwf</span> <span class="id" title="var">Hwt</span> <span class="id" title="var">Hl</span> <span class="id" title="var">Hpp</span>).<br/>
 &nbsp;&nbsp;<span class="id" title="tactic">auto</span>.<br/>
 <span class="id" title="keyword">Qed</span>.<br/>
@@ -1781,6 +1779,29 @@ If a path has a III-level function type then the path can be
 <span class="id" title="keyword">Qed</span>.<br/>
 
 <br/>
+</div>
+
+<div class="doc">
+Tag resolution theorem (Lemma 4.1)
+
+<div class="paragraph"> </div>
+
+    If G is inert and wellformed, γ ⫶ G, γ ⊢ p ⤳ ν<span class="inlinecode"><span class="id" title="var">r.A</span></span>(x: T)d then ∃ρ^γ, γ ⊢ r ⤳* ρ^γ. 
+</div>
+<div class="code">
+<span class="id" title="keyword">Lemma</span> <a id="tag_resolution" class="idref" href="#tag_resolution"><span class="id" title="lemma">tag_resolution</span></a>: <span class="id" title="keyword">∀</span> <a id="9d664cc8f1cdff78c531c7ab1cc592fb" class="idref" href="#9d664cc8f1cdff78c531c7ab1cc592fb"><span class="id" title="binder">γ</span></a> <a id="G:348" class="idref" href="#G:348"><span class="id" title="binder">G</span></a> <a id="p:349" class="idref" href="#p:349"><span class="id" title="binder">p</span></a> <a id="q:350" class="idref" href="#q:350"><span class="id" title="binder">q</span></a> <a id="A:351" class="idref" href="#A:351"><span class="id" title="binder">A</span></a> <a id="r0:352" class="idref" href="#r0:352"><span class="id" title="binder">r0</span></a> <a id="T:353" class="idref" href="#T:353"><span class="id" title="binder">T</span></a> <a id="ds:354" class="idref" href="#ds:354"><span class="id" title="binder">ds</span></a> <a id="U:355" class="idref" href="#U:355"><span class="id" title="binder">U</span></a>,<br/>
+&nbsp;&nbsp;<a class="idref" href="Definitions.html#inert"><span class="id" title="inductive">inert</span></a> <a class="idref" href="CanonicalForms.html#G:348"><span class="id" title="variable">G</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;<a class="idref" href="PreciseTyping.html#wf"><span class="id" title="inductive">wf</span></a> <a class="idref" href="CanonicalForms.html#G:348"><span class="id" title="variable">G</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;<a class="idref" href="CanonicalForms.html#9d664cc8f1cdff78c531c7ab1cc592fb"><span class="id" title="variable">γ</span></a> <a class="idref" href="Definitions.html#3d0e0e057bcbfdd590f754a27815747e"><span class="id" title="notation">⫶</span></a> <a class="idref" href="CanonicalForms.html#G:348"><span class="id" title="variable">G</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;<a class="idref" href="CanonicalForms.html#9d664cc8f1cdff78c531c7ab1cc592fb"><span class="id" title="variable">γ</span></a> <a class="idref" href="Lookup.html#ec3bbb547a98649fb30ac24026f522c9"><span class="id" title="notation">⟦</span></a> <a class="idref" href="Definitions.html#defp"><span class="id" title="constructor">defp</span></a> <a class="idref" href="CanonicalForms.html#p:349"><span class="id" title="variable">p</span></a> <a class="idref" href="Lookup.html#ec3bbb547a98649fb30ac24026f522c9"><span class="id" title="notation">⤳*</span></a> <a class="idref" href="Definitions.html#defv"><span class="id" title="constructor">defv</span></a> (<a class="idref" href="Definitions.html#fb8fa075fb63e32f0a950a9184c4daef"><span class="id" title="notation">ν</span></a><a class="idref" href="Definitions.html#fb8fa075fb63e32f0a950a9184c4daef"><span class="id" title="notation">[</span></a><a class="idref" href="CanonicalForms.html#r0:352"><span class="id" title="variable">r0</span></a><a class="idref" href="Definitions.html#fb8fa075fb63e32f0a950a9184c4daef"><span class="id" title="notation">↘</span></a><a class="idref" href="CanonicalForms.html#A:351"><span class="id" title="variable">A</span></a><a class="idref" href="Definitions.html#fb8fa075fb63e32f0a950a9184c4daef"><span class="id" title="notation">](</span></a><a class="idref" href="CanonicalForms.html#T:353"><span class="id" title="variable">T</span></a><a class="idref" href="Definitions.html#fb8fa075fb63e32f0a950a9184c4daef"><span class="id" title="notation">)</span></a><a class="idref" href="CanonicalForms.html#ds:354"><span class="id" title="variable">ds</span></a>) <a class="idref" href="Lookup.html#ec3bbb547a98649fb30ac24026f522c9"><span class="id" title="notation">⟧</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;<a class="idref" href="CanonicalForms.html#G:348"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Definitions.html#trm_path"><span class="id" title="constructor">trm_path</span></a> <a class="idref" href="CanonicalForms.html#p:349"><span class="id" title="variable">p</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="CanonicalForms.html#U:355"><span class="id" title="variable">U</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;<a class="idref" href="CanonicalForms.html#q:350"><span class="id" title="variable">q</span></a> <span class="id" title="notation">=</span> <a class="idref" href="Definitions.html#open_path_p"><span class="id" title="definition">open_path_p</span></a> <a class="idref" href="CanonicalForms.html#p:349"><span class="id" title="variable">p</span></a> <a class="idref" href="CanonicalForms.html#r0:352"><span class="id" title="variable">r0</span></a> <span class="id" title="notation">→</span><br/>
+&nbsp;&nbsp;<span class="id" title="notation">∃</span> <a id="v:356" class="idref" href="#v:356"><span class="id" title="binder">v</span></a> <a id="r:357" class="idref" href="#r:357"><span class="id" title="binder">r</span></a><span class="id" title="notation">,</span> <a class="idref" href="CanonicalForms.html#9d664cc8f1cdff78c531c7ab1cc592fb"><span class="id" title="variable">γ</span></a> <a class="idref" href="Lookup.html#ec3bbb547a98649fb30ac24026f522c9"><span class="id" title="notation">⟦</span></a> <a class="idref" href="Definitions.html#defp"><span class="id" title="constructor">defp</span></a> <a class="idref" href="CanonicalForms.html#q:350"><span class="id" title="variable">q</span></a> <a class="idref" href="Lookup.html#ec3bbb547a98649fb30ac24026f522c9"><span class="id" title="notation">⤳*</span></a> <a class="idref" href="Definitions.html#defp"><span class="id" title="constructor">defp</span></a> <a class="idref" href="CanonicalForms.html#r:357"><span class="id" title="variable">r</span></a> <a class="idref" href="Lookup.html#ec3bbb547a98649fb30ac24026f522c9"><span class="id" title="notation">⟧</span></a> <span class="id" title="notation">∧</span> <a class="idref" href="CanonicalForms.html#9d664cc8f1cdff78c531c7ab1cc592fb"><span class="id" title="variable">γ</span></a> <a class="idref" href="Lookup.html#8cc79fc5d6dbc3a1ff519f58bcbc908b"><span class="id" title="notation">⟦</span></a> <a class="idref" href="CanonicalForms.html#r:357"><span class="id" title="variable">r</span></a> <a class="idref" href="Lookup.html#8cc79fc5d6dbc3a1ff519f58bcbc908b"><span class="id" title="notation">⤳</span></a> <a class="idref" href="Definitions.html#defv"><span class="id" title="constructor">defv</span></a> <a class="idref" href="CanonicalForms.html#v:356"><span class="id" title="variable">v</span></a> <a class="idref" href="Lookup.html#8cc79fc5d6dbc3a1ff519f58bcbc908b"><span class="id" title="notation">⟧</span></a>.<br/>
+<span class="id" title="keyword">Proof</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="var">introv</span> <span class="id" title="var">Hin</span> <span class="id" title="var">Hwf</span> <span class="id" title="var">Hwt</span> <span class="id" title="var">Hl</span> <span class="id" title="var">Hp</span> <span class="id" title="var">Hq</span>.<br/>
+&nbsp;&nbsp;<span class="id" title="var">lets</span> <span class="id" title="var">Hc</span>: (<a class="idref" href="CanonicalForms.html#canonical_forms_obj"><span class="id" title="lemma">canonical_forms_obj</span></a> <span class="id" title="var">Hin</span> <span class="id" title="var">Hwf</span> <span class="id" title="var">Hwt</span> <span class="id" title="var">Hl</span> <span class="id" title="var">Hp</span>).<br/>
+&nbsp;&nbsp;<span class="id" title="tactic">rewrite</span> &lt;- <span class="id" title="var">Hq</span> <span class="id" title="tactic">in</span> <span class="id" title="var">Hc</span>. <span class="id" title="tactic">apply</span>× <a class="idref" href="CanonicalForms.html#resolve_typeable_path_sel"><span class="id" title="lemma">resolve_typeable_path_sel</span></a>.<br/>
+<span class="id" title="keyword">Qed</span>.<br/>
 </div>
 </div>
 <div id="footer">

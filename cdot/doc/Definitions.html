@@ -32,8 +32,9 @@
 </div>
 
 <div class="doc">
-<a id="lab1"></a><h1 class="section">pDOT Abstract Syntax and Type System</h1>
+<a id="lab1"></a><h1 class="section">cDOT Abstract Syntax and Type System</h1>
 
+    This is based on pDOT soundness proof by Marianna Rapoport. 
 </div>
 <div class="code">
 
@@ -139,7 +140,7 @@ A path, <span class="inlinecode"><span class="id" title="var">x.a1.a2</span>...<
 <li> <span class="inlinecode"><span class="id" title="var">typ_and</span></span> <span class="inlinecode"><span class="id" title="var">T</span></span> <span class="inlinecode"><span class="id" title="var">U</span></span> represents an intersection type <span class="inlinecode"><span class="id" title="var">T</span></span> <span class="inlinecode">∧</span> <span class="inlinecode"><span class="id" title="var">U</span></span>;
 
 </li>
-<li> <span class="inlinecode"><span class="id" title="var">typ_sel</span></span> <span class="inlinecode"><span class="id" title="var">p</span></span> <span class="inlinecode"><span class="id" title="var">A</span></span> represents type selection <span class="inlinecode"><span class="id" title="var">p.A</span></span>;
+<li> <span class="inlinecode"><span class="id" title="var">typ_path</span></span> <span class="inlinecode"><span class="id" title="var">p</span></span> <span class="inlinecode"><span class="id" title="var">A</span></span> represents type selection <span class="inlinecode"><span class="id" title="var">p.A</span></span>;
 
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">typ_bnd</span></span> <span class="inlinecode"><span class="id" title="var">T</span></span> represents a recursive type <span class="inlinecode"><span class="id" title="var">mu</span>(<span class="id" title="var">x</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>)</span>; however, since <span class="inlinecode"><span class="id" title="var">x</span></span> is bound in the recursive type,
@@ -204,7 +205,10 @@ A path, <span class="inlinecode"><span class="id" title="var">x.a1.a2</span>...<
     the let-term representation; we will denote let terms as <span class="inlinecode"><span class="id" title="keyword">let</span></span> <span class="inlinecode"><span class="id" title="var">t</span></span> <span class="inlinecode"><span class="id" title="tactic">in</span></span> <span class="inlinecode"><span class="id" title="var">u</span></span>;
 
 </li>
-<li> <span class="inlinecode"><span class="id" title="var">trm_path</span></span> <span class="inlinecode"><span class="id" title="var">p</span></span> represents a path <span class="inlinecode"><span class="id" title="var">p</span></span>. 
+<li> <span class="inlinecode"><span class="id" title="var">trm_path</span></span> <span class="inlinecode"><span class="id" title="var">p</span></span> represents a path <span class="inlinecode"><span class="id" title="var">p</span></span>.
+
+</li>
+<li> <span class="inlinecode"><span class="id" title="var">trm_case</span></span> <span class="inlinecode"><span class="id" title="var">p</span></span> <span class="inlinecode"><span class="id" title="var">q</span></span> <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode"><span class="id" title="var">t1</span></span> <span class="inlinecode"><span class="id" title="var">t2</span></span> represents a typecase expression case p of y: q.A =&gt; t1 else =&gt; t2. 
 
 </li>
 </ul>
@@ -220,9 +224,9 @@ A path, <span class="inlinecode"><span class="id" title="var">x.a1.a2</span>...<
 
 <div class="doc">
 <ul class="doclist">
-<li> <span class="inlinecode"><span class="id" title="var">val_new</span></span> <span class="inlinecode"><span class="id" title="var">T</span></span> <span class="inlinecode"><span class="id" title="var">ds</span></span> represents the object <span class="inlinecode"><span class="id" title="var">nu</span>(<span class="id" title="var">x</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>)<span class="id" title="var">ds</span></span>; the variable <span class="inlinecode"><span class="id" title="var">x</span></span> is bound in <span class="inlinecode"><span class="id" title="var">T</span></span>
+<li> <span class="inlinecode"><span class="id" title="var">val_new</span></span> <span class="inlinecode"><span class="id" title="var">q</span></span> <span class="inlinecode"><span class="id" title="var">A</span></span> <span class="inlinecode"><span class="id" title="var">T</span></span> <span class="inlinecode"><span class="id" title="var">ds</span></span> represents the object <span class="inlinecode"><span class="id" title="var">nu</span>[<span class="id" title="var">q.A</span>](<span class="id" title="var">x</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>)<span class="id" title="var">ds</span></span>; the variable <span class="inlinecode"><span class="id" title="var">x</span></span> is bound in <span class="inlinecode"><span class="id" title="var">T</span></span>
     and <span class="inlinecode"><span class="id" title="var">ds</span></span> and is omitted from the representation;
-    we will denote new object definitions as <span class="inlinecode"><span class="id" title="var">nu</span>(<span class="id" title="var">T</span>)<span class="id" title="var">ds</span></span>;
+    we will denote new object definitions as <span class="inlinecode"><span class="id" title="var">nu</span>[<span class="id" title="var">q</span>↘<span class="id" title="var">A</span>](<span class="id" title="var">T</span>)<span class="id" title="var">ds</span></span>;
 
 </li>
 <li> <span class="inlinecode"><span class="id" title="var">val_lambda</span></span> <span class="inlinecode"><span class="id" title="var">T</span></span> <span class="inlinecode"><span class="id" title="var">t</span></span> represents a function <span class="inlinecode"><span class="id" title="var">lambda</span>(<span class="id" title="var">x</span>:</span> <span class="inlinecode"><span class="id" title="var">T</span>)<span class="id" title="var">t</span></span>; again, <span class="inlinecode"><span class="id" title="var">x</span></span> is bound in <span class="inlinecode"><span class="id" title="var">t</span></span>
@@ -1367,6 +1371,18 @@ An inert context is a typing context whose range consists only of inert types.
 &nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Definitions.html#G:374"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Definitions.html#trm_path"><span class="id" title="constructor">trm_path</span></a> <a class="idref" href="Definitions.html#q:376"><span class="id" title="variable">q</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="Definitions.html#T:377"><span class="id" title="variable">T</span></a> <span class="id" title="notation">→</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Definitions.html#G:374"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Definitions.html#trm_path"><span class="id" title="constructor">trm_path</span></a> <a class="idref" href="Definitions.html#p:375"><span class="id" title="variable">p</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="Definitions.html#T:377"><span class="id" title="variable">T</span></a><br/>
 <br/>
+</div>
+
+<div class="doc">
+<br/>
+<span class="inlinecode"><span class="id" title="var">G</span> ⊢ <span class="id" title="var">p</span>: <span class="id" title="var">T</span><br/>
+<span class="id" title="var">_________________</span><br/>
+<span class="id" title="var">G</span> ⊢ <span class="id" title="var">p</span>: <span class="id" title="var">p.type</span>
+<div class="paragraph"> </div>
+
+</span>
+</div>
+<div class="code">
 | <a id="ty_self" class="idref" href="#ty_self"><span class="id" title="constructor">ty_self</span></a> : <span class="id" title="keyword">∀</span> <a id="G:378" class="idref" href="#G:378"><span class="id" title="binder">G</span></a> <a id="p:379" class="idref" href="#p:379"><span class="id" title="binder">p</span></a> <a id="T:380" class="idref" href="#T:380"><span class="id" title="binder">T</span></a>,<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Definitions.html#G:378"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Definitions.html#trm_path"><span class="id" title="constructor">trm_path</span></a> <a class="idref" href="Definitions.html#p:379"><span class="id" title="variable">p</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="Definitions.html#T:380"><span class="id" title="variable">T</span></a> <span class="id" title="notation">→</span><br/>
 &nbsp;&nbsp;&nbsp;&nbsp;<a class="idref" href="Definitions.html#G:378"><span class="id" title="variable">G</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">⊢</span></a> <a class="idref" href="Definitions.html#trm_path"><span class="id" title="constructor">trm_path</span></a> <a class="idref" href="Definitions.html#p:379"><span class="id" title="variable">p</span></a> <a class="idref" href="Definitions.html#8f800003c5c18bd4e5a8078841b62512"><span class="id" title="notation">:</span></a> <a class="idref" href="Definitions.html#2e12ae37c5a5c7396a13d7170e0de451"><span class="id" title="notation">{{</span></a> <a class="idref" href="Definitions.html#p:379"><span class="id" title="variable">p</span></a> <a class="idref" href="Definitions.html#2e12ae37c5a5c7396a13d7170e0de451"><span class="id" title="notation">}}</span></a><br/>
