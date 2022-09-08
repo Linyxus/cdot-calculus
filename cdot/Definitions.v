@@ -49,7 +49,7 @@ Inductive path :=
     - [typ_bot] represents [bottom];
     - [typ_rcd d] represents a record type [d], where [d] is either a type or field declaration;
     - [typ_and T U] represents an intersection type [T /\ U];
-    - [typ_sel p A] represents type selection [p.A];
+    - [typ_path p A] represents type selection [p.A];
     - [typ_bnd T] represents a recursive type [mu(x: T)]; however, since [x] is bound in the recursive type,
       it is referred to in [T] using the de Bruijn index 0, and is therefore omitted from the type representation;
       we will denote recursive types as [mu(T)];
