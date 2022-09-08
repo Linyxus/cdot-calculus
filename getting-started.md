@@ -53,3 +53,6 @@ make
 ```
 
 If `make` exits without error, the proof is compiled successfully.
+
+Coq could produce warnings related to hints, but this will not be a problem.
+
