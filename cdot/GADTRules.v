@@ -7,7 +7,7 @@
 (** * Lemmas for inversion rules *)
 
 Require Import Coq.Program.Equality.
-Require Import Definitions TightTyping SemanticSubtyping PreciseTyping.
+Require Import Definitions TightTyping InvertibleSubtyping PreciseTyping.
 Require Import Replacement Binding Narrowing Subenvironments Weakening.
 
 Ltac inv_repl_typ_rcd :=
