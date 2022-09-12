@@ -29,9 +29,9 @@ opam install -j4 coq-tlc
 
 ### Using a Docker container
 
-We have built a Docker image containing all necessary prerequisites and pushed it to [Docker Hub](https://hub.docker.com/r/linyxus/cdot-proof). We also prepare the Docker Compose config to allow users to easily launch the container and attach the proof scripts as a volume.
+We have built a Docker image with all necessary prerequisites and pushed it to [Docker Hub](https://hub.docker.com/r/linyxus/cdot-proof). We also prepare the Docker Compose config to allow users to easily launch the container and attach the proof scripts as a volume.
 
-To use this image, you should first install Docker if it is not installed yet. Then, you can `cd` into the root of the project and launch a container using this image with the proof scripts attached as a volume with `docker-compose`:
+To use this image, you should first install Docker. Then, you can go to the root of the project and launch a container using this image with the proof scripts attached as a volume with `docker-compose`:
 
 ```
 docker-compose run --rm coq-env
