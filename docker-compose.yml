@@ -1,0 +1,10 @@
+version: "3"
+services:
+  coq-env:
+    image: linyxus/cdot-proof:latest
+    stdin_open: true
+    tty: true
+
+    volumes:
+      - ./:/projects/cdot-calculus
+
