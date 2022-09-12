@@ -29,17 +29,17 @@ opam install -j4 coq-tlc
 
 ### Using a Docker container
 
-We have built a Docker image containing all necessary prerequisites and pushed it to [Docker Hub](https://hub.docker.com/r/linyxus/cdot-artifact-env).
+We have built a Docker image containing all necessary prerequisites and pushed it to [Docker Hub](https://hub.docker.com/r/linyxus/cdot-proof).
 
-To use this image, you should first install Docker if it is not installed yet. Then, you can launch a container using this image with the following command:
+To use this image, you should first install Docker if it is not installed yet. Then, you can `cd` into the root of the project and launch a container using this image with the proof scripts attached as a volume with `docker-compose`:
 
 ```
-docker run -it --rm linyxus/cdot-artifact-env
+docker-compose run --rm coq-env
 ```
 
-You will be attached to the shell of the container after the image gets pulled and the container is launched. In the shell, you will be in a Git repository of our proof artifact, with all prerequisites in the environment. You can now compile the proof artifacts following the instructions in the next section.
+You will be attached to the shell of the container after the image gets pulled and the container is launched. In the shell, you can `cd` into the `cdot-calculus` directory, with the proof scripts and all prerequisites in the environment. You can now compile the proof artifacts following the instructions in the next section.
 
-The docker image is built on the Coq [Docker image](https://hub.docker.com/r/coqorg/coq/). We use [this Dockerfile](https://github.com/Linyxus/cdot-calculus/blob/paper/Dockerfile) to build the image. Compared to the publicly available Coq image, our image has the TLC library pre-installed and have the Git repository of our proof artifacts.
+The docker image is built on the Coq [Docker image](https://hub.docker.com/r/coqorg/coq/). We use [this Dockerfile](https://github.com/Linyxus/cdot-calculus/blob/main/Dockerfile) to build the image. Compared to the publicly available Coq image, our image has the TLC library pre-installed and have the Git repository of our proof artifacts. We use this [docker-compose.yml](https://github.com/Linyxus/cdot-calculus/blob/main/docker-compose.yml) to launch the container and attach the proof scripts as a volume.
 
 ## Compiling the Proof
 
