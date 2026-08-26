@@ -45,18 +45,16 @@ inductive ReplacementVal : Ctx → Val → Typ → Prop where
   | invertible : InvertibleVal G v T → ReplacementVal G v T
   | and : ReplacementVal G v T → ReplacementVal G v U →
       ReplacementVal G v (.and T U)
-  | bnd : ReplacementVal G v (T.openPath p) → ReplacementVal G v (.bnd T)
   | sel : ReplacementVal G v T →
       PreciseFlow G q S (.rcd (.typ A T T)) → ReplacementVal G v (.path q A)
   | recQP : PreciseFlow G p (.sngl q) (.sngl q) →
       PreciseTyping2 G q U → ReplacementVal G v (.bnd T) →
       ReplTyp q p T T' → ReplacementVal G v (.bnd T')
+  | selQP : PreciseFlow G p (.sngl q) (.sngl q) →
+      PreciseTyping2 G q U → ReplacementVal G v (.path r' A) →
+      ReplTyp q p (.path r' A) (.path r'' A) →
+      ReplacementVal G v (.path r'' A)
   | top : ReplacementVal G v T → ReplacementVal G v .top
-  | trm : ReplacementVal G v (.rcd (.trm a T)) → TightSubtyp G T U →
-      ReplacementVal G v (.rcd (.trm a U))
-  | typ : ReplacementVal G v (.rcd (.typ A T₁ S₁)) →
-      TightSubtyp G T₂ T₁ → TightSubtyp G S₁ S₂ →
-      ReplacementVal G v (.rcd (.typ A T₂ S₂))
   | all (L : Vars) : ReplacementVal G v (.all S₁ T₁) →
       TightSubtyp G S₂ S₁ →
       (∀ y, y ∉ L → Subtyp (G.push y S₂) (T₁.open y) (T₂.open y)) →
@@ -149,12 +147,10 @@ theorem ReplacementVal.allToPrecise {G : Ctx} {v : Val} {S T : Typ}
       obtain ⟨S', T', hp, hdom, hbody⟩ := h.allToPrecise
       exact ⟨∅, S', T', hp, hdom, fun y _ => hbody y⟩
   | and hT hU ihT ihU => cases heq
-  | bnd h ih => cases heq
   | sel h hf ih => cases heq
   | recQP hp hq h hr ih => cases heq
+  | selQP hp hq h hr ih => cases heq
   | top h ih => cases heq
-  | trm h hs ih => cases heq
-  | typ h hLo hHi ih => cases heq
   | all L h hdom hbody ih =>
       rename_i S₁ T₁ S₂ T₂
       cases heq
@@ -185,5 +181,24 @@ theorem ReplacementVal.lambdaExists {G : Ctx} {v : Val} {S T : Typ}
       have hnarrow := (htyped y hy.1.2).narrow
         (Subenv.last hdom hokS hokS')
       exact .sub hnarrow (hbody y hy.1.1)
+
+theorem ReplacementVal.bndToInvertible {G : Ctx} {v : Val} {T : Typ}
+    (h : ReplacementVal G v (.bnd T)) :
+    ∃ U, InvertibleVal G v (.bnd U) ∧ ReplComposition G U T := by
+  generalize heq : Typ.bnd T = V at h
+  induction h generalizing T with
+  | invertible h =>
+      cases heq
+      exact ⟨T, h, .refl T⟩
+  | and hT hU ihT ihU => cases heq
+  | sel h hf ih => cases heq
+  | recQP hp hq h hr ih =>
+      rename_i p q W v T₁ T₂
+      cases heq
+      obtain ⟨T', hinv, hcomp⟩ := ih rfl
+      exact ⟨T', hinv, hcomp.trans (.one ⟨p, q, W, hp, hq, hr⟩)⟩
+  | selQP hp hq h hr ih => cases heq
+  | top h ih => cases heq
+  | all L h hdom hbody ih => cases heq
 
 end CDot
