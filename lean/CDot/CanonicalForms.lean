@@ -18,6 +18,19 @@ def DefRhs.toTrm : DefRhs → Trm
   | .path p => .path p
   | .val v => .val v
 
+theorem WellTyped.bindsValue {G : Ctx} {σ : Sta} (hwt : WellTyped G σ)
+    {x : Var} {T : Typ} (hb : Env.Binds x T G) :
+    ∃ v, Env.Binds x v σ ∧ Typed G (.val v) T := by
+  induction hwt with
+  | empty => exact False.elim hb.empty_false
+  | @push G σ y v U hwt hyG hyσ hv ih =>
+      cases hb with
+      | here =>
+          exact ⟨v, .here, hv.mono (.pushRight hyG _)⟩
+      | there hxy hb =>
+          obtain ⟨w, hw, htyped⟩ := ih hb
+          exact ⟨w, .there hxy hw, htyped.mono (.pushRight hyG _)⟩
+
 theorem TypedDefs.objectTyping {G : Ctx} {x : Var} {fields : Fields}
     {ds : Defs} {T : Typ} {a : Signature.TrmLabel} {rhs : DefRhs} {V : Typ}
     (hdefs : TypedDefs x fields G ds T) (hhas : ds.Has (.trm a rhs))
@@ -51,5 +64,32 @@ theorem TypedDefs.objectTyping {G : Ctx} {x : Var} {fields : Fields}
       cases heq
       right; right
       exact ⟨_, _, rfl, rfl, ht⟩
+
+theorem InvertibleVal.bndValueShape {G : Ctx} {v : Val} {T : Typ}
+    (h : InvertibleVal G v (.bnd T)) :
+    ∃ r A U ds, v = .new r A U ds := by
+  generalize heq : Typ.bnd T = V at h
+  induction h generalizing T with
+  | precise h =>
+      cases heq
+      cases h with
+      | newIntro => exact ⟨_, _, _, _, rfl⟩
+  | recPQ _ _ _ _ ih =>
+      cases heq
+      exact ih rfl
+
+theorem Typed.valBndToNew {G : Ctx} {v : Val} {T : Typ}
+    (h : Typed G (.val v) (.bnd T)) (hi : Inert G) :
+    ∃ r A U ds T',
+      v = .new r A U ds ∧
+      PreciseVal G (.new r A U ds) (.bnd U) ∧
+      ReplComposition G T' T := by
+  have hr := (h.toTight hi).valReplacement hi
+  obtain ⟨T', hinv, hcomp⟩ := hr.bndToInvertible
+  obtain ⟨r, A, U, ds, hv⟩ := hinv.bndValueShape
+  subst v
+  obtain ⟨T'', heq, hp, hcomp'⟩ := hinv.newToPrecise
+  cases heq
+  exact ⟨r, A, U, ds, T', rfl, hp, hcomp⟩
 
 end CDot

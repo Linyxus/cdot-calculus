@@ -1,4 +1,4 @@
-import CDot.Binding
+import CDot.Weakening
 import CDot.Sequences
 
 /-!
@@ -52,6 +52,83 @@ theorem lookup_empty {p : Path} {rhs : DefRhs}
   case var hbind => exact hbind.empty_false
   case selectPath _ ih => exact ih
   case selectVal _ _ ih => exact ih
+
+def DefRhs.SourceNamed : DefRhs → Prop
+  | .path p => p.Named
+  | .val _ => True
+
+theorem LookupStep.sourceNamed' {σ : Sta} {src rhs : DefRhs}
+    (h : LookupStep σ src rhs) : src.SourceNamed := by
+  induction h with
+  | var => exact ⟨_, rfl⟩
+  | @selectPath p q a _ ih => exact Path.Named.selectFields ih [a]
+  | @selectVal p q A T ds a body _ _ ih =>
+      exact Path.Named.selectFields ih [a]
+
+theorem LookupStep.sourceNamed {σ : Sta} {p : Path} {rhs : DefRhs}
+    (h : LookupStep σ (.path p) rhs) : p.Named := h.sourceNamed'
+
+theorem LookupStep.mono {σ σ' : Sta} {src rhs : DefRhs}
+    (h : LookupStep σ src rhs) (he : Env.Extends σ σ') :
+    LookupStep σ' src rhs := by
+  induction h with
+  | var hb => exact .var (he hb)
+  | selectPath _ ih => exact .selectPath ih
+  | selectVal _ hhas ih => exact .selectVal ih hhas
+
+theorem Lookup.mono {σ σ' : Sta} {src rhs : DefRhs}
+    (h : Lookup σ src rhs) (he : Env.Extends σ σ') :
+    Lookup σ' src rhs := by
+  induction h with
+  | refl => exact .refl _
+  | step hs hrest ih => exact .step (hs.mono he) ih
+
+theorem LookupStep.strengthenPush {σ : Sta} {y x : Var} {v : Val}
+    {fields : Fields} {rhs : DefRhs}
+    (h : LookupStep (σ.push y v) (.path (.select (.free x) fields)) rhs)
+    (hyx : y ≠ x) :
+    LookupStep σ (.path (.select (.free x) fields)) rhs := by
+  generalize heq : (DefRhs.path (.select (.free x) fields)) = src at h
+  induction h generalizing x fields with
+  | var hb =>
+      injection heq with heq
+      simp only [Path.var] at heq
+      injection heq with havar hfields
+      cases havar
+      cases hfields
+      cases hb with
+      | here => exact False.elim (hyx rfl)
+      | there _ hb => exact .var hb
+  | selectPath hs ih =>
+      rename_i p q a
+      injection heq with heq
+      cases p with
+      | select av rest =>
+          simp only [Path.selectField] at heq
+          injection heq with havar hfields
+          cases havar
+          cases hfields
+          exact .selectPath (ih hyx rfl)
+  | selectVal hs hhas ih =>
+      rename_i p q A T ds a body
+      injection heq with heq
+      cases p with
+      | select av rest =>
+          simp only [Path.selectField] at heq
+          injection heq with havar hfields
+          cases havar
+          cases hfields
+          exact .selectVal (ih hyx rfl) hhas
+
+theorem LookupStep.weakenPush {σ : Sta} {src rhs : DefRhs} {y : Var} {v : Val}
+    (h : LookupStep σ src rhs) (hy : Env.Fresh y σ) :
+    LookupStep (σ.push y v) src rhs :=
+  h.mono (.pushRight hy v)
+
+theorem Lookup.weakenPush {σ : Sta} {src rhs : DefRhs} {y : Var} {v : Val}
+    (h : Lookup σ src rhs) (hy : Env.Fresh y σ) :
+    Lookup (σ.push y v) src rhs :=
+  h.mono (.pushRight hy v)
 
 theorem lookup_val_inv {σ : Sta} {v : Val} {rhs : DefRhs}
     (h : Lookup σ (.val v) rhs) : rhs = .val v := by
