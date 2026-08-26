@@ -52,4 +52,79 @@ theorem PreciseVal.toGeneral {G : Ctx} {v : Val} {T : Typ}
   | allIntro L hbody => exact .allIntro L hbody
   | newIntro L hdefs hself => exact .newIntro L hdefs hself
 
+theorem Inert.bindsTyp {G : Ctx} {x : Var} {T : Typ}
+    (hi : Inert G) (hb : Env.Binds x T G) : InertTyp T := by
+  induction hi with
+  | empty => exact False.elim hb.empty_false
+  | @push G y U hi hU hf ih =>
+      cases hb with
+      | here => exact hU
+      | there hne hb => exact ih hb
+
+theorem PreciseFlow.sourceNamed {G : Ctx} {p : Path} {T U : Typ}
+    (h : PreciseFlow G p T U) : p.Named :=
+  h.toGeneral.pathNamed
+
+theorem PreciseFlow.reset {G : Ctx} {p : Path} {T U : Typ}
+    (h : PreciseFlow G p T U) : PreciseFlow G p T T := by
+  induction h with
+  | bind hok hb => exact .bind hok hb
+  | fld h ih => exact .fld h
+  | «open» h ih => exact ih
+  | andLeft h ih => exact ih
+  | andRight h ih => exact ih
+
+theorem PreciseFlow.mono {G G' : Ctx} {p : Path} {T U : Typ}
+    (h : PreciseFlow G p T U) (he : Env.Extends G G') (hok : Env.Ok G') :
+    PreciseFlow G' p T U := by
+  induction h with
+  | bind _ hb => exact .bind hok (he hb)
+  | fld _ ih => exact .fld ih
+  | «open» _ ih => exact .open ih
+  | andLeft _ ih => exact .andLeft ih
+  | andRight _ ih => exact .andRight ih
+
+theorem PreciseFlow.envAll_eq {G : Ctx} {p : Path} {S T U : Typ}
+    (h : PreciseFlow G p (.all S T) U) : U = .all S T := by
+  generalize heq : Typ.all S T = E at h
+  induction h with
+  | bind _ _ => rfl
+  | fld _ _ => rfl
+  | «open» _ ih =>
+      have := ih heq
+      rw [← heq] at this
+      contradiction
+  | andLeft _ ih =>
+      have := ih heq
+      rw [← heq] at this
+      contradiction
+  | andRight _ ih =>
+      have := ih heq
+      rw [← heq] at this
+      contradiction
+
+theorem PreciseFlow.envSngl_eq {G : Ctx} {p q : Path} {U : Typ}
+    (h : PreciseFlow G p (.sngl q) U) : U = .sngl q := by
+  generalize heq : Typ.sngl q = E at h
+  induction h with
+  | bind _ _ => rfl
+  | fld _ _ => rfl
+  | «open» _ ih =>
+      have := ih heq
+      rw [← heq] at this
+      contradiction
+  | andLeft _ ih =>
+      have := ih heq
+      rw [← heq] at this
+      contradiction
+  | andRight _ ih =>
+      have := ih heq
+      rw [← heq] at this
+      contradiction
+
+theorem PreciseVal.new_type_eq {G : Ctx} {r : Path} {A : Signature.TypLabel}
+    {T U : Typ} {ds : Defs} (h : PreciseVal G (.new r A T ds) U) : U = .bnd T := by
+  cases h
+  rfl
+
 end CDot

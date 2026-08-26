@@ -179,6 +179,12 @@ theorem Path.Named.selectFields {p : Path} (h : p.Named) (fields : Fields) :
     simp only [Path.Named] at h ⊢
     exact h
 
+theorem Path.Named.of_selectField {p : Path} {a : Signature.TrmLabel}
+    (h : (p.selectField a).Named) : p.Named := by
+  cases p with
+  | select x fields =>
+      simpa only [Path.selectField, Path.Named] using h
+
 @[simp] theorem Path.openRec_eq_openRecPath_var
     (x : Var) (p : Path) (n : Nat) :
     p.openRec n x = p.openRecPath n (.var x) := by

@@ -249,4 +249,77 @@ theorem Subtyp.mono {G G' : Ctx} {S T} (h : Subtyp G S T)
     exact .all L (ihd G' he) (fun x hx => ihc x hx _ (he.push x _))
   case t => exact h
 
+def Trm.PathNamed : Trm → Prop
+  | .path p => p.Named
+  | _ => True
+
+theorem Typed.pathNamed {G : Ctx} {p : Path} {T : Typ}
+    (h : Typed G (.path p) T) : p.Named := by
+  change (Trm.path p).PathNamed
+  apply Typed.rec
+    (motive_1 := fun _ t _ _ => t.PathNamed)
+    (motive_2 := fun _ _ _ _ _ _ => True)
+    (motive_3 := fun _ _ _ _ _ _ => True)
+    (motive_4 := fun _ _ _ _ => True)
+  case var =>
+    intro x T G hb
+    exact ⟨x, rfl⟩
+  case allIntro => intros; trivial
+  case allElim => intros; trivial
+  case newIntro => intros; trivial
+  case newElim =>
+    intro G p a T h ih
+    exact ih.selectFields [a]
+  case rcdIntro =>
+    intro G T p a h ih
+    exact Path.Named.of_selectField (a := a) ih
+  case letE => intros; trivial
+  case caseE => intros; trivial
+  case sngl =>
+    intro G p q T h₁ h₂ ih₁ ih₂
+    exact ih₁
+  case self =>
+    intro G p T h ih
+    exact ih
+  case pathElim =>
+    intro G p q a T h₁ h₂ ih₁ ih₂
+    exact ih₁.selectFields [a]
+  case recIntro =>
+    intro G p T h ih
+    exact ih
+  case recElim =>
+    intro G p T h ih
+    exact ih
+  case andIntro =>
+    intro G p T U h₁ h₂ ih₁ ih₂
+    exact ih₁
+  case sub =>
+    intro G t T U ht hs iht ihs
+    exact iht
+  case typ => intros; trivial
+  case all => intros; trivial
+  case new => intros; trivial
+  case path => intros; trivial
+  case one => intros; trivial
+  case cons => intros; trivial
+  case top => intros; trivial
+  case bot => intros; trivial
+  case refl => intros; trivial
+  case trans => intros; trivial
+  case andLeft => intros; trivial
+  case andRight => intros; trivial
+  case andIntro => intros; trivial
+  case fld => intros; trivial
+  case fldInv => intros; trivial
+  case typ => intros; trivial
+  case typInvLo => intros; trivial
+  case typInvHi => intros; trivial
+  case allInv => intros; trivial
+  case snglPQ => intros; trivial
+  case snglQP => intros; trivial
+  case selLo => intros; trivial
+  case selHi => intros; trivial
+  case all => intros; trivial
+  case t => exact h
+
 end CDot
