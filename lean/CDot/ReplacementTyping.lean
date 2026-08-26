@@ -1,4 +1,5 @@
 import CDot.InvertibleTyping
+import CDot.Narrowing
 
 /-!
 # Replacement typing
@@ -93,5 +94,40 @@ theorem ReplacementPath.rcdToPrecise {G : Ctx} {p : Path}
       obtain ⟨V, hp, hVS₁, hT₁V⟩ := ih rfl
       exact ⟨V, hp, .trans hVS₁ hHi, .trans hLo hT₁V⟩
   | all L h hdom hbody ih => cases heq
+
+theorem ReplacementPath.allToPrecise {G : Ctx} {p : Path} {S T : Typ}
+    (hi : Inert G) (h : ReplacementPath G p (.all S T)) :
+    ∃ S' T', ∃ L : Vars, PreciseTyping3 G p (.all S' T') ∧
+      TightSubtyp G S S' ∧
+      (∀ y, y ∉ L → Subtyp (G.push y S) (T'.open y) (T.open y)) := by
+  generalize heq : Typ.all S T = V at h
+  induction h generalizing S T with
+  | invertible h =>
+      cases heq
+      obtain ⟨S', T', L, hp, hdom, hbody⟩ := h.allToPrecise
+      exact ⟨S', T', L, hp, hdom, fun y hy => (hbody y hy).toGeneral⟩
+  | and hT hU ihT ihU => cases heq
+  | bnd h ih => cases heq
+  | sel h hf ih => cases heq
+  | rcdIntro h ih => cases heq
+  | recQP hp hq h hr ih => cases heq
+  | selQP hp hq h ih => cases heq
+  | snglQP hp hq h ih => cases heq
+  | top h ih => cases heq
+  | trm h hs ih => cases heq
+  | typ h hLo hHi ih => cases heq
+  | all L h hdom hbody ih =>
+      rename_i p' S₁ T₁ S₂ T₂
+      cases heq
+      obtain ⟨S', T', L', hp, hS₁S', hT'T₁⟩ := ih rfl
+      let L'' := (L ∪ L') ∪ G.dom
+      refine ⟨S', T', L'', hp, .trans hdom hS₁S', ?_⟩
+      intro y hy
+      simp only [L'', Finset.mem_union, not_or] at hy
+      have hok₂ : Env.Ok (G.push y S₂) := Env.okPush hi.ok hy.2
+      have hok₁ : Env.Ok (G.push y S₁) := Env.okPush hi.ok hy.2
+      have hnarrow := (hT'T₁ y hy.1.2).narrow
+        (Subenv.last hdom.toGeneral hok₂ hok₁)
+      exact .trans hnarrow (hbody y hy.1.1)
 
 end CDot

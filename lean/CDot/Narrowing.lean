@@ -156,4 +156,83 @@ theorem Typed.narrow {G G' : Ctx} {t : Trm} {T : Typ}
         (Env.okPush hsub.ok.1 hx.2) (Env.okPush hsub.ok.2 hx.1.2)))
   case t => exact h
 
+theorem Subtyp.narrow {G G' : Ctx} {S T : Typ}
+    (h : Subtyp G S T) (hsub : Subenv G' G) : Subtyp G' S T := by
+  revert G'
+  apply Subtyp.rec
+    (motive_1 := fun _ _ _ _ => True)
+    (motive_2 := fun _ _ _ _ _ _ => True)
+    (motive_3 := fun _ _ _ _ _ _ => True)
+    (motive_4 := fun G S T _ => ∀ G', Subenv G' G → Subtyp G' S T)
+  case var => simp
+  case allIntro => simp
+  case allElim => simp
+  case newIntro => simp
+  case newElim => simp
+  case rcdIntro => simp
+  case letE => simp
+  case caseE => simp
+  case sngl => simp
+  case self => simp
+  case pathElim => simp
+  case recIntro => simp
+  case recElim => simp
+  case andIntro => simp
+  case sub => simp
+  case typ => simp
+  case all => simp
+  case new => simp
+  case path => simp
+  case one => simp
+  case cons => simp
+  case top => intros; exact .top
+  case bot => intros; exact .bot
+  case refl => intros; exact .refl
+  case trans =>
+      intro G S T U h₁ h₂ ih₁ ih₂ G' hsub
+      exact .trans (ih₁ G' hsub) (ih₂ G' hsub)
+  case andLeft => intros; exact .andLeft
+  case andRight => intros; exact .andRight
+  case andIntro =>
+      intro G S T U h₁ h₂ ih₁ ih₂ G' hsub
+      exact .andIntro (ih₁ G' hsub) (ih₂ G' hsub)
+  case fld =>
+      intro G T U a h ih G' hsub
+      exact .fld (ih G' hsub)
+  case fldInv =>
+      intro G U₁ a T₂ T₁ h hu ih G' hsub
+      exact .fldInv (ih G' hsub) hu
+  case typ =>
+      intro G S₂ S₁ T₁ T₂ A h₁ h₂ ih₁ ih₂ G' hsub
+      exact .typ (ih₁ G' hsub) (ih₂ G' hsub)
+  case typInvLo =>
+      intro G U₁ A S₂ T₂ S₁ T₁ h hu ih G' hsub
+      exact .typInvLo (ih G' hsub) hu
+  case typInvHi =>
+      intro G U₁ A S₂ T₂ S₁ T₁ h hu ih G' hsub
+      exact .typInvHi (ih G' hsub) hu
+  case allInv =>
+      intro G S₁ T₁ S₂ T₂ h ih G' hsub
+      exact .allInv (ih G' hsub)
+  case snglPQ =>
+      intro G p q U T T' hp hq hr _ _ G' hsub
+      exact .snglPQ (hp.narrow hsub) (hq.narrow hsub) hr
+  case snglQP =>
+      intro G p q U T T' hp hq hr _ _ G' hsub
+      exact .snglQP (hp.narrow hsub) (hq.narrow hsub) hr
+  case selLo =>
+      intro G p A S T hp _ G' hsub
+      exact .selLo (hp.narrow hsub)
+  case selHi =>
+      intro G p A S T hp _ G' hsub
+      exact .selHi (hp.narrow hsub)
+  case all =>
+      intro G S₂ S₁ T₁ T₂ L hd hc ihd ihc G' hsub
+      let L' := (L ∪ G.dom) ∪ G'.dom
+      exact .all L' (ihd G' hsub) (fun x hx => by
+        simp only [L', Finset.mem_union, not_or] at hx
+        exact ihc x hx.1.1 _ (hsub.extend
+          (Env.okPush hsub.ok.1 hx.2) (Env.okPush hsub.ok.2 hx.1.2)))
+  case t => exact h
+
 end CDot
