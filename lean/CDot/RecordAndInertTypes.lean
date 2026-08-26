@@ -72,6 +72,52 @@ decreasing_by
   simp_all
   omega
 
+theorem RecordTyp.has_unique {T : Typ} {labels : Finset Label}
+    {D₁ D₂ : Dec} (htyp : RecordTyp T labels)
+    (h₁ : RecordHas T D₁) (h₂ : RecordHas T D₂)
+    (hlab : D₁.label = D₂.label) : D₁ = D₂ := by
+  cases htyp with
+  | one hdec heq =>
+      cases h₁
+      cases h₂
+      rfl
+  | cons hrest hdec heq hfresh =>
+      cases h₁ with
+      | andLeft h₁ =>
+          cases h₂ with
+          | andLeft h₂ => exact hrest.has_unique h₁ h₂ hlab
+          | andRight h₂ =>
+              cases h₂
+              have hmem := hrest.has_label h₁
+              exfalso
+              apply hfresh
+              rw [heq, ← hlab]
+              exact hmem
+      | andRight h₁ =>
+          cases h₁
+          cases h₂ with
+          | andLeft h₂ =>
+              have hmem := hrest.has_label h₂
+              exfalso
+              apply hfresh
+              rw [heq, hlab]
+              exact hmem
+          | andRight h₂ =>
+              cases h₂
+              rfl
+termination_by sizeOf T
+decreasing_by
+  simp_all
+  omega
+
+theorem RecordTyp.typ_member_unique {T : Typ} {labels : Finset Label}
+    {A : Signature.TypLabel} {S₁ S₂ : Typ}
+    (htyp : RecordTyp T labels)
+    (h₁ : RecordHas T (.typ A S₁ S₁))
+    (h₂ : RecordHas T (.typ A S₂ S₂)) : S₁ = S₂ := by
+  have heq := htyp.has_unique h₁ h₂ rfl
+  exact Dec.typ.inj heq |>.2.1
+
 def IsSngl (T : Typ) : Prop := ∃ p, T = .sngl p
 
 def InertSngl (T : Typ) : Prop := InertTyp T ∨ IsSngl T
