@@ -68,6 +68,29 @@ theorem ReplacementPath.andParts {G : Ctx} {p : Path} {T U : Typ}
       exact ⟨.invertible h.andParts.1, .invertible h.andParts.2⟩
   | and hT hU => exact ⟨hT, hU⟩
 
+theorem ReplacementPath.toInvertibleExists {G : Ctx} {p : Path} {T : Typ}
+    (h : ReplacementPath G p T) : ∃ U, InvertiblePath G p U := by
+  induction h with
+  | invertible h => exact ⟨_, h⟩
+  | and _ _ ihT _ => exact ihT
+  | bnd _ ih => exact ih
+  | sel _ _ ih => exact ih
+  | rcdIntro _ ih =>
+      obtain ⟨_, hfield⟩ := ih
+      exact hfield.backtrack
+  | recQP _ _ _ _ ih => exact ih
+  | selQP _ _ _ ih => exact ih
+  | snglQP _ _ _ ih => exact ih
+  | top _ ih => exact ih
+  | trm _ _ ih => exact ih
+  | typ _ _ _ ih => exact ih
+  | all _ _ _ _ ih => exact ih
+
+theorem ReplacementPath.preciseExists {G : Ctx} {p : Path} {T : Typ}
+    (h : ReplacementPath G p T) : ∃ U, PreciseTyping3 G p U := by
+  obtain ⟨_, hinv⟩ := h.toInvertibleExists
+  exact hinv.preciseExists
+
 theorem ReplacementPath.rcdToPrecise {G : Ctx} {p : Path}
     {A : Signature.TypLabel} {S U : Typ} (hi : Inert G)
     (h : ReplacementPath G p (.rcd (.typ A S U))) :

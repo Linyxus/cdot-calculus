@@ -39,6 +39,24 @@ theorem InvertiblePath.preciseExists {G : Ctx} {p : Path} {T : Typ}
   | snglPQ _ _ _ ih => exact ih
   | self h => exact ⟨_, .precise h⟩
 
+theorem InvertiblePath.backtrack {G : Ctx} {p : Path}
+    {a : Signature.TrmLabel} {T : Typ}
+    (h : InvertiblePath G (p.selectField a) T) :
+    ∃ U, InvertiblePath G p U := by
+  generalize heq : p.selectField a = q at h
+  induction h generalizing p a with
+  | precise h =>
+      cases heq
+      obtain ⟨U, hp⟩ := h.backtrack
+      exact ⟨U, .precise hp⟩
+  | recPQ _ _ _ _ ih => exact ih heq
+  | selPQ _ _ _ ih => exact ih heq
+  | snglPQ _ _ _ ih => exact ih heq
+  | self h =>
+      cases heq
+      obtain ⟨U, hp⟩ := h.backtrack
+      exact ⟨U, .precise (.precise hp)⟩
+
 theorem InvertiblePath.andParts {G : Ctx} {p : Path} {T U : Typ}
     (h : InvertiblePath G p (.and T U)) :
     InvertiblePath G p T ∧ InvertiblePath G p U := by
