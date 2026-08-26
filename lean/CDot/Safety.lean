@@ -359,6 +359,23 @@ theorem Typed.instantiateNarrowed {G : Ctx} {L : Vars}
     Trm.subst_eq_self_of_not_mem body hyBody,
     Var.substPath, if_true, ← Trm.openRec_eq_openRecPath_var] using hrenamed
 
+theorem Typed.substFreshOpenPathDependent {G : Ctx} {L : Vars}
+    {S T : Typ} {body : Trm} {p : Path}
+    (hok : Env.Ok G)
+    (hbody : ∀ x, x ∉ L →
+      Typed (G.push x S) (body.open x) (T.open x))
+    (hp : Typed G (.path p) S) :
+    Typed G (body.openPath p) (T.openPath p) := by
+  let avoid : Vars := L ∪ G.dom ∪ G.fvTypes ∪ S.fv ∪ T.fv ∪ body.fv
+  obtain ⟨x, hxRange⟩ := Finset.exists_nat_subset_range avoid
+  have hx : x ∉ avoid := by
+    intro hmem
+    exact (Nat.lt_irrefl x) (Finset.mem_range.mp (hxRange hmem))
+  have hxL : x ∉ L := by aesop
+  have hxG : Env.Fresh x G := by aesop
+  have hxAll : x ∉ G.fvTypes ∪ S.fv ∪ T.fv ∪ body.fv := by aesop
+  exact Typed.substOpenPath hok hxG hxAll (hbody x hxL) hp
+
 /-! ## Progress -/
 
 theorem progress {G : Ctx} {σ : Sta} {t : Trm} {T : Typ}
@@ -473,6 +490,210 @@ theorem progress {G : Ctx} {σ : Sta} {t : Trm} {T : Typ}
   case sub =>
       intro G t S T ht hs ih iht hi hwf σ hwt
       exact ih hi hwf σ hwt
+  all_goals intros <;> trivial
+
+/-! ## Preservation -/
+
+theorem Typed.matchedCaseType {G : Ctx} {σ : Sta}
+    {p tag resolvedTag : Path} {A : Signature.TypLabel}
+    {U T : Typ} {ds : Defs}
+    (hp : Typed G (.path p) U)
+    (hobject : LookupStep σ (.path p) (.val (.new tag A T ds)))
+    (htag : Lookup σ (.path (tag.openPath p)) (.path resolvedTag))
+    (hi : Inert G) (hwf : Wf G) (hwt : WellTyped G σ) :
+    Typed G (.path p) (.path resolvedTag A) := by
+  obtain ⟨P, hprecise⟩ := hp.precise3Exists hi
+  have hselection := hprecise.lookupObjectTag hobject hi hwt
+  obtain ⟨R, htagPrecise⟩ := hselection.pathSelectionRecord hi
+  have hrecord : RecordType (.rcd (.typ A R R)) :=
+    ⟨{Label.typ A}, .one .typ rfl⟩
+  have htagTyped := htagPrecise.toGeneral
+  have hresolvedTyped := htagTyped.lookupPreserves htag hi hwf hwt
+  have hsingleton := htagTyped.lookupSingleton htag hi hwf hwt
+  have hsub : Subtyp G (.path (tag.openPath p) A) (.path resolvedTag A) :=
+    .snglPQStar hsingleton hresolvedTyped
+      (Star.one (ReplTyp.path (fields := [])))
+  exact .sub hselection hsub
+
+theorem preservation {G : Ctx} {σ σ' : Sta} {t t' : Trm} {T : Typ}
+    (hwt : WellTyped G σ) (hi : Inert G) (hwf : Wf G)
+    (hred : Red (σ, t) (σ', t')) (h : Typed G t T) :
+    ∃ H, Env.Extends G H ∧ Inert H ∧ Wf H ∧
+      WellTyped H σ' ∧ Typed H t' T := by
+  apply Typed.rec
+    (motive_1 := fun G t T _ => ∀ (σ σ' : Sta) (t' : Trm),
+      WellTyped G σ → Inert G → Wf G → Red (σ, t) (σ', t') →
+      ∃ H, Env.Extends G H ∧ Inert H ∧ Wf H ∧
+        WellTyped H σ' ∧ Typed H t' T)
+    (motive_2 := fun _ _ _ _ _ _ => True)
+    (motive_3 := fun _ _ _ _ _ _ => True)
+    (motive_4 := fun _ _ _ _ => True)
+  case var =>
+      intro x T G hb σ σ' t' hwt hi hwf hred
+      cases hred with
+      | resolve hstep =>
+          exact ⟨G, .refl _, hi, hwf, hwt,
+            (Typed.var hb).lookupPathPreserves hstep hi hwf hwt⟩
+  case allIntro => intros; rename_i hred; cases hred
+  case newIntro => intros; rename_i hred; cases hred
+  case allElim =>
+      intro G p S T q hfun harg ihfun iharg σ σ' target hwt hi hwf hred
+      cases hred with
+      | app hfunStep hargResolved =>
+          obtain ⟨L, S', body, hlookup, hdom, hbody⟩ :=
+            hfun.canonicalFunction hi hwf hwt
+          have heq := lookup_functional (.one hfunStep) hlookup
+          injection heq with hS hterm
+          subst S'
+          subst body
+          have hresult := Typed.substFreshOpenPathDependent hi.ok hbody harg
+          exact ⟨G, .refl _, hi, hwf, hwt, hresult⟩
+      | ctxAppFun hfunRed =>
+          obtain ⟨H, he, hiH, hwfH, hwtH, hfunH⟩ :=
+            ihfun σ σ _ hwt hi hwf hfunRed
+          exact ⟨H, he, hiH, hwfH, hwtH,
+            .allElim hfunH (harg.mono he)⟩
+      | ctxAppArg hfunResolved hargRed =>
+          obtain ⟨H, he, hiH, hwfH, hwtH, hargH⟩ :=
+            iharg σ σ _ hwt hi hwf hargRed
+          cases hargRed with
+          | resolve hargStep =>
+              rename_i q'
+              obtain ⟨P, hp⟩ := harg.precise3Exists hi
+              obtain ⟨Q, hq', halias⟩ :=
+                hp.lookupPathAliases hargStep hi hwf hwt
+              have hreverse := halias.typedReverse hp hq' hi hwf
+              have hsub : Subtyp G (T.openPath q') (T.openPath q) :=
+                .snglPQStar hreverse harg (Typ.openPath_repl T q' q)
+              exact ⟨H, he, hiH, hwfH, hwtH,
+                .sub (.allElim (hfun.mono he) hargH) (hsub.mono he)⟩
+  case newElim =>
+      intro G p a T hp ih σ σ' target hwt hi hwf hred
+      cases hred with
+      | resolve hstep =>
+          exact ⟨G, .refl _, hi, hwf, hwt,
+            hp.newElim.lookupPathPreserves hstep hi hwf hwt⟩
+  case rcdIntro =>
+      intro G T p a hp ih σ σ' target hwt hi hwf hred
+      cases hred with
+      | resolve hstep =>
+          exact ⟨G, .refl _, hi, hwf, hwt,
+            hp.rcdIntro.lookupPathPreserves hstep hi hwf hwt⟩
+  case letE =>
+      intro G bound S T body L hbound hbody ihbound ihbody
+        σ σ' target hwt hi hwf hred
+      cases hred with
+      | letVal hxStore =>
+          rename_i x v
+          have hxG := hwt.freshContext hxStore
+          obtain ⟨V, hv, hVS, hVInert, hwfPush⟩ :=
+            hbound.valTyping hi hwf hxG
+          have hbody' := Typed.instantiateNarrowed hi hxG hVS hbody
+          exact ⟨G.push x V, .pushRight hxG V, .push hi hVInert hxG,
+            hwfPush, .push hwt hxG hxStore hv.toGeneral, hbody'⟩
+      | letPath hresolved =>
+          exact ⟨G, .refl _, hi, hwf, hwt,
+            Typed.substFreshOpenPath hi.ok hbody hbound⟩
+      | letTarget htarget =>
+          obtain ⟨H, he, hiH, hwfH, hwtH, hboundH⟩ :=
+            ihbound σ σ' _ hwt hi hwf htarget
+          exact ⟨H, he, hiH, hwfH, hwtH,
+            .letE L hboundH (fun x hx => (hbody x hx).mono (he.push x S))⟩
+  case caseE =>
+      intro G p S q U A T elseBranch matchBranch L hp hq hbody helse
+        ihp ihq ihbody ihelse σ σ' target hwt hi hwf hred
+      cases hred with
+      | caseMatch hqResolved hpObject htag =>
+          have hpTag := hp.matchedCaseType hpObject htag hi hwf hwt
+          have hpAnd : Typed G (.path p) (.and (.sngl p) (.path q A)) :=
+            .andIntro (.self hp) (by simpa using hpTag)
+          exact ⟨G, .refl _, hi, hwf, hwt,
+            Typed.substFreshOpenPath hi.ok hbody hpAnd⟩
+      | caseElse htagResolved hqResolved hpObject htag hneq =>
+          exact ⟨G, .refl _, hi, hwf, hwt, helse⟩
+      | caseLambda hpLambda =>
+          exact ⟨G, .refl _, hi, hwf, hwt, helse⟩
+      | ctxCaseScrutinee hpRed =>
+          cases hpRed with
+          | resolve hpStep =>
+              rename_i p'
+              have hp' := hp.lookupPathPreserves hpStep hi hwf hwt
+              obtain ⟨P, hpPrecise⟩ := hp.precise3Exists hi
+              obtain ⟨P', hp'Precise, halias⟩ :=
+                hpPrecise.lookupPathAliases hpStep hi hwf hwt
+              have hreverse := halias.typedReverse hpPrecise hp'Precise hi hwf
+              have hsngl : Subtyp G (.sngl p') (.sngl p) :=
+                .snglPQ hreverse hp (ReplTyp.rootSngl p' p)
+              let L' : Vars := L ∪ G.dom
+              refine ⟨G, .refl _, hi, hwf, hwt,
+                .caseE L' hp' hq ?_ helse⟩
+              intro y hy
+              simp only [L', Finset.mem_union, not_or] at hy
+              have hyG : Env.Fresh y G := hy.2
+              exact (hbody y hy.1).narrow
+                (Subenv.last hsngl.andExtendRight
+                  (Env.okPush hi.ok hyG) (Env.okPush hi.ok hyG))
+      | ctxCaseTag hpResolved hqRed =>
+          cases hqRed with
+          | resolve hqStep =>
+              rename_i q'
+              have hq' := hq.lookupPathPreserves hqStep hi hwf hwt
+              obtain ⟨Q, hqPrecise⟩ := hq.precise3Exists hi
+              obtain ⟨Q', hq'Precise, halias⟩ :=
+                hqPrecise.lookupPathAliases hqStep hi hwf hwt
+              have hreverse := halias.typedReverse hqPrecise hq'Precise hi hwf
+              have hpath : Subtyp G (.path q' A) (.path q A) :=
+                .snglPQ hreverse hq (ReplTyp.path (fields := []))
+              let L' : Vars := L ∪ G.dom
+              refine ⟨G, .refl _, hi, hwf, hwt,
+                .caseE L' hp hq' ?_ helse⟩
+              intro y hy
+              simp only [L', Finset.mem_union, not_or] at hy
+              have hyG : Env.Fresh y G := hy.2
+              exact (hbody y hy.1).narrow
+                (Subenv.last hpath.andExtendLeft
+                  (Env.okPush hi.ok hyG) (Env.okPush hi.ok hyG))
+  case sngl =>
+      intro G p q T hp hq ihp ihq σ σ' target hwt hi hwf hred
+      cases hred with
+      | resolve hstep =>
+          exact ⟨G, .refl _, hi, hwf, hwt,
+            (Typed.sngl hp hq).lookupPathPreserves hstep hi hwf hwt⟩
+  case self =>
+      intro G p T hp ih σ σ' target hwt hi hwf hred
+      cases hred with
+      | resolve hstep =>
+          exact ⟨G, .refl _, hi, hwf, hwt,
+            (Typed.self hp).lookupPathPreserves hstep hi hwf hwt⟩
+  case pathElim =>
+      intro G p q a T hp hq ihp ihq σ σ' target hwt hi hwf hred
+      cases hred with
+      | resolve hstep =>
+          exact ⟨G, .refl _, hi, hwf, hwt,
+            (Typed.pathElim hp hq).lookupPathPreserves hstep hi hwf hwt⟩
+  case recIntro =>
+      intro G p T hp ih σ σ' target hwt hi hwf hred
+      cases hred with
+      | resolve hstep =>
+          exact ⟨G, .refl _, hi, hwf, hwt,
+            (Typed.recIntro hp).lookupPathPreserves hstep hi hwf hwt⟩
+  case recElim =>
+      intro G p T hp ih σ σ' target hwt hi hwf hred
+      cases hred with
+      | resolve hstep =>
+          exact ⟨G, .refl _, hi, hwf, hwt,
+            (Typed.recElim hp).lookupPathPreserves hstep hi hwf hwt⟩
+  case andIntro =>
+      intro G p T U hp hq ihp ihq σ σ' target hwt hi hwf hred
+      cases hred with
+      | resolve hstep =>
+          exact ⟨G, .refl _, hi, hwf, hwt,
+            (Typed.andIntro hp hq).lookupPathPreserves hstep hi hwf hwt⟩
+  case sub =>
+      intro G term S T ht hs ih iht σ σ' target hwt hi hwf hred
+      obtain ⟨H, he, hiH, hwfH, hwtH, htH⟩ :=
+        ih σ σ' target hwt hi hwf hred
+      exact ⟨H, he, hiH, hwfH, hwtH, .sub htH (hs.mono he)⟩
   all_goals intros <;> trivial
 
 end CDot
