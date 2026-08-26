@@ -69,4 +69,29 @@ theorem ReplacementPath.andParts {G : Ctx} {p : Path} {T U : Typ}
       exact ⟨.invertible h.andParts.1, .invertible h.andParts.2⟩
   | and hT hU => exact ⟨hT, hU⟩
 
+theorem ReplacementPath.rcdToPrecise {G : Ctx} {p : Path}
+    {A : Signature.TypLabel} {S U : Typ} (hi : Inert G)
+    (h : ReplacementPath G p (.rcd (.typ A S U))) :
+    ∃ T, PreciseTyping3 G p (.rcd (.typ A T T)) ∧
+      TightSubtyp G T U ∧ TightSubtyp G S T := by
+  generalize heq : Typ.rcd (Dec.typ A S U) = V at h
+  induction h generalizing A S U with
+  | invertible h =>
+      cases heq
+      exact h.rcdToPrecise hi
+  | and hT hU ihT ihU => cases heq
+  | bnd h ih => cases heq
+  | sel h hf ih => cases heq
+  | rcdIntro h ih => cases heq
+  | recQP hp hq h hr ih => cases heq
+  | selQP hp hq h ih => cases heq
+  | snglQP hp hq h ih => cases heq
+  | top h ih => cases heq
+  | trm h hs ih => cases heq
+  | typ h hLo hHi ih =>
+      cases heq
+      obtain ⟨V, hp, hVS₁, hT₁V⟩ := ih rfl
+      exact ⟨V, hp, .trans hVS₁ hHi, .trans hLo hT₁V⟩
+  | all L h hdom hbody ih => cases heq
+
 end CDot
