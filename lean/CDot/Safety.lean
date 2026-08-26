@@ -221,4 +221,26 @@ theorem PreciseVal.wfPush {G : Ctx} {v : Val} {T : Typ} {x : Var}
               obtain ⟨V, hq₃⟩ := hq.precise3Exists hi'
               exact hq₃.precise2Exists
 
+theorem Typed.valTyping {G : Ctx} {v : Val} {T : Typ} {x : Var}
+    (h : Typed G (.val v) T) (hi : Inert G) (hwf : Wf G)
+    (hxG : Env.Fresh x G) :
+    ∃ U, PreciseVal G v U ∧ Subtyp G U T ∧ InertTyp U ∧
+      Wf (G.push x U) := by
+  obtain ⟨U, hp, hsub, hU⟩ := h.valAllocationType
+  exact ⟨U, hp, hsub, hU, hp.wfPush hi hwf hxG⟩
+
+theorem WellTyped.dom_eq {G : Ctx} {store : Sta}
+    (h : WellTyped G store) : G.dom = store.dom := by
+  induction h with
+  | empty => rfl
+  | push h hxG hxStore hv ih =>
+      rename_i G store x v T
+      simpa [Env.dom, Env.push] using congrArg (fun s => insert x s) ih
+
+theorem WellTyped.freshContext {G : Ctx} {store : Sta} {x : Var}
+    (h : WellTyped G store) (hx : Env.Fresh x store) : Env.Fresh x G := by
+  unfold Env.Fresh at hx ⊢
+  rw [h.dom_eq]
+  exact hx
+
 end CDot
