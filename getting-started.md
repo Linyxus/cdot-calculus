@@ -27,6 +27,37 @@ opam pin add coq 8.13.0
 opam install -j4 coq-tlc
 ```
 
+#### Using an isolated OPAM switch
+
+To avoid changing the compiler or packages in your default OPAM switch, you
+can create a switch dedicated to this repository. The following commands use
+OCaml 4.13.1, Coq 8.13.0, and the compatible 20211215 release of TLC:
+
+```
+opam switch create cdot-calculus ocaml-base-compiler.4.13.1 --yes
+opam repository add coq-released https://coq.inria.fr/opam/released \
+  --switch=cdot-calculus --yes
+opam install --switch=cdot-calculus coq.8.13.0 coq-tlc.20211215 \
+  --yes -j4
+```
+
+On macOS, the last command may report that `pkgconf` is missing. Install it
+with Homebrew and then rerun the `opam install` command:
+
+```
+brew install pkgconf
+```
+
+You do not need to activate the switch globally. From the repository root,
+compile all parts of the proof in dependency order with:
+
+```
+opam exec --switch=cdot-calculus -- make -C cdot -j4
+opam exec --switch=cdot-calculus -- make -C lambda2Gmu -j4
+opam exec --switch=cdot-calculus -- make -C lambda2Gmu_annotated -j4
+opam exec --switch=cdot-calculus -- make -C translation -j4
+```
+
 ### Using a Docker container
 
 We have built a Docker image with all necessary prerequisites and pushed it to [Docker Hub](https://hub.docker.com/r/linyxus/cdot-proof). We also prepare the Docker Compose config to allow users to easily launch the container and attach the proof scripts as a volume.
