@@ -310,13 +310,18 @@ theorem PreciseVal.newTagAtBinding {G : Ctx} {r : Path}
 inductive LookupClass (G : Ctx) (p : Path) : Typ → DefRhs → Prop where
   | lambda : Typed G (.val (.lambda S body)) (.all T U) →
       LookupClass G p (.all T U) (.val (.lambda S body))
-  | object (x : Var) (fields : Fields) :
+  | object (G₀ G₁ : Ctx) (x : Var) (pT : Typ) (fields : Fields) :
+      G = Env.concat (G₀.push x pT) G₁ →
       p = (Path.var x).selectFields fields →
       TypedDefs x fields G (ds.openPath p) (U.openPath p) →
       Typed G (.path p) ((.path r A : Typ).openPath p) →
-      CommonRepl G T U →
+      CommonRepl G₀ T U → CommonRepl G T U →
       LookupClass G p (.bnd T) (.val (.new r A U ds))
-  | path : Typed G (.path q) S →
+  | path (G₀ G₁ : Ctx) (x : Var) (pT : Typ) (fields : Fields) :
+      G = Env.concat (G₀.push x pT) G₁ →
+      p = (Path.var x).selectFields fields →
+      Typed G (.path q) S →
+      CommonRepl G₀ (.sngl r) (.sngl q) →
       CommonRepl G (.sngl r) (.sngl q) →
       LookupClass G p (.sngl r) (.path q)
 
@@ -407,9 +412,9 @@ theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
                 simpa only [Defs.openRec_eq_openRecPath_var,
                   Typ.openRec_eq_openRecPath_var] using hdefsFull
               exact ⟨.val (.new r A S ds), .var hvStore,
-                .object x [] rfl hdefsFull'
+                .object G₀ G₁ x (.bnd T) [] rfl rfl hdefsFull'
                   (by simpa only [Typ.openRec_eq_openRecPath_var] using htagFull)
-                  (hc.mono heBase hi.ok)⟩
+                  hc (hc.mono heBase hi.ok)⟩
   | fld hprefix ih =>
       rename_i p T a V
       have hrecordTarget : RecordType (.rcd (.trm a V)) := by
@@ -420,7 +425,7 @@ theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
       subst T
       obtain ⟨rhs, hstep, hclass⟩ := ih
       cases hclass with
-      | object x fields hp hdefs htag hc =>
+      | object G₀ G₁ x pT fields hG hp hdefs htag hc₀ hc =>
           rename_i r A S ds
           subst p
           let current := (Path.var x).selectFields fields
@@ -428,6 +433,13 @@ theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
             hprefix.recordHas_of_bnd hi .one
           obtain ⟨V', hmember, hcMember⟩ :=
             (hc.openPath current).recordHas hstatic
+          obtain ⟨V₀, hmember₀, hcMember₀⟩ :=
+            (hc₀.openPath current).recordHas hstatic
+          have hmemberEq : V₀ = V' := by
+            obtain ⟨labels, hrecord⟩ := hdefs.recordType
+            exact Dec.trm.inj
+              (hrecord.has_unique hmember₀ hmember rfl) |>.2
+          subst V₀
           obtain ⟨d, hdOpen, htyped⟩ := hdefs.recordHas hmember
           cases htyped with
           | all ht =>
@@ -446,13 +458,19 @@ theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
                   (raw.openPath current) := .selectVal hstep hdRaw
               subst base
               obtain ⟨Vstatic, hV, hcNested⟩ := hcMember.rightBnd
+              obtain ⟨Vstatic₀, hV₀, hcNested₀⟩ := hcMember₀.rightBnd
+              have hVstatic : Vstatic₀ = Vstatic :=
+                Typ.bnd.inj (hV₀.symm.trans hV)
+              subst Vstatic₀
               subst V
               rw [hopen] at hselect
-              exact ⟨_, hselect, .object x (a :: fields) rfl
+              exact ⟨_, hselect, .object G₀ G₁ x pT (a :: fields)
+                hG rfl
                 (by simpa [current, Path.var, Path.selectField,
                     Path.selectFields] using hnested)
                 (by simpa [current, Path.var, Path.selectField,
                     Path.selectFields] using htag)
+                hcNested₀
                 hcNested⟩
           | path hq =>
               obtain ⟨raw, hdRaw, hopen⟩ :=
@@ -462,10 +480,154 @@ theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
               obtain ⟨r', hV⟩ := hcMember.rightSngl
               subst V
               rw [hopen] at hselect
-              exact ⟨_, hselect, .path hq hcMember⟩
+              exact ⟨_, hselect, .path G₀ G₁ x pT (a :: fields)
+                hG rfl hq hcMember₀ hcMember⟩
   | «open» h ih => exact ih
   | andLeft h ih => exact ih
   | andRight h ih => exact ih
+
+theorem PreciseFlow.lookupSingletonSameReceiver {G : Ctx} {σ : Sta}
+    {x : Var} {fields targetFields : Fields}
+    (h : PreciseFlow G (.select (.free x) fields)
+      (.sngl (.select (.free x) targetFields))
+      (.sngl (.select (.free x) targetFields)))
+    (hi : Inert G) (hwt : WellTyped G σ) :
+    LookupStep σ (.path (.select (.free x) fields))
+      (.path (.select (.free x) targetFields)) := by
+  obtain ⟨rhs, hstep, hclass⟩ := h.lookupClass hi hwt
+  cases hclass with
+  | path G₀ G₁ y pT runtimeFields hG hp htyped hc₀ hc =>
+      have hxy : x = y := by
+        simp only [Path.var, Path.selectFields] at hp
+        injection hp with hxy hfields
+        injection hxy
+      subst y
+      have hiHead : Inert (G₀.push x pT) := by
+        rw [hG] at hi
+        exact hi.concatLeft
+      have hxG₀ : Env.Fresh x G₀ := by
+        cases hiHead with
+        | push _ _ hx => exact hx
+      have hruntime := hc₀.snglFreshPath_eq hxG₀
+      subst hruntime
+      exact hstep
+
+theorem PreciseTyping2.lookupSingletonSameReceiver {G : Ctx} {σ : Sta}
+    {x : Var} {fields targetFields : Fields}
+    (h : PreciseTyping2 G (.select (.free x) fields)
+      (.sngl (.select (.free x) targetFields)))
+    (hi : Inert G) (hwt : WellTyped G σ) :
+    LookupStep σ (.path (.select (.free x) fields))
+      (.path (.select (.free x) targetFields)) := by
+  have aux : ∀ {p : Path} {T : Typ}, PreciseTyping2 G p T →
+      ∀ (q : Path) (y : Var) (sourceFields resultFields : Fields),
+        T = .sngl q →
+        p = .select (.free y) sourceFields →
+        q = .select (.free y) resultFields →
+        LookupStep σ (.path p) (.path q) := by
+    intro p T hp
+    induction hp with
+    | flow hf =>
+        intro q y sourceFields resultFields htEq hpEq hqEq
+        rw [htEq] at hf
+        rw [hpEq, hqEq] at hf
+        have hsource := hf.snglSource_eq hi
+        rw [hsource] at hf
+        rw [hpEq, hqEq]
+        exact hf.lookupSingletonSameReceiver hi hwt
+    | snglTrans hp hq ihp ihq =>
+        intro result y sourceFields resultFields htEq hpEq hqEq
+        rename_i p q a U
+        have hresult : result = q.selectField a :=
+          (Typ.sngl.inj htEq).symm
+        have hqEq' : q.selectField a = .select (.free y) resultFields :=
+          hresult.symm.trans hqEq
+        rw [hresult]
+        cases p with
+        | select pav pfields =>
+            simp only [Path.selectField] at hpEq
+            injection hpEq with hpAvar hpFields
+            cases hpAvar
+            cases sourceFields with
+            | nil => cases hpFields
+            | cons b sourceFields =>
+                injection hpFields with hba hpRest
+                cases hba
+                cases q with
+                | select qav qfields =>
+                    simp only [Path.selectField] at hqEq'
+                    injection hqEq' with hqAvar hqFields
+                    cases hqAvar
+                    cases resultFields with
+                    | nil => cases hqFields
+                    | cons c resultFields =>
+                        injection hqFields with hca hqRest
+                        cases hca
+                        exact .selectPath
+                          (ihp (.select (.free y) qfields) y
+                            pfields qfields rfl rfl rfl)
+  exact aux h _ x fields targetFields rfl rfl rfl
+
+theorem PreciseTyping3.lookupSingletonSameReceiver {G : Ctx} {σ : Sta}
+    {x : Var} {fields targetFields : Fields}
+    (h : PreciseTyping3 G (.select (.free x) fields)
+      (.sngl (.select (.free x) targetFields)))
+    (hi : Inert G) (hwf : Wf G) (hwt : WellTyped G σ) :
+    Lookup σ (.path (.select (.free x) fields))
+      (.path (.select (.free x) targetFields)) := by
+  have aux : ∀ {p : Path} {T : Typ}, PreciseTyping3 G p T →
+      ∀ (q : Path) (y : Var) (sourceFields resultFields : Fields),
+        T = .sngl q →
+        p = .select (.free y) sourceFields →
+        q = .select (.free y) resultFields →
+        Lookup σ (.path p) (.path q) := by
+    intro p T hp
+    induction hp with
+    | precise hp =>
+        intro q y sourceFields resultFields htEq hpEq hqEq
+        rw [htEq, hpEq, hqEq] at hp
+        rw [hpEq, hqEq]
+        exact .one (hp.lookupSingletonSameReceiver hi hwt)
+    | snglTrans hp hrest ih =>
+        intro result y sourceFields resultFields htEq hpEq hresultEq
+        rename_i p q T
+        rw [hpEq] at hp
+        rw [hpEq]
+        have hqNamed := hrest.toGeneral.pathNamed
+        cases q with
+        | select qav qfields =>
+            simp only [Path.Named] at hqNamed
+            obtain ⟨z, rfl⟩ := hqNamed
+            by_cases hzy : z = y
+            · subst z
+              have hfirst := hp.lookupSingletonSameReceiver hi hwt
+              have htail := ih result y qfields resultFields
+                htEq rfl hresultEq
+              exact .step hfirst htail
+            · obtain ⟨S, hb⟩ := hp.receiverBinds
+              obtain ⟨G₀, G₁, v, hG, hv, hvTyped⟩ :=
+                hwt.bindsValueSplit hb
+              rw [hG] at hi hwf hp hrest hwt
+              have hiHead : Inert (G₀.push y S) := hi.concatLeft
+              have hwfHead : Wf (G₀.push y S) := hwf.concatLeft
+              have hpHead := hp.strengthenConcat
+                (Env.Binds.here : Env.Binds y S (G₀.push y S)) hi hwf
+              obtain ⟨U, hqHead⟩ :=
+                hpHead.singletonTargetTyped hiHead hwfHead
+              obtain ⟨Z, hbzHead⟩ := hqHead.receiverBinds
+              have hrestHead := hrest.strengthenConcat hbzHead hi hwf
+              have hrestBase := hrestHead.strengthenPush
+                hiHead hwfHead.prefix hzy
+              rw [htEq, hresultEq] at hrestBase
+              obtain ⟨V, hresultBase⟩ :=
+                hrestBase.singletonTargetTyped hiHead.prefix hwfHead.prefix
+              obtain ⟨W, hresultBase₂⟩ := hresultBase.precise2Exists
+              obtain ⟨R, hby⟩ := hresultBase₂.receiverBinds
+              have hyG₀ : Env.Fresh y G₀ := by
+                cases hiHead with
+                | push _ _ hy => exact hy
+              exact False.elim (hyG₀ hby.mem_dom)
+  exact aux h _ x fields targetFields rfl rfl rfl
 
 theorem PreciseTyping2.lookupSingletonAliases {G : Ctx} {σ : Sta}
     {p q : Path} (h : PreciseTyping2 G p (.sngl q))
@@ -480,7 +642,7 @@ theorem PreciseTyping2.lookupSingletonAliases {G : Ctx} {σ : Sta}
       rw [hsource] at h
       obtain ⟨rhs, hstep, hclass⟩ := h.lookupClass hi hwt
       cases hclass with
-      | path htyped hc =>
+      | path G₀ G₁ x pT fields hG hp htyped hc₀ hc =>
           obtain ⟨U, hruntime⟩ := htyped.precise3Exists hi
           obtain ⟨V, hstatic⟩ := h.singletonTargetTyped hi hwf
           have halias := hc.snglAliases hi hwf
@@ -511,9 +673,9 @@ theorem PreciseTyping3.lookupRecord {G : Ctx} {σ : Sta}
               rw [heq] at hrecord
               obtain ⟨labels, hrecord⟩ := hrecord
               cases hrecord
-          | object x fields heq hdefs htag hc =>
+          | object G₀ G₁ x pT fields hG heq hdefs htag hc₀ hc =>
               exact Or.inr ⟨_, _, _, _, hstep, htag⟩
-          | path htyped hc =>
+          | path G₀ G₁ x pT fields hG heq htyped hc₀ hc =>
               have heq := hf.envSngl_eq
               rw [heq] at hrecord
               obtain ⟨labels, hrecord⟩ := hrecord
@@ -538,7 +700,7 @@ theorem PreciseTyping2.lookupSingleton {G : Ctx} {σ : Sta}
       rw [hsource] at h
       obtain ⟨rhs, hstep, hclass⟩ := h.lookupClass hi hwt
       cases hclass with
-      | path _ _ => exact ⟨_, hstep⟩
+      | path _ _ _ _ _ _ _ _ _ _ => exact ⟨_, hstep⟩
   | snglTrans hp hq ihp ihq =>
       cases heq
       obtain ⟨r, hstep⟩ := ihp rfl
@@ -596,7 +758,7 @@ theorem PreciseTyping2.lookupObjectTag {G : Ctx} {σ : Sta} {p : Path}
       have heq := lookup_step_functional hcanonical hstep
       subst rhs
       cases hclass with
-      | object x fields hp hdefs htag hc => exact htag
+      | object G₀ G₁ x pT fields hG hp hdefs htag hc₀ hc => exact htag
   | snglTrans hp hq =>
       obtain ⟨q', hpath⟩ := hp.lookupSingleton hi hwt
       have heq := lookup_step_functional (LookupStep.selectPath hpath) hstep

@@ -687,6 +687,63 @@ theorem PreciseTyping3.strengthenPush {G : Ctx} {x y : Var}
           have hzx : z ≠ x := hb.ne_of_fresh hx
           exact .snglTrans hpG (ih hzx rfl)
 
+theorem Env.Binds.concatRight {G H : Env α} {x : Var} {a : α}
+    (hb : Env.Binds x a G) (hok : Env.Ok (Env.concat G H)) :
+    Env.Binds x a (Env.concat G H) := by
+  induction H with
+  | nil => simpa [Env.concat] using hb
+  | cons binding H ih =>
+      obtain ⟨y, b⟩ := binding
+      change List.Nodup (y :: (Env.concat G H).map Prod.fst) at hok
+      have htail := (List.nodup_cons.mp hok).2
+      have hy : Env.Fresh y (Env.concat G H) := by
+        simpa only [Env.Fresh, Env.dom, List.mem_toFinset] using
+          (List.nodup_cons.mp hok).1
+      have hprev := ih htail
+      exact .there (hprev.ne_of_fresh hy) hprev
+
+theorem PreciseTyping2.strengthenConcat {G H : Ctx} {x : Var}
+    {S T : Typ} {fields : Fields}
+    (hb : Env.Binds x S G) (hi : Inert (Env.concat G H))
+    (hwf : Wf (Env.concat G H))
+    (h : PreciseTyping2 (Env.concat G H)
+      (.select (.free x) fields) T) :
+    PreciseTyping2 G (.select (.free x) fields) T := by
+  induction H with
+  | nil => simpa [Env.concat] using h
+  | cons binding H ih =>
+      obtain ⟨y, U⟩ := binding
+      have hiBase : Inert (Env.concat G H) := hi.prefix
+      have hwfBase : Wf (Env.concat G H) := hwf.prefix
+      have hbind : Env.Binds x S (Env.concat G H) :=
+        hb.concatRight hiBase.ok
+      have hy : Env.Fresh y (Env.concat G H) := by
+        cases hi with
+        | push _ _ hy => exact hy
+      have hxy : x ≠ y := hbind.ne_of_fresh hy
+      exact ih hiBase hwfBase (h.strengthenPush hi hwfBase hxy)
+
+theorem PreciseTyping3.strengthenConcat {G H : Ctx} {x : Var}
+    {S T : Typ} {fields : Fields}
+    (hb : Env.Binds x S G) (hi : Inert (Env.concat G H))
+    (hwf : Wf (Env.concat G H))
+    (h : PreciseTyping3 (Env.concat G H)
+      (.select (.free x) fields) T) :
+    PreciseTyping3 G (.select (.free x) fields) T := by
+  induction H with
+  | nil => simpa [Env.concat] using h
+  | cons binding H ih =>
+      obtain ⟨y, U⟩ := binding
+      have hiBase : Inert (Env.concat G H) := hi.prefix
+      have hwfBase : Wf (Env.concat G H) := hwf.prefix
+      have hbind : Env.Binds x S (Env.concat G H) :=
+        hb.concatRight hiBase.ok
+      have hy : Env.Fresh y (Env.concat G H) := by
+        cases hi with
+        | push _ _ hy => exact hy
+      have hxy : x ≠ y := hbind.ne_of_fresh hy
+      exact ih hiBase hwfBase (h.strengthenPush hi hwfBase hxy)
+
 /-! ## Typed replacement composition -/
 
 def TypedReplStep (G : Ctx) (T U : Typ) : Prop :=
@@ -725,6 +782,36 @@ theorem TypedPathReplStep.transportBackward {G : Ctx} {p q : Path}
       have hfields := halias3.fieldTransSnglFromLeft hi hq
       exact ⟨hfields.singletonTargetTyped hi hwf, hfields⟩
 
+theorem TypedPathReplStep.sourceReceiverBinds {G : Ctx} {x : Var}
+    {fields : Fields} {q : Path}
+    (h : TypedPathReplStep G (.select (.free x) fields) q) :
+    ∃ T, Env.Binds x T G := by
+  generalize heq : Path.select (.free x) fields = p at h
+  cases h with
+  | step halias htarget =>
+      rename_i p0 q0 U0 suffix
+      cases q0 with
+      | select av rest =>
+          simp only [Path.selectFields] at heq
+          injection heq with havar hfields
+          cases havar
+          exact htarget.receiverBinds
+
+theorem TypedPathReplStep.targetReceiverBinds {G : Ctx} {p : Path}
+    {x : Var} {fields : Fields}
+    (h : TypedPathReplStep G p (.select (.free x) fields)) :
+    ∃ T, Env.Binds x T G := by
+  generalize heq : Path.select (.free x) fields = q at h
+  cases h with
+  | step halias htarget =>
+      rename_i p0 q0 U0 suffix
+      cases p0 with
+      | select av rest =>
+          simp only [Path.selectFields] at heq
+          injection heq with havar hfields
+          cases havar
+          exact halias.receiverBinds
+
 theorem PathReplComposition.transport {G : Ctx} {p q : Path} {T : Typ}
     (h : PathReplComposition G p q) (hp : PreciseTyping3 G p T) :
     PreciseTyping3 G q T ∧
@@ -753,6 +840,33 @@ theorem PathReplComposition.transportBackward {G : Ctx} {p q : Path}
       rcases hrel with rfl | hcb
       · exact hba
       · exact hcb.snglTrans3 hba
+
+theorem PathReplComposition.sourceFresh_eq {G : Ctx} {x : Var}
+    {fields : Fields} {q : Path} (hx : Env.Fresh x G)
+    (h : PathReplComposition G (.select (.free x) fields) q) :
+    q = .select (.free x) fields := by
+  cases h with
+  | refl => rfl
+  | step hstep hrest =>
+      obtain ⟨T, hb⟩ := hstep.sourceReceiverBinds
+      exact False.elim (hx hb.mem_dom)
+
+theorem PathReplComposition.targetFresh_eq {G : Ctx} {p : Path}
+    {x : Var} {fields : Fields} (hx : Env.Fresh x G)
+    (h : PathReplComposition G p (.select (.free x) fields)) :
+    p = .select (.free x) fields := by
+  let target := Path.select (.free x) fields
+  have aux : ∀ {a b : Path}, PathReplComposition G a b →
+      b = target → a = target := by
+    intro a b hab hbt
+    induction hab with
+    | refl => exact hbt
+    | step hstep hrest ih =>
+        have hmiddle := ih hbt
+        subst hmiddle
+        obtain ⟨T, hb⟩ := hstep.targetReceiverBinds
+        exact False.elim (hx hb.mem_dom)
+  exact aux h rfl
 
 theorem ReplComposition.bndInner {G : Ctx} {T U : Typ}
     (h : ReplComposition G (.bnd T) (.bnd U)) :

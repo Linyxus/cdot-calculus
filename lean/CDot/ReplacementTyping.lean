@@ -2012,6 +2012,48 @@ theorem CommonRepl.snglAliases {G : Ctx} {p q : Path} {P Q : Typ}
   obtain ⟨_, hqRel⟩ := hpathsQ.transportBackward hi hwf hq
   exact ⟨r, hpRel, hqRel⟩
 
+theorem CommonRepl.snglFresh_eq {G : Ctx} {x : Var}
+    {leftFields rightFields : Fields} (hx : Env.Fresh x G)
+    (h : CommonRepl G
+      (.sngl (.select (.free x) leftFields))
+      (.sngl (.select (.free x) rightFields))) :
+    leftFields = rightFields := by
+  obtain ⟨W, hWLeft, hWRight⟩ := h
+  obtain ⟨r, hW⟩ := hWLeft.targetSngl
+  subst W
+  obtain ⟨left, hleft, hpathsLeft⟩ := hWLeft.sourceSnglPaths
+  have hleftPath : left = .select (.free x) leftFields :=
+    (Typ.sngl.inj hleft).symm
+  subst left
+  have hr := hpathsLeft.targetFresh_eq hx
+  subst r
+  obtain ⟨right, hright, hpathsRight⟩ := hWRight.sourceSnglPaths
+  have hrightPath : right = .select (.free x) rightFields :=
+    (Typ.sngl.inj hright).symm
+  subst right
+  have heq := hpathsRight.sourceFresh_eq hx
+  injection heq with _ hfields
+  exact hfields.symm
+
+theorem CommonRepl.snglFreshPath_eq {G : Ctx} {x : Var}
+    {fields : Fields} {q : Path} (hx : Env.Fresh x G)
+    (h : CommonRepl G
+      (.sngl (.select (.free x) fields)) (.sngl q)) :
+    q = .select (.free x) fields := by
+  obtain ⟨W, hWLeft, hWRight⟩ := h
+  obtain ⟨r, hW⟩ := hWLeft.targetSngl
+  subst W
+  obtain ⟨left, hleft, hpathsLeft⟩ := hWLeft.sourceSnglPaths
+  have hleftPath : left = .select (.free x) fields :=
+    (Typ.sngl.inj hleft).symm
+  subst left
+  have hr := hpathsLeft.targetFresh_eq hx
+  subst r
+  obtain ⟨right, hright, hpathsRight⟩ := hWRight.sourceSnglPaths
+  have hrightPath : right = q := (Typ.sngl.inj hright).symm
+  subst right
+  exact hpathsRight.sourceFresh_eq hx
+
 theorem CommonRepl.rightAll {G : Ctx} {T S U : Typ}
     (h : CommonRepl G T (.all S U)) :
     ∃ S' U', T = .all S' U' := by
