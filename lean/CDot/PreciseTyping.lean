@@ -532,6 +532,96 @@ theorem Wf.prefix {G : Ctx} {x : Var} {T : Typ}
   cases h with
   | push h _ _ => exact h
 
+theorem PreciseFlow.singletonTargetStrengthen {G : Ctx} {x y : Var}
+    {T : Typ} {fields : Fields} {q : Path}
+    (hi : Inert (G.push x T)) (hwf : Wf G)
+    (h : PreciseFlow (G.push x T) (.select (.free y) fields)
+      (.sngl q) (.sngl q)) (hyx : y ≠ x) :
+    ∃ U, PreciseTyping2 G q U := by
+  induction hwf generalizing x T y fields q with
+  | empty =>
+      have h0 := h.strengthenPush hyx
+      obtain ⟨S, hb⟩ := h0.receiverBinds
+      exact False.elim hb.empty_false
+  | @push G z Z hwf hz htargets ih =>
+      have hiG : Inert (G.push z Z) := hi.prefix
+      have hG := h.strengthenPush hyx
+      by_cases hyz : y = z
+      · subst y
+        exact htargets fields q hG
+      · obtain ⟨U, hq⟩ := ih hiG hG hyz
+        exact ⟨U, hq.mono (.pushRight hz Z) hiG.ok⟩
+
+theorem PreciseFlow.singletonTargetTyped {G : Ctx} {p q : Path}
+    {T : Typ} (hi : Inert G) (hwf : Wf G)
+    (h : PreciseFlow G p T (.sngl q)) :
+    ∃ U, PreciseTyping2 G q U := by
+  have hsource := h.snglSource_eq hi
+  subst T
+  cases hwf with
+  | empty =>
+      obtain ⟨x, hx⟩ := h.sourceNamed
+      cases p with
+      | select av fields =>
+          simp only [Path.Named] at hx
+          obtain ⟨y, rfl⟩ := hx
+          obtain ⟨S, hb⟩ := h.receiverBinds
+          exact False.elim hb.empty_false
+  | @push G x T hwf hx htargets =>
+      cases p with
+      | select av fields =>
+          have hn := h.sourceNamed
+          simp only [Path.Named] at hn
+          obtain ⟨y, rfl⟩ := hn
+          by_cases hyx : y = x
+          · subst y
+            exact htargets fields q h
+          · obtain ⟨U, hq⟩ := h.singletonTargetStrengthen hi hwf hyx
+            exact ⟨U, hq.mono (.pushRight hx T) hi.ok⟩
+
+theorem PreciseTyping2.singletonTargetTyped {G : Ctx} {p q : Path}
+    (hi : Inert G) (hwf : Wf G)
+    (h : PreciseTyping2 G p (.sngl q)) :
+    ∃ U, PreciseTyping2 G q U := by
+  cases h with
+  | flow h => exact h.singletonTargetTyped hi hwf
+  | snglTrans hp hq => exact ⟨_, hq⟩
+
+theorem PreciseTyping3.singletonTargetTyped {G : Ctx} {p q : Path}
+    (hi : Inert G) (hwf : Wf G)
+    (h : PreciseTyping3 G p (.sngl q)) :
+    ∃ U, PreciseTyping3 G q U := by
+  generalize heq : Typ.sngl q = T at h
+  induction h generalizing q with
+  | precise h =>
+      cases heq
+      obtain ⟨U, hq⟩ := h.singletonTargetTyped hi hwf
+      exact ⟨U, .precise hq⟩
+  | snglTrans hp hq ih => exact ih heq
+
+theorem PreciseTyping2.receiverBinds {G : Ctx} {x : Var}
+    {fields : Fields} {T : Typ}
+    (h : PreciseTyping2 G (.select (.free x) fields) T) :
+    ∃ S, Env.Binds x S G := by
+  generalize heq : Path.select (.free x) fields = p at h
+  induction h generalizing x fields with
+  | flow h =>
+      rw [← heq] at h
+      exact h.receiverBinds
+  | snglTrans hp hq ihp ihq =>
+      rename_i p q a U
+      cases p with
+      | select av rest =>
+          simp only [Path.selectField] at heq
+          injection heq with havar hfields
+          cases havar
+          cases fields with
+          | nil => cases hfields
+          | cons b fields =>
+              injection hfields with hab hrest
+              cases hab
+              exact ihp rfl
+
 /-! ## Typed replacement composition -/
 
 def TypedReplStep (G : Ctx) (T U : Typ) : Prop :=

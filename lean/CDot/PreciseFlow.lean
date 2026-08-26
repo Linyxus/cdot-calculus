@@ -141,6 +141,38 @@ theorem PreciseFlow.mono {G G' : Ctx} {p : Path} {T U : Typ}
   | andLeft _ ih => exact .andLeft ih
   | andRight _ ih => exact .andRight ih
 
+theorem PreciseFlow.strengthenPush {G : Ctx} {y x : Var} {V T U : Typ}
+    {fields : Fields}
+    (h : PreciseFlow (G.push y V) (.select (.free x) fields) T U)
+    (hxy : x ≠ y) : PreciseFlow G (.select (.free x) fields) T U := by
+  generalize heq : Path.select (.free x) fields = p at h
+  induction h generalizing x fields with
+  | bind hok hb =>
+      simp only [Path.var] at heq
+      injection heq with havar hfields
+      cases havar
+      cases hfields
+      have hokG : Env.Ok G := by
+        change List.Nodup (y :: G.map Prod.fst) at hok
+        exact hok.tail
+      exact .bind hokG (hb.push_ne_inv hxy)
+  | fld h ih =>
+      rename_i p T a U
+      cases p with
+      | select av rest =>
+          simp only [Path.selectField] at heq
+          injection heq with havar hfields
+          cases havar
+          cases fields with
+          | nil => cases hfields
+          | cons b fields =>
+              injection hfields with hab hrest
+              cases hab
+              exact .fld (ih hxy rfl)
+  | «open» h ih => exact .open (ih hxy heq)
+  | andLeft h ih => exact .andLeft (ih hxy heq)
+  | andRight h ih => exact .andRight (ih hxy heq)
+
 theorem PreciseFlow.envAll_eq {G : Ctx} {p : Path} {S T U : Typ}
     (h : PreciseFlow G p (.all S T) U) : U = .all S T := by
   generalize heq : Typ.all S T = E at h
@@ -306,6 +338,17 @@ theorem PreciseFlow.binds_of_var {G : Ctx} {x : Var} {T U : Typ}
   | «open» h ih => exact ih heq
   | andLeft h ih => exact ih heq
   | andRight h ih => exact ih heq
+
+theorem PreciseFlow.receiverBinds {G : Ctx} {x : Var} {fields : Fields}
+    {T U : Typ} (h : PreciseFlow G (.select (.free x) fields) T U) :
+    ∃ S, Env.Binds x S G := by
+  induction fields generalizing T U with
+  | nil => exact ⟨T, h.binds_of_var⟩
+  | cons a fields ih =>
+      change PreciseFlow G
+        ((Path.select (.free x) fields).selectField a) T U at h
+      obtain ⟨R, hprefix⟩ := h.backtrackRecord
+      exact ih hprefix
 
 theorem PreciseFlow.source_unique {G : Ctx} {p : Path}
     {T₁ T₂ U₁ U₂ : Typ} (hi : Inert G)
