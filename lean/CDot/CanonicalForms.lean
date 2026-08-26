@@ -98,6 +98,16 @@ theorem TypedDefs.narrow {x : Var} {fields : Fields} {G G' : Ctx}
   obtain ⟨S, hbS, hSU⟩ := hsub.binds hb
   exact .sub (.var hbS) hSU
 
+theorem Typed.renameLast {G : Ctx} {z x : Var} {S T : Typ} {t : Trm}
+    (h : Typed (G.push z S) t T) (hzG : z ∉ G.fvTypes)
+    (hxG : Env.Fresh x G) (hzx : z ≠ x)
+    (hok : Env.Ok ((G.push x (S.subst z (.var x))).push z S)) :
+    Typed (G.push x (S.subst z (.var x)))
+      (t.subst z (.var x)) (T.subst z (.var x)) := by
+  have hr := h.renameMiddle (G₁ := G) (G₂ := Env.empty)
+    hzG hxG hzx (by simpa [Env.concat, Env.empty] using hok)
+  simpa [Env.concat, Env.empty, Ctx.subst] using hr
+
 theorem Defs.hasTermOpenSource {ds : Defs} {p : Path}
     {a : Signature.TrmLabel} {rhs : DefRhs}
     (h : (ds.openPath p).Has (.trm a rhs)) :
@@ -253,12 +263,57 @@ theorem PreciseVal.newDefsAtBinding {G : Ctx} {r : Path}
           Defs.openRec_eq_openRecPath_var] using hren
       exact hren'.openSelfContext (Env.okPush hi.ok hxG)
 
+theorem PreciseVal.newTagAtBinding {G : Ctx} {r : Path}
+    {A : Signature.TypLabel} {T : Typ} {ds : Defs} {x : Var}
+    (h : PreciseVal G (.new r A T ds) (.bnd T))
+    (hi : Inert G) (hxG : Env.Fresh x G) :
+    Typed (G.push x (.bnd T)) (.path (.var x))
+      ((.path r A : Typ).open x) := by
+  cases h with
+  | newIntro L hdefs hself =>
+      let tag : Typ := .path r A
+      let avoid := L ∪ G.dom ∪ G.fvTypes ∪ T.fv ∪ tag.fv ∪ {x}
+      obtain ⟨z, hzrange⟩ := Finset.exists_nat_subset_range avoid
+      have hz : z ∉ avoid := by
+        intro hmem
+        exact (Nat.lt_irrefl z) (Finset.mem_range.mp (hzrange hmem))
+      have hzL : z ∉ L := by aesop
+      have hzG : Env.Fresh z G := by aesop
+      have hzTypes : z ∉ G.fvTypes := by aesop
+      have hzT : z ∉ T.fv := by aesop
+      have hzTag : z ∉ tag.fv := by aesop
+      have hzx : z ≠ x := by aesop
+      have hzPush : Env.Fresh z (G.push x ((T.open z).subst z (.var x))) := by
+        intro hmem
+        simp only [Env.dom, Env.push, List.map_cons, List.mem_toFinset,
+          List.mem_cons] at hmem
+        rcases hmem with hzx' | hmem
+        · exact hzx hzx'
+        · exact hzG (by simpa only [Env.dom, List.mem_toFinset] using hmem)
+      have hokx : Env.Ok (G.push x ((T.open z).subst z (.var x))) :=
+        Env.okPush hi.ok hxG
+      have hren := (hself z hzL).renameLast hzTypes hxG hzx
+        (Env.okPush hokx hzPush)
+      have hnamed : (Path.var x).Named := ⟨x, rfl⟩
+      have hTopen := Typ.openPath_eq_subst_open_of_fresh T hzT hnamed
+      have hTagOpen := Typ.openPath_eq_subst_open_of_fresh tag hzTag hnamed
+      simp only [Typ.openRec_eq_openRecPath_var] at hTopen hTagOpen
+      simp only [tag] at hTagOpen
+      simp only [Typ.openRec_eq_openRecPath_var] at hren
+      rw [← hTopen, ← hTagOpen] at hren
+      have hren' : Typed (G.push x (T.open x)) (.path (.var x))
+          (tag.open x) := by
+        simpa [tag, Trm.subst, Path.subst, Path.var, AVar.subst,
+          Var.substPath, hzx, Typ.openRec_eq_openRecPath_var] using hren
+      exact hren'.openSelfContext (Env.okPush hi.ok hxG)
+
 inductive LookupClass (G : Ctx) (p : Path) : Typ → DefRhs → Prop where
   | lambda : Typed G (.val (.lambda S body)) (.all T U) →
       LookupClass G p (.all T U) (.val (.lambda S body))
   | object (x : Var) (fields : Fields) :
       p = (Path.var x).selectFields fields →
       TypedDefs x fields G (ds.openPath p) (U.openPath p) →
+      Typed G (.path p) ((.path r A : Typ).openPath p) →
       CommonRepl G T U →
       LookupClass G p (.bnd T) (.val (.new r A U ds))
   | path : LookupClass G p (.sngl r) (.path q)
@@ -292,18 +347,24 @@ theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
               have hiActual : Inert (G₀.push x (.bnd T)) :=
                 .push hi₀ (.bnd hrecord) hx
               have hdefsPrec := hp.newDefsAtBinding hi₀ hx
+              have htagPrec := hp.newTagAtBinding hi₀ hx
               have hsub : Subtyp G₀ (.bnd T) (.bnd S) :=
                 hc.bnd.subtypes.1
               have hdefsHead := hdefsPrec.narrow
                 (Subenv.last hsub hiActual.ok hiPrec.ok)
+              have htagHead := htagPrec.narrow
+                (Subenv.last hsub hiActual.ok hiPrec.ok)
               have hdefsFull := hdefsHead.mono hiActual.ok heHead hi.ok
+              have htagFull := htagHead.mono heHead
               have hdefsFull' : TypedDefs x []
                   (Env.concat (G₀.push x (.bnd T)) G₁)
                   (ds.openPath (Path.var x)) (S.openPath (Path.var x)) := by
                 simpa only [Defs.openRec_eq_openRecPath_var,
                   Typ.openRec_eq_openRecPath_var] using hdefsFull
               exact ⟨.val (.new r A S ds), .var hvStore,
-                .object x [] rfl hdefsFull' (hc.mono heBase hi.ok)⟩
+                .object x [] rfl hdefsFull'
+                  (by simpa only [Typ.openRec_eq_openRecPath_var] using htagFull)
+                  (hc.mono heBase hi.ok)⟩
   | fld hprefix ih =>
       rename_i p T a V
       have hrecordTarget : RecordType (.rcd (.trm a V)) := by
@@ -314,7 +375,7 @@ theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
       subst T
       obtain ⟨rhs, hstep, hclass⟩ := ih
       cases hclass with
-      | object x fields hp hdefs hc =>
+      | object x fields hp hdefs htag hc =>
           rename_i r A S ds
           subst p
           let current := (Path.var x).selectFields fields
@@ -345,6 +406,8 @@ theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
               exact ⟨_, hselect, .object x (a :: fields) rfl
                 (by simpa [current, Path.var, Path.selectField,
                     Path.selectFields] using hnested)
+                (by simpa [current, Path.var, Path.selectField,
+                    Path.selectFields] using htag)
                 hcNested⟩
           | path hq =>
               obtain ⟨raw, hdRaw, hopen⟩ :=
@@ -416,6 +479,37 @@ theorem PreciseTyping3.lookupAll {G : Ctx} {σ : Sta} {p : Path} {S T : Typ}
   | snglTrans hp hq =>
       obtain ⟨r, hstep⟩ := hp.lookupSingleton hi hwt
       exact Or.inl ⟨r, hstep⟩
+
+theorem PreciseTyping2.lookupObjectTag {G : Ctx} {σ : Sta} {p : Path}
+    {T U : Typ} {r : Path} {A : Signature.TypLabel} {ds : Defs}
+    (h : PreciseTyping2 G p T)
+    (hstep : LookupStep σ (.path p) (.val (.new r A U ds)))
+    (hi : Inert G) (hwt : WellTyped G σ) :
+    Typed G (.path p) ((.path r A : Typ).openPath p) := by
+  cases h with
+  | flow hf =>
+      obtain ⟨rhs, hcanonical, hclass⟩ := hf.lookupClass hi hwt
+      have heq := lookup_step_functional hcanonical hstep
+      subst rhs
+      cases hclass with
+      | object x fields hp hdefs htag hc => exact htag
+  | snglTrans hp hq =>
+      obtain ⟨q', hpath⟩ := hp.lookupSingleton hi hwt
+      have heq := lookup_step_functional (LookupStep.selectPath hpath) hstep
+      cases heq
+
+theorem PreciseTyping3.lookupObjectTag {G : Ctx} {σ : Sta} {p : Path}
+    {T U : Typ} {r : Path} {A : Signature.TypLabel} {ds : Defs}
+    (h : PreciseTyping3 G p T)
+    (hstep : LookupStep σ (.path p) (.val (.new r A U ds)))
+    (hi : Inert G) (hwt : WellTyped G σ) :
+    Typed G (.path p) ((.path r A : Typ).openPath p) := by
+  cases h with
+  | precise hp => exact hp.lookupObjectTag hstep hi hwt
+  | snglTrans hp hq =>
+      obtain ⟨q', hpath⟩ := hp.lookupSingleton hi hwt
+      have heq := lookup_step_functional hpath hstep
+      cases heq
 
 theorem Typed.pathLookupExists {G : Ctx} {σ : Sta} {p : Path} {T : Typ}
     (h : Typed G (.path p) T) (hi : Inert G) (hwt : WellTyped G σ) :
