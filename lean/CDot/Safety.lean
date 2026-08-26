@@ -754,4 +754,76 @@ theorem pathSafety {G : Ctx} {σ : Sta} {p : Path} {T : Typ}
         obtain ⟨next, hstep⟩ := hq.pathLookupExists hi hwt
         exact False.elim (hirred next hstep)
 
+/-! ## Extended soundness -/
+
+inductive ExtendedRed : State → State → Prop where
+  | red : Red state state' → ExtendedRed state state'
+  | lookup : LookupStep σ rhs rhs' →
+      ExtendedRed (σ, rhs.toTrm) (σ, rhs'.toTrm)
+
+abbrev ExtendedReds := Star ExtendedRed
+
+def ExtendedDiverges (state : State) : Prop := InfSeq ExtendedRed state
+
+theorem InfSeq.prepend {α : Type} {R : α → α → Prop} {a b : α}
+    (hab : R a b) (h : InfSeq R b) : InfSeq R a := by
+  obtain ⟨f, hf0, hfstep⟩ := h
+  let g : Nat → α
+    | 0 => a
+    | n + 1 => f n
+  refine ⟨g, rfl, ?_⟩
+  intro n
+  cases n with
+  | zero => simpa [g, hf0] using hab
+  | succ n => simpa [g] using hfstep n
+
+theorem InfSeq.prependStar {α : Type} {R : α → α → Prop} {a b : α}
+    (hab : Star R a b) (h : InfSeq R b) : InfSeq R a := by
+  induction hab with
+  | refl => exact h
+  | step hstep hrest ih => exact .prepend hstep (ih h)
+
+theorem Reds.toExtended {state state' : State}
+    (h : Reds state state') : ExtendedReds state state' := by
+  induction h with
+  | refl => exact .refl _
+  | step hstep hrest ih => exact .step (.red hstep) ih
+
+theorem Lookup.toExtended {σ : Sta} {rhs rhs' : DefRhs}
+    (h : Lookup σ rhs rhs') :
+    ExtendedReds (σ, rhs.toTrm) (σ, rhs'.toTrm) := by
+  induction h with
+  | refl => exact .refl _
+  | step hstep hrest ih => exact .step (.lookup hstep) ih
+
+theorem Diverges.toExtended {state : State}
+    (h : Diverges state) : ExtendedDiverges state := by
+  obtain ⟨f, hf0, hfstep⟩ := h
+  exact ⟨f, hf0, fun n => .red (hfstep n)⟩
+
+theorem CyclicPath.toExtended {σ : Sta} {p : Path}
+    (h : CyclicPath σ p) : ExtendedDiverges (σ, .path p) := by
+  obtain ⟨f, hf0, hfstep⟩ := h
+  refine ⟨fun n => (σ, (f n).toTrm), ?_, ?_⟩
+  · change (σ, (f 0).toTrm) = (σ, .path p)
+    rw [hf0]
+    rfl
+  · intro n
+    exact .lookup (hfstep n)
+
+theorem extendedSafety {t : Trm} {T : Typ}
+    (h : Typed Env.empty t T) :
+    ExtendedDiverges (Env.empty, t) ∨
+      ∃ σ v, ExtendedReds (Env.empty, t) (σ, .val v) := by
+  rcases safety h with hdiverges |
+    ⟨σ, u, G, hred, hnormal, hu, hwt, hwf, hi⟩
+  · exact Or.inl hdiverges.toExtended
+  · cases hnormal with
+    | val => exact Or.inr ⟨σ, _, hred.toExtended⟩
+    | path hresolved =>
+        rename_i p
+        rcases pathSafety hi hwf hwt hu with hcyclic | ⟨v, hlookup⟩
+        · exact Or.inl (hcyclic.toExtended.prependStar hred.toExtended)
+        · exact Or.inr ⟨σ, v, hred.toExtended.trans hlookup.toExtended⟩
+
 end CDot
