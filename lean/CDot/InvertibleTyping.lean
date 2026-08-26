@@ -30,6 +30,29 @@ inductive InvertibleVal : Ctx → Val → Typ → Prop where
       PreciseTyping2 G q U → InvertibleVal G v (.bnd T) →
       ReplTyp p q T T' → InvertibleVal G v (.bnd T')
 
+theorem ReplTyp.subtypPQ {G : Ctx} {p q : Path} {T U V : Typ}
+    (hr : ReplTyp p q T U) (hp : PreciseTyping3 G p (.sngl q))
+    (hq : PreciseTyping3 G q V) : TightSubtyp G T U :=
+  .snglPQ hp hq hr
+
+theorem ReplTyp.subtypQP {G : Ctx} {p q : Path} {T U V : Typ}
+    (hr : ReplTyp p q T U) (hp : PreciseTyping3 G p (.sngl q))
+    (hq : PreciseTyping3 G q V) : TightSubtyp G U T :=
+  .snglQP hp hq hr.swap
+
+theorem ReplComposition.subtypes {G : Ctx} {T U : Typ}
+    (h : ReplComposition G T U) :
+    TightSubtyp G T U ∧ TightSubtyp G U T := by
+  induction h with
+  | refl => exact ⟨.refl, .refl⟩
+  | @step T V U hTV _ ih =>
+      obtain ⟨p, q, W, hp, hq, hr⟩ := hTV
+      have hp' : PreciseTyping3 G p (.sngl q) := .precise (.flow hp)
+      have hq' : PreciseTyping3 G q W := .precise hq
+      have hTV₁ : TightSubtyp G T V := .snglQP hp' hq' hr
+      have hVT₁ : TightSubtyp G V T := .snglPQ hp' hq' hr.swap
+      exact ⟨.trans hTV₁ ih.1, .trans ih.2 hVT₁⟩
+
 theorem InvertiblePath.preciseExists {G : Ctx} {p : Path} {T : Typ}
     (h : InvertiblePath G p T) : ∃ U, PreciseTyping3 G p U := by
   induction h with
@@ -38,6 +61,11 @@ theorem InvertiblePath.preciseExists {G : Ctx} {p : Path} {T : Typ}
   | selPQ _ _ _ ih => exact ih
   | snglPQ _ _ _ ih => exact ih
   | self h => exact ⟨_, .precise h⟩
+
+theorem InvertiblePath.bot_false {G : Ctx} {p : Path}
+    (hi : Inert G) (h : InvertiblePath G p .bot) : False := by
+  cases h with
+  | precise h => exact h.bot_false hi
 
 theorem InvertiblePath.backtrack {G : Ctx} {p : Path}
     {a : Signature.TrmLabel} {T : Typ}

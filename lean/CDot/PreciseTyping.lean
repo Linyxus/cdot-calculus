@@ -58,6 +58,20 @@ theorem PreciseTyping3.andRight {G : Ctx} {p : Path} {T U : Typ}
       exact .precise h.andRight
   | snglTrans hp hq ih => exact .snglTrans hp (ih heq)
 
+theorem PreciseTyping2.bot_false {G : Ctx} {p : Path}
+    (hi : Inert G) (h : PreciseTyping2 G p .bot) : False := by
+  cases h with
+  | flow h => exact h.bot_false hi
+
+theorem PreciseTyping3.bot_false {G : Ctx} {p : Path}
+    (hi : Inert G) (h : PreciseTyping3 G p .bot) : False := by
+  generalize heq : Typ.bot = T at h
+  induction h with
+  | precise h =>
+      cases heq
+      exact h.bot_false hi
+  | snglTrans _ _ ih => exact ih heq
+
 theorem PreciseTyping2.backtrack {G : Ctx} {p : Path}
     {a : Signature.TrmLabel} {T : Typ}
     (h : PreciseTyping2 G (p.selectField a) T) :
