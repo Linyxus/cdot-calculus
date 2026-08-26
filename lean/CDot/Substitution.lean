@@ -845,4 +845,74 @@ theorem Typed.renameMiddle {G₁ G₂ : Ctx} {z x : Var} {T U : Typ}
       replacement := by
         simpa [target, Tx, Trm.var] using Typed.var hxbind }
 
+theorem TypedDefs.renameSelf {G : Ctx} {z x : Var} {fields : Fields}
+    {S T : Typ} {ds : Defs}
+    (h : TypedDefs z fields (G.push z S) ds T)
+    (hzG : z ∉ G.fvTypes) (hxG : Env.Fresh x G) (hzx : z ≠ x)
+    (hok : Env.Ok ((G.push x (S.subst z (.var x))).push z S)) :
+    TypedDefs x fields (G.push x (S.subst z (.var x)))
+      (ds.subst z (.var x)) (T.subst z (.var x)) := by
+  apply TypedDefs.rec
+    (motive_1 := fun _ _ _ _ => True)
+    (motive_2 := fun z fs E d D _ => ∀ {G : Ctx} {S : Typ} {x : Var}, E = G.push z S →
+      z ∉ Ctx.fvTypes G → Env.Fresh x G → z ≠ x →
+      Env.Ok ((G.push x (S.subst z (.var x))).push z S) →
+      TypedDef x fs (G.push x (S.subst z (.var x)))
+        (d.subst z (.var x)) (D.subst z (.var x)))
+    (motive_3 := fun z fs E ds T _ => ∀ {G : Ctx} {S : Typ} {x : Var}, E = G.push z S →
+      z ∉ Ctx.fvTypes G → Env.Fresh x G → z ≠ x →
+      Env.Ok ((G.push x (S.subst z (.var x))).push z S) →
+      TypedDefs x fs (G.push x (S.subst z (.var x)))
+        (ds.subst z (.var x)) (T.subst z (.var x)))
+    (motive_4 := fun _ _ _ _ => True)
+  case typ =>
+    intros
+    exact .typ
+  case all =>
+    intro E R t U V z fs b ht iht G S x heq hzG hxG hzx hok
+    subst E
+    have ht' := ht.renameMiddle (G₁ := G) (G₂ := Env.empty)
+      hzG hxG hzx (by simpa [Env.concat, Env.empty] using hok)
+    simpa [Env.concat, Env.empty, Ctx.subst, Def.subst, Dec.subst, DefRhs.subst,
+      Val.subst, Typ.subst] using TypedDef.all ht'
+  case new =>
+    intro z fs R b E q A body p hp ht hdefs htag ihdefs ihtag
+      G S x heq hzG hxG hzx hok
+    subst E
+    have hnamed : (Path.var x).Named := ⟨x, rfl⟩
+    have htag' := htag.renameMiddle (G₁ := G) (G₂ := Env.empty)
+      hzG hxG hzx (by simpa [Env.concat, Env.empty] using hok)
+    refine TypedDef.new (p.subst z (.var x)) ?_ ?_ ?_ ?_
+    · simpa [hp, Path.subst, AVar.subst, Var.substPath, hzx,
+        Path.var, Path.selectFields]
+    · simpa only [Typ.subst] using
+        Typ.tightBounds_subst (.bnd R) ht z (.var x)
+    · simpa only [Def.subst, Dec.subst, DefRhs.subst, Val.subst,
+        Defs.subst_openRecPath (.var x) hnamed z _ _ _,
+        Typ.subst_openRecPath (.var x) hnamed z _ _ _,
+        Path.subst_selectField] using
+          ihdefs rfl hzG hxG hzx hok
+    · simpa [Env.concat, Env.empty, Ctx.subst, Def.subst, Dec.subst, DefRhs.subst,
+        Val.subst, Trm.subst, Typ.subst, Typ.openPath, Path.subst_selectField,
+        Typ.subst_openRecPath (.var x) hnamed z _ _ _] using htag'
+  case path =>
+    intro E q R z fs b ht iht G S x heq hzG hxG hzx hok
+    subst E
+    have ht' := ht.renameMiddle (G₁ := G) (G₂ := Env.empty)
+      hzG hxG hzx (by simpa [Env.concat, Env.empty] using hok)
+    simpa [Env.concat, Env.empty, Ctx.subst, Def.subst, Dec.subst, DefRhs.subst,
+      Typ.subst] using TypedDef.path ht'
+  case one =>
+    intro z fs E d D hd ih G S x heq hzG hxG hzx hok
+    simpa only [Defs.subst, Typ.subst] using
+      TypedDefs.one (ih heq hzG hxG hzx hok)
+  case cons =>
+    intro z fs E rest R d D hrest hd hno ihrest ihd
+      G S x heq hzG hxG hzx hok
+    simpa only [Defs.subst, Typ.subst, Dec.subst] using
+      TypedDefs.cons (ihrest heq hzG hxG hzx hok)
+        (ihd heq hzG hxG hzx hok) (Defs.hasnt_subst_label hno)
+  case t => exact h
+  all_goals intros; trivial
+
 end CDot

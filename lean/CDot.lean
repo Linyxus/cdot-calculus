@@ -15,6 +15,7 @@ import CDot.InvertibleTyping
 import CDot.ReplacementTyping
 import CDot.InvertibleSubtyping
 import CDot.Substitution
+import CDot.ContextTransport
 import CDot.GADTRules
 import CDot.GeneralToTight
 import CDot.CanonicalForms
