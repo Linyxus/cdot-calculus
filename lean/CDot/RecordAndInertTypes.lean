@@ -85,6 +85,12 @@ theorem RecordType.singleTrm {a : Signature.TrmLabel} {T : Typ}
       | trm h => exact Or.inl h
       | trmSngl => exact Or.inr ⟨_, rfl⟩
 
+theorem RecordType.singleTyp_eq {A : Signature.TypLabel} {S T : Typ}
+    (h : RecordType (.rcd (.typ A S T))) : S = T := by
+  obtain ⟨labels, h⟩ := h
+  cases h with
+  | one hdec heq => cases hdec; rfl
+
 theorem RecordType.andLeft {T U : Typ} (h : RecordType (.and T U)) :
     RecordType T := by
   obtain ⟨labels, h⟩ := h

@@ -168,6 +168,20 @@ theorem PreciseTyping3.last {G : Ctx} {p : Path} {T : Typ}
       · exact Or.inr ⟨q, .precise hp, hlast⟩
       · exact Or.inr ⟨r, .snglTrans hp hpr, hlast⟩
 
+theorem PreciseTyping2.decTyp_eq {G : Ctx} {p : Path}
+    {A : Signature.TypLabel} {S T : Typ} (hi : Inert G)
+    (h : PreciseTyping2 G p (.rcd (.typ A S T))) : S = T := by
+  rcases h.inertSngl hi with hbad | hrecord
+  · exact False.elim hbad.rcd_false
+  · exact hrecord.singleTyp_eq
+
+theorem PreciseTyping3.decTyp_eq {G : Ctx} {p : Path}
+    {A : Signature.TypLabel} {S T : Typ} (hi : Inert G)
+    (h : PreciseTyping3 G p (.rcd (.typ A S T))) : S = T := by
+  rcases h.inertSngl hi with hbad | hrecord
+  · exact False.elim hbad.rcd_false
+  · exact hrecord.singleTyp_eq
+
 inductive Wf : Ctx → Prop where
   | empty : Wf Env.empty
   | push : Wf G → Env.Fresh x G →

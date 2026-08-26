@@ -45,4 +45,31 @@ theorem InvertiblePath.andParts {G : Ctx} {p : Path} {T U : Typ}
   cases h with
   | precise h => exact ⟨.precise h.andLeft, .precise h.andRight⟩
 
+theorem InvertiblePath.allToPrecise {G : Ctx} {p : Path} {S T : Typ}
+    (h : InvertiblePath G p (.all S T)) :
+    ∃ S' T', ∃ L : Vars, PreciseTyping3 G p (.all S' T') ∧
+      TightSubtyp G S S' ∧
+      (∀ y, y ∉ L → TightSubtyp (G.push y S) (T'.open y) (T.open y)) := by
+  cases h with
+  | precise h => exact ⟨S, T, ∅, h, .refl, fun _ _ => .refl⟩
+
+theorem InvertiblePath.rcdToPrecise {G : Ctx} {p : Path}
+    {A : Signature.TypLabel} {S U : Typ} (hi : Inert G)
+    (h : InvertiblePath G p (.rcd (.typ A S U))) :
+    ∃ T, PreciseTyping3 G p (.rcd (.typ A T T)) ∧
+      TightSubtyp G T U ∧ TightSubtyp G S T := by
+  cases h with
+  | precise h =>
+      have heq := h.decTyp_eq hi
+      subst U
+      exact ⟨S, h, .refl, .refl⟩
+
+theorem InvertibleVal.allToPrecise {G : Ctx} {v : Val} {S T : Typ}
+    (h : InvertibleVal G v (.all S T)) :
+    ∃ S' T', PreciseVal G v (.all S' T') ∧
+      Subtyp G S S' ∧
+      (∀ y, Subtyp (G.push y S) (T'.open y) (T.open y)) := by
+  cases h with
+  | precise h => exact ⟨S, T, h, .refl, fun _ => .refl⟩
+
 end CDot
