@@ -1237,6 +1237,76 @@ theorem ReplacementPath.fieldElim {G : Ctx} {p : Path}
   | typ h hLo hHi ih => cases heq
   | all L h hdom hbody ih => cases heq
 
+theorem TightTyped.pathReplacement {G : Ctx} {p : Path} {T : Typ}
+    (hi : Inert G) (h : TightTyped G (.path p) T) :
+    ReplacementPath G p T := by
+  apply TightTyped.rec
+    (motive_1 := fun G t T _ => Inert G → ∀ p,
+      t = .path p → ReplacementPath G p T)
+    (motive_2 := fun _ _ _ _ => True)
+  case var =>
+    intro x T G hb hi p heq
+    cases heq
+    exact .invertible (.precise (.precise (.flow (.bind hi.ok hb))))
+  case allIntro => intros; contradiction
+  case allElim => intros; contradiction
+  case newIntro => intros; contradiction
+  case newElim =>
+    intro G p a T h ih hi q heq
+    cases heq
+    exact (ih hi p rfl).fieldElim hi
+  case rcdIntro =>
+    intro G T p a h ih hi q heq
+    cases heq
+    exact .rcdIntro (ih hi _ rfl)
+  case letE => intros; contradiction
+  case caseE => intros; contradiction
+  case sngl =>
+    intro G p q T hpq hq ihp ihq hi r heq
+    cases heq
+    exact (ihp hi p rfl).snglTrans hi (ihq hi q rfl)
+  case self =>
+    intro G p T h ih hi q heq
+    cases heq
+    obtain ⟨U, hp⟩ := (ih hi p rfl).preciseExists
+    obtain ⟨V, hp₂⟩ := hp.precise2Exists
+    exact .invertible (.self hp₂)
+  case pathElim =>
+    intro G p q a T hpq hqa ihp ihq hi r heq
+    cases heq
+    exact (ihp hi p rfl).fieldAlias hi (ihq hi _ rfl)
+  case recIntro =>
+    intro G p T h ih hi q heq
+    cases heq
+    exact .bnd (ih hi p rfl)
+  case recElim =>
+    intro G p T h ih hi q heq
+    cases heq
+    exact (ih hi p rfl).recElim hi
+  case andIntro =>
+    intro G p T U hT hU ihT ihU hi q heq
+    cases heq
+    exact .and (ihT hi p rfl) (ihU hi p rfl)
+  case sub =>
+    intro G t S T ht hs iht ihs hi p heq
+    exact (iht hi p heq).subtyp hi hs
+  case top => intros; trivial
+  case bot => intros; trivial
+  case refl => intros; trivial
+  case trans => intros; trivial
+  case andLeft => intros; trivial
+  case andRight => intros; trivial
+  case andIntro => intros; trivial
+  case fld => intros; trivial
+  case typ => intros; trivial
+  case snglPQ => intros; trivial
+  case snglQP => intros; trivial
+  case selLo => intros; trivial
+  case selHi => intros; trivial
+  case all => intros; trivial
+  case t => exact h
+  all_goals first | assumption | rfl
+
 theorem ReplacementPath.rcdToPrecise {G : Ctx} {p : Path}
     {A : Signature.TypLabel} {S U : Typ} (hi : Inert G)
     (h : ReplacementPath G p (.rcd (.typ A S U))) :
