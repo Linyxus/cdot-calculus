@@ -199,6 +199,23 @@ decreasing_by
   simp_all
   omega
 
+theorem RecordTyp.has_recordDec {T : Typ} {D : Dec} {labels : Finset Label}
+    (htyp : RecordTyp T labels) (hhas : RecordHas T D) : RecordDec D := by
+  cases htyp with
+  | one hdec heq =>
+      cases hhas
+      exact hdec
+  | cons hrest hdec heq hfresh =>
+      cases hhas with
+      | andLeft hhas => exact hrest.has_recordDec hhas
+      | andRight hhas =>
+          cases hhas
+          exact hdec
+termination_by sizeOf T
+decreasing_by
+  simp_all
+  omega
+
 theorem RecordTyp.has_unique {T : Typ} {labels : Finset Label}
     {D₁ D₂ : Dec} (htyp : RecordTyp T labels)
     (h₁ : RecordHas T D₁) (h₂ : RecordHas T D₂)

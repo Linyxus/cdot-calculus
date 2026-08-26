@@ -18,6 +18,7 @@ import CDot.Substitution
 import CDot.GADTRules
 import CDot.GeneralToTight
 import CDot.CanonicalForms
+import CDot.Safety
 
 /-!
 # cDOT in Lean 4
