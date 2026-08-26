@@ -696,4 +696,62 @@ theorem preservation {G : Ctx} {σ σ' : Sta} {t t' : Trm} {T : Typ}
       exact ⟨H, he, hiH, hwfH, hwtH, .sub htH (hs.mono he)⟩
   all_goals intros <;> trivial
 
+theorem preservationStar {G : Ctx} {σ σ' : Sta} {t t' : Trm} {T : Typ}
+    (hwt : WellTyped G σ) (hi : Inert G) (hwf : Wf G)
+    (hred : Reds (σ, t) (σ', t')) (h : Typed G t T) :
+    ∃ H, Env.Extends G H ∧ Inert H ∧ Wf H ∧
+      WellTyped H σ' ∧ Typed H t' T := by
+  generalize hsrc : (σ, t) = source at hred
+  generalize hdst : (σ', t') = target at hred
+  induction hred generalizing G σ σ' t t' T with
+  | refl =>
+      have heq := hsrc.trans hdst.symm
+      injection heq with hσ ht
+      subst σ'
+      subst t'
+      exact ⟨G, .refl _, hi, hwf, hwt, h⟩
+  | @step _ middle _ hstep hrest ih =>
+      obtain ⟨σ₁, t₁⟩ := middle
+      rw [← hsrc] at hstep
+      obtain ⟨H, he, hiH, hwfH, hwtH, htH⟩ :=
+        preservation hwt hi hwf hstep h
+      obtain ⟨K, heHK, hiK, hwfK, hwtK, htK⟩ :=
+        ih hwtH hiH hwfH htH rfl hdst
+      exact ⟨K, he.trans heHK, hiK, hwfK, hwtK, htK⟩
+
+def Diverges (state : State) : Prop := InfSeq Red state
+
+def CyclicPath (σ : Sta) (p : Path) : Prop :=
+  InfSeq (LookupStep σ) (.path p)
+
+theorem safety {t : Trm} {T : Typ}
+    (h : Typed Env.empty t T) :
+    Diverges (Env.empty, t) ∨
+      ∃ σ u G, Reds (Env.empty, t) (σ, u) ∧
+        NormalForm σ u ∧ Typed G u T ∧
+        WellTyped G σ ∧ Wf G ∧ Inert G := by
+  rcases infSeqOrFinseq (R := Red) (Env.empty, t) with hinf | hfinite
+  · exact Or.inl hinf
+  · obtain ⟨⟨σ, u⟩, hsteps, hirred⟩ := hfinite
+    obtain ⟨G, he, hi, hwf, hwt, hu⟩ :=
+      preservationStar .empty .empty .empty hsteps h
+    rcases progress hi hwf hwt hu with hnormal | ⟨state, hstep⟩
+    · exact Or.inr ⟨σ, u, G, hsteps, hnormal, hu, hwt, hwf, hi⟩
+    · exact False.elim (hirred state hstep)
+
+theorem pathSafety {G : Ctx} {σ : Sta} {p : Path} {T : Typ}
+    (hi : Inert G) (hwf : Wf G) (hwt : WellTyped G σ)
+    (h : Typed G (.path p) T) :
+    CyclicPath σ p ∨ ∃ v, Lookup σ (.path p) (.val v) := by
+  rcases infSeqOrFinseq (R := LookupStep σ) (DefRhs.path p) with
+    hinf | hfinite
+  · exact Or.inl hinf
+  · obtain ⟨rhs, hlookup, hirred⟩ := hfinite
+    cases rhs with
+    | val v => exact Or.inr ⟨v, hlookup⟩
+    | path q =>
+        have hq := h.lookupPreserves hlookup hi hwf hwt
+        obtain ⟨next, hstep⟩ := hq.pathLookupExists hi hwt
+        exact False.elim (hirred next hstep)
+
 end CDot
