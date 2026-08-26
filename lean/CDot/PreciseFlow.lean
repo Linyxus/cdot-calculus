@@ -184,6 +184,73 @@ theorem PreciseFlow.backtrackRecord {G : Ctx} {p : Path}
   | andLeft h ih => exact ih heq
   | andRight h ih => exact ih heq
 
+theorem PreciseFlow.bndTarget {G : Ctx} {p : Path} {T U : Typ}
+    (hi : Inert G) (h : PreciseFlow G p (.bnd T) U) :
+    U = .bnd T ∨ RecordType U := by
+  generalize heq : Typ.bnd T = S at h
+  induction h generalizing T with
+  | bind hok hb =>
+      cases heq
+      exact Or.inl rfl
+  | fld h ih =>
+      cases heq
+      exact Or.inl rfl
+  | «open» h ih =>
+      rename_i p S V
+      rcases ih heq with hsame | hbad
+      · have hbnd : V.bnd = T.bnd := hsame.trans heq.symm
+        have hVT : V = T := Typ.bnd.inj hbnd
+        subst V
+        have hinert := (h.inertSngl hi).1
+        rw [← heq] at hinert
+        have hrecord := hinert.bnd_record
+        exact Or.inr (hrecord.openPath p)
+      · exact False.elim hbad.bnd_false
+  | andLeft h ih =>
+      rcases ih heq with hbad | hrecord
+      · have himpossible : _ = Typ.bnd T := hbad.trans heq.symm
+        cases himpossible
+      · exact Or.inr hrecord.andLeft
+  | andRight h ih =>
+      rcases ih heq with hbad | hrecord
+      · have himpossible : _ = Typ.bnd T := hbad.trans heq.symm
+        cases himpossible
+      · exact Or.inr hrecord.andRight
+
+theorem PreciseFlow.recordHas_of_bnd {G : Ctx} {p : Path} {T U : Typ}
+    {D : Dec} (hi : Inert G) (h : PreciseFlow G p (.bnd T) U)
+    (hhas : RecordHas U D) : RecordHas (T.openPath p) D := by
+  generalize heq : Typ.bnd T = S at h
+  induction h generalizing T D with
+  | bind hok hb =>
+      cases heq
+      cases hhas
+  | fld h ih =>
+      cases heq
+      cases hhas
+  | «open» h ih =>
+      rename_i p S V
+      have hbnd := h
+      rw [← heq] at hbnd
+      rcases hbnd.bndTarget hi with hsame | hbad
+      · have hVT : V = T := Typ.bnd.inj hsame
+        subst V
+        exact hhas
+      · exact False.elim hbad.bnd_false
+  | andLeft h ih =>
+      exact ih (.andLeft hhas) heq
+  | andRight h ih =>
+      exact ih (.andRight hhas) heq
+
+theorem PreciseFlow.decTyp_unique {G : Ctx} {p : Path} {T : Typ}
+    {A : Signature.TypLabel} {S₁ S₂ : Typ} (hi : Inert G)
+    (h₁ : PreciseFlow G p (.bnd T) (.rcd (.typ A S₁ S₁)))
+    (h₂ : PreciseFlow G p (.bnd T) (.rcd (.typ A S₂ S₂))) : S₁ = S₂ := by
+  have hrecord := ((h₁.inertSngl hi).1).bnd_record.openPath p
+  obtain ⟨labels, hrecord⟩ := hrecord
+  exact hrecord.typ_member_unique
+    (h₁.recordHas_of_bnd hi .one) (h₂.recordHas_of_bnd hi .one)
+
 theorem PreciseVal.new_type_eq {G : Ctx} {r : Path} {A : Signature.TypLabel}
     {T U : Typ} {ds : Defs} (h : PreciseVal G (.new r A T ds) U) : U = .bnd T := by
   cases h
