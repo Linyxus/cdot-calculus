@@ -403,4 +403,32 @@ theorem SemanticSubtyp.allSource {G : Ctx} {S₁ S₂ T₁ T₂ U : Typ}
         (Subenv.last hDom'.toGeneral hok₂ hokMid)
       exact .trans hleft (hBody' x hx.1.2)
 
+theorem SemanticSubtyp.transWithSelection {G : Ctx} (hi : Inert G)
+    (selInv : ∀ {p : Path} {A : Signature.TypLabel} {T U : Typ},
+      PreciseTyping3 G p (.rcd (.typ A T T)) →
+      SemanticSubtyp G (.path p A) U → SemanticSubtyp G T U)
+    {S T U : Typ} (hST : SemanticSubtyp G S T)
+    (hTU : SemanticSubtyp G T U) : SemanticSubtyp G S U := by
+  induction hST generalizing U with
+  | top => exact hTU.topLeft
+  | bot => exact .bot
+  | refl => exact hTU
+  | andLeft h ih => exact .andLeft (ih hTU)
+  | andRight h ih => exact .andRight (ih hTU)
+  | andIntro hT hU ihT ihU =>
+      exact hTU.andSource (fun _ h => ihT h) (fun _ h => ihU h)
+  | fld h ih => exact hTU.fldSource (fun _ h => ih h)
+  | typ hLo hHi => exact hTU.typSource hLo hHi
+  | snglPQRight hp hq hr h ih =>
+      exact ih (.snglQPLeft hp hq hr.swap hTU)
+  | snglQPRight hp hq hr h ih =>
+      exact ih (.snglPQLeft hp hq hr.swap hTU)
+  | snglPQLeft hp hq hr h ih =>
+      exact .snglPQLeft hp hq hr (ih hTU)
+  | snglQPLeft hp hq hr h ih =>
+      exact .snglQPLeft hp hq hr (ih hTU)
+  | selRight hp h ih => exact ih (selInv hp hTU)
+  | selLeft hp h ih => exact .selLeft hp (ih hTU)
+  | all L hDom hBody => exact hTU.allSource hi L hDom hBody
+
 end CDot
