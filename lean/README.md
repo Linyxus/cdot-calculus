@@ -31,16 +31,29 @@ lake build
 | `RecordAndInertTypes.v` | `CDot/RecordAndInertTypes.lean` | Core record/inert opening, context invariants, and record-member uniqueness ported |
 | `Replacement.v` | `CDot/Replacement.lean` | Replacement algebra, opening composition, insertion, field elimination, and substitution ported |
 | `PreciseFlow.v` | `CDot/PreciseFlow.lean` | Precise path flow and value typing judgments ported |
-| `PreciseTyping.v` | `CDot/PreciseTyping.lean` | Second/third-level judgments and core decomposition lemmas ported; advanced inert-context lemmas pending |
+| `PreciseTyping.v` | `CDot/PreciseTyping.lean` | Second/third-level precise typing, decomposition, singleton inversion, strengthening, and context well-formedness ported |
 | `TightTyping.v` | `CDot/TightTyping.lean` | Tight judgments and tight-to-general translation ported |
-| `InvertibleTyping.v` | `CDot/InvertibleTyping.lean` | Invertible path/value judgments plus function, record, lambda, and object decomposition ported; path-selection inversion pending |
-| `ReplacementTyping.v` | `CDot/ReplacementTyping.lean` | Faithful path/value judgments, function/record inversion, and lambda/object shape recovery ported; replacement-closure family pending |
-| `InvertibleSubtyping.v` | `CDot/InvertibleSubtyping.lean` | Semantic judgment, semantic-to-tight translation, and structural transitivity cases ported; precise selection inversion and final transitivity closure pending |
-| `Substitution.v` | `CDot/Substitution.lean` | Structural substitution invariants ported; mutual typing substitution theorem pending |
-| `GADTRules.v` | `CDot/GADTRules.lean` | Derived singleton replacement rules ported; inversion theorems pending |
+| `InvertibleTyping.v` | `CDot/InvertibleTyping.lean` | Invertible path/value judgments and function, record, selection, lambda, and object inversion ported |
+| `ReplacementTyping.v` | `CDot/ReplacementTyping.lean` | Replacement typing, closure under typed replacement, path selection, and function/object shape recovery ported |
+| `InvertibleSubtyping.v` | `CDot/InvertibleSubtyping.lean` | Semantic subtyping, semantic-to-tight translation, inversion, and transitivity infrastructure ported |
+| `Substitution.v` | `CDot/Substitution.lean` | Opening/substitution invariants and mutual substitution for typing, definition typing, and subtyping ported |
+| `GADTRules.v` | `CDot/GADTRules.lean` | Derived singleton replacement and inversion rules ported |
 | `Lookup.v` | `CDot/Lookup.lean` | Lookup semantics, irreducibility, and determinism ported |
 | `Reduction.v` | `CDot/Reduction.lean` | Complete reduction and normal-form definitions ported |
-| `GeneralToTight.v`, `CanonicalForms.v`, `Safety.v` | — | Pending |
+| `GeneralToTight.v` | `CDot/GeneralToTight.lean` | General-to-tight conversion and precise canonical-type extraction ported |
+| `CanonicalForms.v` | `CDot/CanonicalForms.lean` | Lookup preservation, finite alias resolution, and function/object/tag canonical forms ported |
+| `Safety.v` | `CDot/Safety.lean` | Progress, preservation, finite-reduction safety, path safety, and extended soundness ported |
 
-The final acceptance criterion is a proof of the counterparts of `safety` and
-`extended_safety` from `cdot/Safety.v`, with no `sorry` declarations.
+## Soundness theorems
+
+The migration's final acceptance criterion is satisfied by the following
+declarations in `CDot/Safety.lean`:
+
+- `progress`
+- `preservation` and `preservationStar`
+- `safety`
+- `pathSafety`
+- `extendedSafety`
+
+The complete project builds without `sorry`, `admit`, or custom `axiom`
+declarations.
