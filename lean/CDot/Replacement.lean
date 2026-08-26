@@ -258,6 +258,20 @@ theorem ReplTyp.path_prefixes {p q p' q' A}
   cases h with
   | path => exact ⟨_, rfl, rfl⟩
 
+theorem ReplTyp.path_target {p q r : Path} {A : Signature.TypLabel} {U : Typ}
+    (h : ReplTyp p q (.path r A) U) :
+    ∃ fields, r = p.selectFields fields ∧
+      U = .path (q.selectFields fields) A := by
+  cases h with
+  | path => exact ⟨_, rfl, rfl⟩
+
+theorem ReplTyp.sngl_target {p q r : Path} {U : Typ}
+    (h : ReplTyp p q (.sngl r) U) :
+    ∃ fields, r = p.selectFields fields ∧
+      U = .sngl (q.selectFields fields) := by
+  cases h with
+  | sngl => exact ⟨_, rfl, rfl⟩
+
 mutual
   theorem ReplTyp.fieldElimAux {p q T U} (h : ReplTyp p q T U) :
       ∀ p₀ q₀ a, p = p₀.selectField a → q = q₀.selectField a →

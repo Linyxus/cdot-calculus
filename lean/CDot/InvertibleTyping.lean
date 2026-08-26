@@ -91,6 +91,46 @@ theorem InvertiblePath.andParts {G : Ctx} {p : Path} {T U : Typ}
   cases h with
   | precise h => exact ⟨.precise h.andLeft, .precise h.andRight⟩
 
+theorem InvertiblePath.pathSel {G : Ctx} {p q : Path}
+    {A : Signature.TypLabel} {T : Typ} (hi : Inert G)
+    (hp : PreciseTyping3 G p (.rcd (.typ A T T)))
+    (h : InvertiblePath G q (.path p A)) : InvertiblePath G q T := by
+  generalize heq : Typ.path p A = V at h
+  induction h generalizing p A T with
+  | precise h =>
+      cases heq
+      exact False.elim (h.path_false hi)
+  | recPQ hpq hq h hr ih => cases heq
+  | selPQ hpq hq h ih =>
+      cases heq
+      have hs : PreciseTyping3 G _ (.sngl _) :=
+        (PreciseTyping3.precise (.flow hpq)).fieldTransSngl hp
+      have hp' := hs.snglTrans3 hp
+      exact ih hp' rfl
+  | snglPQ hpq hq h ih => cases heq
+  | self h => cases heq
+
+theorem InvertiblePath.pathSelExists {G : Ctx} {p q : Path}
+    {A : Signature.TypLabel} (hi : Inert G)
+    (h : InvertiblePath G q (.path p A)) :
+    ∃ T, PreciseTyping3 G p (.rcd (.typ A T T)) ∧
+      InvertiblePath G q T := by
+  generalize heq : Typ.path p A = V at h
+  induction h generalizing p A with
+  | precise h =>
+      cases heq
+      exact False.elim (h.path_false hi)
+  | recPQ hpq hq h hr ih => cases heq
+  | selPQ hpq hq h ih =>
+      cases heq
+      obtain ⟨T, hp, hT⟩ := ih rfl
+      have hs := (PreciseTyping3.precise (.flow hpq)).fieldTransSnglFromLeft hi hp
+      have hp' := hp.invertSngl_record hi
+        (by exact ⟨_, .one .typ rfl⟩) hs
+      exact ⟨T, hp', hT⟩
+  | snglPQ hpq hq h ih => cases heq
+  | self h => cases heq
+
 theorem InvertiblePath.allToPrecise {G : Ctx} {p : Path} {S T : Typ}
     (h : InvertiblePath G p (.all S T)) :
     ∃ S' T', ∃ L : Vars, PreciseTyping3 G p (.all S' T') ∧
