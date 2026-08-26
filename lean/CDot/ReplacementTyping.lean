@@ -1932,4 +1932,83 @@ theorem ReplComposition.recordHasForward {G : Ctx} {T U : Typ}
       exact ⟨Vdst, hdst,
         (hVMid.replToComposition hp hq).trans hmidDst⟩
 
+/-- Two types obtained from a common type by typed path replacement.  This is
+the symmetric replacement relation used by object canonical forms. -/
+def CommonRepl (G : Ctx) (T U : Typ) : Prop :=
+  ∃ W, ReplComposition G W T ∧ ReplComposition G W U
+
+theorem CommonRepl.refl {G : Ctx} (T : Typ) : CommonRepl G T T :=
+  ⟨T, .refl T, .refl T⟩
+
+theorem CommonRepl.symm {G : Ctx} {T U : Typ}
+    (h : CommonRepl G T U) : CommonRepl G U T := by
+  obtain ⟨W, hT, hU⟩ := h
+  exact ⟨W, hU, hT⟩
+
+theorem CommonRepl.openPath {G : Ctx} {T U : Typ}
+    (h : CommonRepl G T U) (p : Path) :
+    CommonRepl G (T.openPath p) (U.openPath p) := by
+  obtain ⟨W, hT, hU⟩ := h
+  exact ⟨W.openPath p, hT.openPath p, hU.openPath p⟩
+
+theorem ReplComposition.mono {G G' : Ctx} {T U : Typ}
+    (h : ReplComposition G T U) (he : Env.Extends G G') (hok : Env.Ok G') :
+    ReplComposition G' T U := by
+  induction h with
+  | refl => exact .refl _
+  | step hstep hrest ih =>
+      obtain ⟨p, q, W, hp, hq, hr⟩ := hstep
+      exact .step ⟨p, q, W, hp.mono he hok, hq.mono he hok, hr⟩ ih
+
+theorem CommonRepl.mono {G G' : Ctx} {T U : Typ}
+    (h : CommonRepl G T U) (he : Env.Extends G G') (hok : Env.Ok G') :
+    CommonRepl G' T U := by
+  obtain ⟨W, hT, hU⟩ := h
+  exact ⟨W, hT.mono he hok, hU.mono he hok⟩
+
+theorem CommonRepl.bnd {G : Ctx} {T U : Typ}
+    (h : CommonRepl G T U) : CommonRepl G (.bnd T) (.bnd U) := by
+  obtain ⟨W, hT, hU⟩ := h
+  exact ⟨.bnd W, hT.bndMap, hU.bndMap⟩
+
+theorem CommonRepl.leftBnd {G : Ctx} {T U : Typ}
+    (h : CommonRepl G (.bnd T) U) :
+    ∃ U', U = .bnd U' ∧ CommonRepl G T U' := by
+  obtain ⟨W, hWT, hWU⟩ := h
+  obtain ⟨W', rfl, hW'T⟩ := hWT.targetBnd
+  obtain ⟨U', rfl, hW'U'⟩ := hWU.sourceBnd
+  exact ⟨U', rfl, W', hW'T, hW'U'⟩
+
+theorem CommonRepl.rightBnd {G : Ctx} {T U : Typ}
+    (h : CommonRepl G T (.bnd U)) :
+    ∃ T', T = .bnd T' ∧ CommonRepl G T' U := by
+  obtain ⟨T', heq, hc⟩ := h.symm.leftBnd
+  exact ⟨T', heq, hc.symm⟩
+
+theorem CommonRepl.rightSngl {G : Ctx} {T : Typ} {q : Path}
+    (h : CommonRepl G T (.sngl q)) : ∃ p, T = .sngl p := by
+  obtain ⟨W, hWT, hWq⟩ := h
+  obtain ⟨r, hW⟩ := hWq.targetSngl
+  subst W
+  exact hWT.sourceSngl
+
+theorem CommonRepl.subtypes {G : Ctx} {T U : Typ}
+    (h : CommonRepl G T U) :
+    Subtyp G T U ∧ Subtyp G U T := by
+  obtain ⟨W, hT, hU⟩ := h
+  have hTW := hT.subtypes.2.toGeneral
+  have hWU := hU.subtypes.1.toGeneral
+  have hUW := hU.subtypes.2.toGeneral
+  have hWT := hT.subtypes.1.toGeneral
+  exact ⟨.trans hTW hWU, .trans hUW hWT⟩
+
+theorem CommonRepl.recordHas {G : Ctx} {T U : Typ}
+    {a : Signature.TrmLabel} {V : Typ} (h : CommonRepl G T U)
+    (hhas : RecordHas T (.trm a V)) :
+    ∃ V', RecordHas U (.trm a V') ∧ CommonRepl G V V' := by
+  obtain ⟨W, hWT, hWU⟩ := h
+  obtain ⟨V₀, hV₀, hV₀V⟩ := hWT.recordHasBackward hhas
+  obtain ⟨V', hV', hV₀V'⟩ := hWU.recordHasForward hV₀
+  exact ⟨V', hV', ⟨V₀, hV₀V, hV₀V'⟩⟩
+
 end CDot

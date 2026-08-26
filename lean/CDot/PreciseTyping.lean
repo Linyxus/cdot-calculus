@@ -574,4 +574,58 @@ theorem ReplComposition.bndMap {G : Ctx} {T U : Typ}
       obtain ⟨p, q, W, hp, hq, hr⟩ := hstep
       exact (Star.one ⟨p, q, W, hp, hq, .bnd hr⟩).trans ih
 
+theorem ReplComposition.sourceBnd {G : Ctx} {T U : Typ}
+    (h : ReplComposition G (.bnd T) U) :
+    ∃ U', U = .bnd U' ∧ ReplComposition G T U' := by
+  generalize hsource : Typ.bnd T = S at h
+  induction h generalizing T with
+  | refl =>
+      exact ⟨T, hsource.symm, .refl T⟩
+  | step hstep hrest ih =>
+      rw [← hsource] at hstep
+      obtain ⟨p, q, W, hp, hq, hr⟩ := hstep
+      cases hr with
+      | bnd hr =>
+          obtain ⟨U', heq, htail⟩ := ih rfl
+          exact ⟨U', heq,
+            (Star.one ⟨p, q, W, hp, hq, hr⟩).trans htail⟩
+
+theorem ReplComposition.targetBnd {G : Ctx} {T U : Typ}
+    (h : ReplComposition G T (.bnd U)) :
+    ∃ T', T = .bnd T' ∧ ReplComposition G T' U := by
+  generalize htarget : Typ.bnd U = V at h
+  induction h generalizing U with
+  | refl => exact ⟨U, htarget.symm, .refl U⟩
+  | step hstep hrest ih =>
+      obtain ⟨V', heq, htail⟩ := ih htarget
+      subst_vars
+      obtain ⟨p, q, W, hp, hq, hr⟩ := hstep
+      cases hr with
+      | bnd hr =>
+          exact ⟨_, rfl,
+            (Star.one ⟨p, q, W, hp, hq, hr⟩).trans htail⟩
+
+theorem ReplComposition.sourceSngl {G : Ctx} {p : Path} {U : Typ}
+    (h : ReplComposition G (.sngl p) U) : ∃ q, U = .sngl q := by
+  generalize hsource : Typ.sngl p = S at h
+  induction h generalizing p with
+  | refl => exact ⟨p, hsource.symm⟩
+  | step hstep hrest ih =>
+      rw [← hsource] at hstep
+      obtain ⟨r, q, W, hr, hq, hrepl⟩ := hstep
+      cases hrepl with
+      | sngl => exact ih rfl
+
+theorem ReplComposition.targetSngl {G : Ctx} {T : Typ} {q : Path}
+    (h : ReplComposition G T (.sngl q)) : ∃ p, T = .sngl p := by
+  generalize htarget : Typ.sngl q = U at h
+  induction h generalizing q with
+  | refl => exact ⟨q, htarget.symm⟩
+  | step hstep hrest ih =>
+      obtain ⟨r, heq⟩ := ih htarget
+      subst_vars
+      obtain ⟨p, q, W, hp, hq, hrepl⟩ := hstep
+      cases hrepl with
+      | sngl => exact ⟨_, rfl⟩
+
 end CDot
