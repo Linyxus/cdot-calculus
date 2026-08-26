@@ -72,4 +72,9 @@ theorem InvertibleVal.allToPrecise {G : Ctx} {v : Val} {S T : Typ}
   cases h with
   | precise h => exact ⟨S, T, h, .refl, fun _ => .refl⟩
 
+theorem InvertibleVal.and_false {G : Ctx} {v : Val} {T U : Typ}
+    (h : InvertibleVal G v (.and T U)) : False := by
+  cases h with
+  | precise h => cases h
+
 end CDot

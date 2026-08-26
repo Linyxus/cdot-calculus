@@ -130,4 +130,60 @@ theorem ReplacementPath.allToPrecise {G : Ctx} {p : Path} {S T : Typ}
         (Subenv.last hdom.toGeneral hok₂ hok₁)
       exact .trans hnarrow (hbody y hy.1.1)
 
+theorem ReplacementVal.andParts {G : Ctx} {v : Val} {T U : Typ}
+    (h : ReplacementVal G v (.and T U)) :
+    ReplacementVal G v T ∧ ReplacementVal G v U := by
+  cases h with
+  | invertible h => exact False.elim h.and_false
+  | and hT hU => exact ⟨hT, hU⟩
+
+theorem ReplacementVal.allToPrecise {G : Ctx} {v : Val} {S T : Typ}
+    (hi : Inert G) (h : ReplacementVal G v (.all S T)) :
+    ∃ L : Vars, ∃ S' T', PreciseVal G v (.all S' T') ∧
+      Subtyp G S S' ∧
+      (∀ y, y ∉ L → Subtyp (G.push y S) (T'.open y) (T.open y)) := by
+  generalize heq : Typ.all S T = V at h
+  induction h generalizing S T with
+  | invertible h =>
+      cases heq
+      obtain ⟨S', T', hp, hdom, hbody⟩ := h.allToPrecise
+      exact ⟨∅, S', T', hp, hdom, fun y _ => hbody y⟩
+  | and hT hU ihT ihU => cases heq
+  | bnd h ih => cases heq
+  | sel h hf ih => cases heq
+  | recQP hp hq h hr ih => cases heq
+  | top h ih => cases heq
+  | trm h hs ih => cases heq
+  | typ h hLo hHi ih => cases heq
+  | all L h hdom hbody ih =>
+      rename_i S₁ T₁ S₂ T₂
+      cases heq
+      obtain ⟨L', S', T', hp, hS₁S', hT'T₁⟩ := ih rfl
+      let L'' := (L ∪ L') ∪ G.dom
+      refine ⟨L'', S', T', hp, .trans hdom.toGeneral hS₁S', ?_⟩
+      intro y hy
+      simp only [L'', Finset.mem_union, not_or] at hy
+      have hok₂ : Env.Ok (G.push y S₂) := Env.okPush hi.ok hy.2
+      have hok₁ : Env.Ok (G.push y S₁) := Env.okPush hi.ok hy.2
+      have hnarrow := (hT'T₁ y hy.1.2).narrow
+        (Subenv.last hdom.toGeneral hok₂ hok₁)
+      exact .trans hnarrow (hbody y hy.1.1)
+
+theorem ReplacementVal.lambdaExists {G : Ctx} {v : Val} {S T : Typ}
+    (hi : Inert G) (h : ReplacementVal G v (.all S T)) :
+    ∃ L : Vars, ∃ S' t, v = .lambda S' t ∧ Subtyp G S S' ∧
+      (∀ y, y ∉ L → Typed (G.push y S) (t.open y) (T.open y)) := by
+  obtain ⟨L, S', T', hp, hdom, hbody⟩ := h.allToPrecise hi
+  cases hp with
+  | allIntro L' htyped =>
+      let L'' := (L ∪ L') ∪ G.dom
+      refine ⟨L'', S', _, rfl, hdom, ?_⟩
+      intro y hy
+      simp only [L'', Finset.mem_union, not_or] at hy
+      have hokS : Env.Ok (G.push y S) := Env.okPush hi.ok hy.2
+      have hokS' : Env.Ok (G.push y S') := Env.okPush hi.ok hy.2
+      have hnarrow := (htyped y hy.1.2).narrow
+        (Subenv.last hdom hokS hokS')
+      exact .sub hnarrow (hbody y hy.1.1)
+
 end CDot
