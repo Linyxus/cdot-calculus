@@ -403,6 +403,22 @@ theorem PreciseTyping2.fieldOtherExists {G : Ctx} {p q : Path}
       subst hqeq
       exact ⟨U, hq⟩
 
+theorem PreciseTyping2.fieldsOtherExists {G : Ctx} {p q : Path}
+    {fields : Fields} {T U : Typ} (hi : Inert G)
+    (hs : PreciseFlow G p (.sngl q) (.sngl q))
+    (hq : PreciseTyping2 G q T)
+    (hpfields : PreciseTyping2 G (p.selectFields fields) U) :
+    ∃ V, PreciseTyping2 G (q.selectFields fields) V := by
+  induction fields generalizing U with
+  | nil =>
+      simpa only [Path.selectFields_nil] using Exists.intro T hq
+  | cons a fields ih =>
+      rw [Path.selectFields_cons] at hpfields ⊢
+      obtain ⟨W, hpbase⟩ := hpfields.backtrack
+      obtain ⟨V, hqbase⟩ := ih hpbase
+      have hsfields := (PreciseTyping2.flow hs).fieldTrans hqbase
+      exact hsfields.fieldOtherExists hi hpfields
+
 theorem PreciseTyping3.fieldOtherExists {G : Ctx} {p q : Path}
     {a : Signature.TrmLabel} {T : Typ} (hi : Inert G)
     (hs : PreciseTyping3 G p (.sngl q))

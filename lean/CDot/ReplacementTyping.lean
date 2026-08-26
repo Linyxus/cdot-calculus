@@ -806,6 +806,154 @@ theorem ReplacementPath.pathSelExists {G : Ctx} {p q : Path}
   | typ h hLo hHi ih => cases heq
   | all L h hdom hbody ih => cases heq
 
+theorem InvertiblePath.snglTransReplacement {G : Ctx} {p q : Path}
+    {T : Typ} (hi : Inert G) (hpq : PreciseTyping3 G p (.sngl q))
+    (h : InvertiblePath G q T) : ReplacementPath G p T := by
+  generalize heq : q = r at h
+  induction h generalizing p q with
+  | precise h =>
+      cases heq
+      exact .invertible (.precise (hpq.snglTrans3 h))
+  | recPQ hs ht h hr ih =>
+      cases heq
+      exact (ih hpq rfl).replacementPQ hi hs ht (.bnd hr)
+  | selPQ hs ht h ih =>
+      cases heq
+      exact (ih hpq rfl).replacementPQ hi hs ht .path
+  | snglPQ hs ht h ih =>
+      cases heq
+      exact (ih hpq rfl).replacementPQ hi hs ht .sngl
+  | self h =>
+      cases heq
+      exact .invertible (.precise hpq)
+
+theorem ReplacementPath.snglTransPrecise {G : Ctx} {p q : Path}
+    {T : Typ} (hi : Inert G) (hpq : PreciseTyping3 G p (.sngl q))
+    (h : ReplacementPath G q T) : ReplacementPath G p T := by
+  generalize heq : q = r at h
+  induction h generalizing p q with
+  | invertible h =>
+      cases heq
+      exact h.snglTransReplacement hi hpq
+  | and hT hU ihT ihU =>
+      cases heq
+      exact .and (ihT hpq rfl) (ihU hpq rfl)
+  | bnd h ih =>
+      cases heq
+      obtain ⟨V, hq⟩ := h.preciseExists
+      obtain ⟨W, hq₂⟩ := hq.precise2Exists
+      have hopen := ih hpq rfl
+      exact .bnd (hopen.replacementQPStar hi hpq hq₂ (Typ.openPath_repl _ _ _))
+  | sel h hf ih =>
+      cases heq
+      exact .sel (ih hpq rfl) hf
+  | rcdIntro h ih =>
+      cases heq
+      obtain ⟨V, hqfield⟩ := h.preciseExists
+      have hfield := hpq.fieldSngl hqfield
+      exact .rcdIntro (ih hfield rfl)
+  | recQP hs ht h hr ih =>
+      cases heq
+      exact .recQP hs ht (ih hpq rfl) hr
+  | selQP hs ht h ih =>
+      cases heq
+      exact .selQP hs ht (ih hpq rfl)
+  | snglQP hs ht h ih =>
+      cases heq
+      exact .snglQP hs ht (ih hpq rfl)
+  | top h ih =>
+      cases heq
+      exact .top (ih hpq rfl)
+  | trm h hs ih =>
+      cases heq
+      exact .trm (ih hpq rfl) hs
+  | typ h hLo hHi ih =>
+      cases heq
+      exact .typ (ih hpq rfl) hLo hHi
+  | all L h hdom hbody ih =>
+      cases heq
+      exact .all L (ih hpq rfl) hdom hbody
+
+theorem InvertiblePath.snglTrans {G : Ctx} {p q : Path} {T : Typ}
+    (hi : Inert G) (hpq : InvertiblePath G p (.sngl q))
+    (hq : ReplacementPath G q T) : ReplacementPath G p T := by
+  generalize heq : Typ.sngl q = U at hpq
+  induction hpq generalizing q T with
+  | precise hpq =>
+      cases heq
+      exact hq.snglTransPrecise hi hpq
+  | recPQ hs ht h hr ih => cases heq
+  | selPQ hs ht h ih => cases heq
+  | snglPQ hs ht h ih =>
+      cases heq
+      obtain ⟨V, htarget⟩ := hq.preciseExists
+      have hfield := (PreciseTyping3.precise (.flow hs)).fieldTransSngl htarget
+      have hmid := hq.snglTransPrecise hi hfield
+      exact ih hmid rfl
+  | self h =>
+      cases heq
+      exact hq
+
+theorem InvertiblePath.snglPreciseCases {G : Ctx} {p q : Path} {U : Typ}
+    (hi : Inert G) (hpq : InvertiblePath G p (.sngl q))
+    (hq : PreciseTyping3 G q U) :
+    (∃ r, PreciseTyping3 G p (.sngl r) ∧
+      (r = q ∨ PreciseTyping3 G r (.sngl q))) ∨ p = q := by
+  generalize heq : Typ.sngl q = T at hpq
+  induction hpq generalizing q U with
+  | precise hpq =>
+      cases heq
+      exact Or.inl ⟨q, hpq, Or.inl rfl⟩
+  | recPQ hs ht h hr ih => cases heq
+  | selPQ hs ht h ih => cases heq
+  | snglPQ hs ht h ih =>
+      cases heq
+      have hs3 : PreciseTyping3 G _ (.sngl _) := .precise (.flow hs)
+      have hsource := hs3.fieldTransSngl hq
+      rcases ih hsource rfl with ⟨r, hpr, rfl | hra⟩ | rfl
+      · exact Or.inl ⟨_, hpr, Or.inr (hs3.fieldTransSngl hq)⟩
+      · exact Or.inl ⟨r, hpr,
+          Or.inr (hra.snglTrans3 (hs3.fieldTransSngl hq))⟩
+      · exact Or.inl ⟨_, hs3.fieldTransSngl hq, Or.inl rfl⟩
+  | self h =>
+      cases heq
+      exact Or.inr rfl
+
+theorem ReplacementPath.snglToInvertible {G : Ctx} {p q : Path} {U : Typ}
+    (hi : Inert G) (hpq : ReplacementPath G p (.sngl q))
+    (hq : PreciseTyping3 G q U) :
+    ∃ r S, InvertiblePath G p (.sngl r) ∧ PreciseTyping3 G r S ∧
+      (q = r ∨ PreciseTyping3 G q (.sngl r)) := by
+  generalize heq : Typ.sngl q = T at hpq
+  induction hpq generalizing q U with
+  | invertible hpq =>
+      cases heq
+      exact ⟨q, U, hpq, hq, Or.inl rfl⟩
+  | and hT hU ihT ihU => cases heq
+  | bnd h ih => cases heq
+  | sel h hf ih => cases heq
+  | rcdIntro h ih => cases heq
+  | recQP hs ht h hr ih => cases heq
+  | selQP hs ht h ih => cases heq
+  | snglQP hs ht h ih =>
+      cases heq
+      have hs3 : PreciseTyping3 G _ (.sngl _) := .precise (.flow hs)
+      obtain ⟨V, hq₂⟩ := hq.precise2Exists
+      obtain ⟨W, htarget₂⟩ := PreciseTyping2.fieldsOtherExists hi hs ht hq₂
+      have htarget : PreciseTyping3 G _ W := .precise htarget₂
+      obtain ⟨r, S, hpr, hr, hrel⟩ := ih htarget rfl
+      apply Exists.intro r
+      apply Exists.intro S
+      refine ⟨hpr, hr, ?_⟩
+      right
+      rcases hrel with rfl | hrel
+      · exact hs3.fieldTransSngl hr
+      · exact (hs3.fieldTransSngl hrel).snglTrans3 hrel
+  | top h ih => cases heq
+  | trm h hs ih => cases heq
+  | typ h hLo hHi ih => cases heq
+  | all L h hdom hbody ih => cases heq
+
 theorem ReplacementPath.subtyp {G : Ctx} {p : Path} {T U : Typ}
     (hi : Inert G) (h : ReplacementPath G p T)
     (hs : TightSubtyp G T U) : ReplacementPath G p U := by
