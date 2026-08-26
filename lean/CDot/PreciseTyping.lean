@@ -702,6 +702,58 @@ inductive TypedPathReplStep (G : Ctx) : Path → Path → Prop where
 def PathReplComposition (G : Ctx) : Path → Path → Prop :=
   Star (TypedPathReplStep G)
 
+theorem TypedPathReplStep.transport {G : Ctx} {p q : Path} {T : Typ}
+    (h : TypedPathReplStep G p q) (hp : PreciseTyping3 G p T) :
+    PreciseTyping3 G q T ∧ PreciseTyping3 G q (.sngl p) := by
+  cases h with
+  | step halias htarget =>
+      rename_i p0 q0 U0 fields0
+      have halias3 : PreciseTyping3 G p0 (.sngl q0) :=
+        .precise (.flow halias)
+      have hfields := halias3.fieldTransSngl hp
+      exact ⟨hfields.snglTrans3 hp, hfields⟩
+
+theorem TypedPathReplStep.transportBackward {G : Ctx} {p q : Path}
+    {T : Typ} (hi : Inert G) (hwf : Wf G)
+    (h : TypedPathReplStep G p q) (hq : PreciseTyping3 G q T) :
+    (∃ U, PreciseTyping3 G p U) ∧ PreciseTyping3 G q (.sngl p) := by
+  cases h with
+  | step halias htarget =>
+      rename_i p0 q0 U0 fields0
+      have halias3 : PreciseTyping3 G p0 (.sngl q0) :=
+        .precise (.flow halias)
+      have hfields := halias3.fieldTransSnglFromLeft hi hq
+      exact ⟨hfields.singletonTargetTyped hi hwf, hfields⟩
+
+theorem PathReplComposition.transport {G : Ctx} {p q : Path} {T : Typ}
+    (h : PathReplComposition G p q) (hp : PreciseTyping3 G p T) :
+    PreciseTyping3 G q T ∧
+      (p = q ∨ PreciseTyping3 G q (.sngl p)) := by
+  induction h with
+  | refl => exact ⟨hp, Or.inl rfl⟩
+  | step hab hbc ih =>
+      obtain ⟨hbT, hba⟩ := hab.transport hp
+      obtain ⟨hcT, hrel⟩ := ih hbT
+      refine ⟨hcT, Or.inr ?_⟩
+      rcases hrel with rfl | hcb
+      · exact hba
+      · exact hcb.snglTrans3 hba
+
+theorem PathReplComposition.transportBackward {G : Ctx} {p q : Path}
+    {T : Typ} (hi : Inert G) (hwf : Wf G)
+    (h : PathReplComposition G p q) (hq : PreciseTyping3 G q T) :
+    (∃ U, PreciseTyping3 G p U) ∧
+      (p = q ∨ PreciseTyping3 G q (.sngl p)) := by
+  induction h with
+  | refl => exact ⟨⟨T, hq⟩, Or.inl rfl⟩
+  | step hab hbc ih =>
+      obtain ⟨⟨V, hb⟩, hrel⟩ := ih hq
+      obtain ⟨ha, hba⟩ := hab.transportBackward hi hwf hb
+      refine ⟨ha, Or.inr ?_⟩
+      rcases hrel with rfl | hcb
+      · exact hba
+      · exact hcb.snglTrans3 hba
+
 theorem ReplComposition.bndInner {G : Ctx} {T U : Typ}
     (h : ReplComposition G (.bnd T) (.bnd U)) :
     ReplComposition G T U := by
@@ -770,6 +822,23 @@ theorem ReplComposition.sourceSngl {G : Ctx} {p : Path} {U : Typ}
       obtain ⟨r, q, W, hr, hq, hrepl⟩ := hstep
       cases hrepl with
       | sngl => exact ih rfl
+
+theorem ReplComposition.sourceSnglPaths {G : Ctx} {p : Path} {U : Typ}
+    (h : ReplComposition G (.sngl p) U) :
+    ∃ q, U = .sngl q ∧ PathReplComposition G p q := by
+  generalize hsource : Typ.sngl p = S at h
+  induction h generalizing p with
+  | refl =>
+      exact ⟨p, hsource.symm, .refl p⟩
+  | step hstep hrest ih =>
+      rw [← hsource] at hstep
+      obtain ⟨r, q, W, hr, hq, hrepl⟩ := hstep
+      cases hrepl with
+      | @sngl fields =>
+          obtain ⟨target, heq, htail⟩ := ih rfl
+          exact ⟨target, heq,
+            (Star.one (.step hr hq : TypedPathReplStep G
+              (q.selectFields fields) (r.selectFields fields))).trans htail⟩
 
 theorem ReplComposition.targetSngl {G : Ctx} {T : Typ} {q : Path}
     (h : ReplComposition G T (.sngl q)) : ∃ p, T = .sngl p := by

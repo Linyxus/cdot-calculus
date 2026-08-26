@@ -1992,6 +1992,26 @@ theorem CommonRepl.rightSngl {G : Ctx} {T : Typ} {q : Path}
   subst W
   exact hWT.sourceSngl
 
+theorem CommonRepl.snglAliases {G : Ctx} {p q : Path} {P Q : Typ}
+    (h : CommonRepl G (.sngl p) (.sngl q))
+    (hi : Inert G) (hwf : Wf G)
+    (hp : PreciseTyping3 G p P) (hq : PreciseTyping3 G q Q) :
+    ∃ r,
+      (r = p ∨ PreciseTyping3 G p (.sngl r)) ∧
+      (r = q ∨ PreciseTyping3 G q (.sngl r)) := by
+  obtain ⟨W, hWp, hWq⟩ := h
+  obtain ⟨r, hW⟩ := hWp.targetSngl
+  subst W
+  obtain ⟨p', hpEq, hpathsP⟩ := hWp.sourceSnglPaths
+  obtain ⟨q', hqEq, hpathsQ⟩ := hWq.sourceSnglPaths
+  have hpPath : p' = p := (Typ.sngl.inj hpEq).symm
+  have hqPath : q' = q := (Typ.sngl.inj hqEq).symm
+  subst p'
+  subst q'
+  obtain ⟨_, hpRel⟩ := hpathsP.transportBackward hi hwf hp
+  obtain ⟨_, hqRel⟩ := hpathsQ.transportBackward hi hwf hq
+  exact ⟨r, hpRel, hqRel⟩
+
 theorem CommonRepl.rightAll {G : Ctx} {T S U : Typ}
     (h : CommonRepl G T (.all S U)) :
     ∃ S' U', T = .all S' U' := by

@@ -316,7 +316,52 @@ inductive LookupClass (G : Ctx) (p : Path) : Typ → DefRhs → Prop where
       Typed G (.path p) ((.path r A : Typ).openPath p) →
       CommonRepl G T U →
       LookupClass G p (.bnd T) (.val (.new r A U ds))
-  | path : LookupClass G p (.sngl r) (.path q)
+  | path : Typed G (.path q) S →
+      CommonRepl G (.sngl r) (.sngl q) →
+      LookupClass G p (.sngl r) (.path q)
+
+def PreciseAliases (G : Ctx) (p q : Path) : Prop :=
+  ∃ r,
+    (r = p ∨ PreciseTyping3 G p (.sngl r)) ∧
+    (r = q ∨ PreciseTyping3 G q (.sngl r))
+
+theorem PreciseAliases.field {G : Ctx} {p q : Path}
+    {a : Signature.TrmLabel} {T : Typ} (hi : Inert G)
+    (h : PreciseAliases G p q)
+    (hp : PreciseTyping3 G (p.selectField a) T) :
+    ∃ U, PreciseTyping3 G (q.selectField a) U ∧
+      PreciseAliases G (p.selectField a) (q.selectField a) := by
+  obtain ⟨r, hpr, hqr⟩ := h
+  have hr : ∃ V, PreciseTyping3 G (r.selectField a) V := by
+    rcases hpr with rfl | hpr
+    · exact ⟨T, hp⟩
+    · exact hpr.fieldOtherExists hi hp
+  obtain ⟨V, hr⟩ := hr
+  have hq : ∃ U, PreciseTyping3 G (q.selectField a) U := by
+    rcases hqr with rfl | hqr
+    · exact ⟨V, hr⟩
+    · exact ⟨_, hqr.fieldSngl hr⟩
+  obtain ⟨U, hq⟩ := hq
+  refine ⟨U, hq, r.selectField a, ?_, ?_⟩
+  · rcases hpr with rfl | hpr
+    · exact Or.inl rfl
+    · exact Or.inr (hpr.fieldSnglFromLeft hi hp)
+  · rcases hqr with rfl | hqr
+    · exact Or.inl rfl
+    · exact Or.inr (hqr.fieldSngl hr)
+
+theorem PreciseAliases.transferRecord {G : Ctx} {p q : Path} {T : Typ}
+    (hi : Inert G) (hrecord : RecordType T)
+    (h : PreciseAliases G p q) (hp : PreciseTyping3 G p T) :
+    PreciseTyping3 G q T := by
+  obtain ⟨r, hpr, hqr⟩ := h
+  have hr : PreciseTyping3 G r T := by
+    rcases hpr with rfl | hpr
+    · exact hp
+    · exact hp.invertSngl_record hi hrecord hpr
+  rcases hqr with rfl | hqr
+  · exact hr
+  · exact hqr.snglTrans3 hr
 
 theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
     (h : PreciseFlow G p T U) (hi : Inert G) (hwt : WellTyped G σ) :
@@ -417,10 +462,69 @@ theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
               obtain ⟨r', hV⟩ := hcMember.rightSngl
               subst V
               rw [hopen] at hselect
-              exact ⟨_, hselect, .path⟩
+              exact ⟨_, hselect, .path hq hcMember⟩
   | «open» h ih => exact ih
   | andLeft h ih => exact ih
   | andRight h ih => exact ih
+
+theorem PreciseTyping2.lookupSingletonAliases {G : Ctx} {σ : Sta}
+    {p q : Path} (h : PreciseTyping2 G p (.sngl q))
+    (hi : Inert G) (hwf : Wf G) (hwt : WellTyped G σ) :
+    ∃ r U, LookupStep σ (.path p) (.path r) ∧
+      PreciseTyping3 G r U ∧ PreciseAliases G q r := by
+  generalize heq : Typ.sngl q = T at h
+  induction h generalizing q with
+  | flow h =>
+      cases heq
+      have hsource := h.snglSource_eq hi
+      rw [hsource] at h
+      obtain ⟨rhs, hstep, hclass⟩ := h.lookupClass hi hwt
+      cases hclass with
+      | path htyped hc =>
+          obtain ⟨U, hruntime⟩ := htyped.precise3Exists hi
+          obtain ⟨V, hstatic⟩ := h.singletonTargetTyped hi hwf
+          have halias := hc.snglAliases hi hwf
+            (.precise hstatic) hruntime
+          exact ⟨_, U, hstep, hruntime, halias⟩
+  | snglTrans hp hq ihp ihq =>
+      cases heq
+      obtain ⟨r, U, hstep, hr, halias⟩ := ihp rfl
+      obtain ⟨V, hrfield, haliasField⟩ :=
+        halias.field hi (.precise hq)
+      exact ⟨r.selectField _, V, .selectPath hstep, hrfield, haliasField⟩
+
+theorem PreciseTyping3.lookupRecord {G : Ctx} {σ : Sta}
+    {p : Path} {T : Typ} (h : PreciseTyping3 G p T)
+    (hrecord : RecordType T) (hi : Inert G) (hwf : Wf G)
+    (hwt : WellTyped G σ) :
+    (∃ q, LookupStep σ (.path p) (.path q) ∧ PreciseTyping3 G q T) ∨
+    (∃ r A U ds, LookupStep σ (.path p) (.val (.new r A U ds)) ∧
+      Typed G (.path p) ((.path r A : Typ).openPath p)) := by
+  cases h with
+  | precise hp =>
+      cases hp with
+      | flow hf =>
+          obtain ⟨rhs, hstep, hclass⟩ := hf.lookupClass hi hwt
+          cases hclass with
+          | lambda htyped =>
+              have heq := hf.envAll_eq
+              rw [heq] at hrecord
+              obtain ⟨labels, hrecord⟩ := hrecord
+              cases hrecord
+          | object x fields heq hdefs htag hc =>
+              exact Or.inr ⟨_, _, _, _, hstep, htag⟩
+          | path htyped hc =>
+              have heq := hf.envSngl_eq
+              rw [heq] at hrecord
+              obtain ⟨labels, hrecord⟩ := hrecord
+              cases hrecord
+      | snglTrans hp hq =>
+          obtain ⟨labels, hrecord⟩ := hrecord
+          cases hrecord
+  | snglTrans hp hq =>
+      obtain ⟨r, U, hstep, hr, halias⟩ :=
+        hp.lookupSingletonAliases hi hwf hwt
+      exact Or.inl ⟨r, hstep, halias.transferRecord hi hrecord hq⟩
 
 theorem PreciseTyping2.lookupSingleton {G : Ctx} {σ : Sta}
     {p q : Path} (h : PreciseTyping2 G p (.sngl q))
@@ -434,7 +538,7 @@ theorem PreciseTyping2.lookupSingleton {G : Ctx} {σ : Sta}
       rw [hsource] at h
       obtain ⟨rhs, hstep, hclass⟩ := h.lookupClass hi hwt
       cases hclass with
-      | path => exact ⟨_, hstep⟩
+      | path _ _ => exact ⟨_, hstep⟩
   | snglTrans hp hq ihp ihq =>
       cases heq
       obtain ⟨r, hstep⟩ := ihp rfl
