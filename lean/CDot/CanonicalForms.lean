@@ -568,6 +568,92 @@ theorem PreciseTyping2.lookupSingletonSameReceiver {G : Ctx} {σ : Sta}
                             pfields qfields rfl rfl rfl)
   exact aux h _ x fields targetFields rfl rfl rfl
 
+theorem PreciseTyping2.lookupSingletonCrossReceiver {G : Ctx} {σ : Sta}
+    {x z : Var} {fields targetFields : Fields}
+    (h : PreciseTyping2 G (.select (.free x) fields)
+      (.sngl (.select (.free z) targetFields)))
+    (hxz : x ≠ z) (hi : Inert G) (hwt : WellTyped G σ) :
+    ∃ y runtimeFields,
+      LookupStep σ (.path (.select (.free x) fields))
+        (.path (.select (.free y) runtimeFields)) ∧ y ≠ x := by
+  have aux : ∀ {p : Path} {T : Typ}, PreciseTyping2 G p T →
+      ∀ (q : Path) (a b : Var) (pfields qfields : Fields),
+        T = .sngl q →
+        p = .select (.free a) pfields →
+        q = .select (.free b) qfields → a ≠ b →
+        ∃ y runtimeFields,
+          LookupStep σ (.path p)
+            (.path (.select (.free y) runtimeFields)) ∧ y ≠ a := by
+    intro p T hp
+    induction hp with
+    | flow hf =>
+        intro q a b pfields qfields ht hpEq hqEq hab
+        rw [ht, hpEq, hqEq] at hf
+        rw [hpEq]
+        have hsource := hf.snglSource_eq hi
+        rw [hsource] at hf
+        obtain ⟨rhs, hstep, hclass⟩ := hf.lookupClass hi hwt
+        cases hclass with
+        | path G₀ G₁ root pT runtimePrefix hG hsourceEq
+            htyped hc₀ hc =>
+            rename_i runtime runtimeT
+            have haroot : a = root := by
+              simp only [Path.var, Path.selectFields] at hsourceEq
+              injection hsourceEq with havar hfields
+              injection havar
+            subst root
+            have hiHead : Inert (G₀.push a pT) := by
+              rw [hG] at hi
+              exact hi.concatLeft
+            have haG₀ : Env.Fresh a G₀ := by
+              cases hiHead with
+              | push _ _ ha => exact ha
+            have hruntimeNamed := htyped.pathNamed
+            obtain ⟨rav, rfields⟩ := runtime
+            simp only [Path.Named] at hruntimeNamed
+            obtain ⟨y, rfl⟩ := hruntimeNamed
+            have hya : y ≠ a := by
+              intro hya
+              subst y
+              have heq := hc₀.symm.snglFreshPath_eq haG₀
+              injection heq with havar hfields
+              have hba : b = a := by injection havar
+              exact hab hba.symm
+            exact ⟨y, rfields, hstep, hya⟩
+    | snglTrans hp hq ihp ihq =>
+        intro result a b pfields qfields ht hpEq hqEq hab
+        rename_i p q label U
+        have hresult : result = q.selectField label :=
+          (Typ.sngl.inj ht).symm
+        have hqEq' : q.selectField label = .select (.free b) qfields :=
+          hresult.symm.trans hqEq
+        cases p with
+        | select pav pbase =>
+            simp only [Path.selectField] at hpEq
+            injection hpEq with hpAvar hpFields
+            cases hpAvar
+            cases pfields with
+            | nil => cases hpFields
+            | cons l pfields =>
+                injection hpFields with hlabel hpRest
+                cases hlabel
+                cases q with
+                | select qav qbase =>
+                    simp only [Path.selectField] at hqEq'
+                    injection hqEq' with hqAvar hqFields
+                    cases hqAvar
+                    cases qfields with
+                    | nil => cases hqFields
+                    | cons l' qfields =>
+                        injection hqFields with hlabel' hqRest
+                        cases hlabel'
+                        obtain ⟨y, runtimeFields, hstep, hya⟩ :=
+                          ihp (.select (.free b) qbase) a b pbase qbase
+                            rfl rfl rfl hab
+                        exact ⟨y, label :: runtimeFields,
+                          .selectPath hstep, hya⟩
+  exact aux h _ x z fields targetFields rfl rfl rfl hxz
+
 theorem PreciseTyping3.lookupSingletonSameReceiver {G : Ctx} {σ : Sta}
     {x : Var} {fields targetFields : Fields}
     (h : PreciseTyping3 G (.select (.free x) fields)
@@ -628,6 +714,78 @@ theorem PreciseTyping3.lookupSingletonSameReceiver {G : Ctx} {σ : Sta}
                 | push _ _ hy => exact hy
               exact False.elim (hyG₀ hby.mem_dom)
   exact aux h _ x fields targetFields rfl rfl rfl
+
+theorem PreciseTyping3.previousReceiver {G : Ctx} {p q : Path}
+    {x y : Var} {sourceFields targetFields : Fields}
+    (hi : Inert G) (hwf : Wf G)
+    (hpEq : p = .select (.free x) sourceFields)
+    (hqEq : q = .select (.free y) targetFields)
+    (h : PreciseTyping3 G p (.sngl q)) (hxy : x ≠ y) :
+    ∃ pFields qFields z,
+      z ≠ x ∧
+      (p = .select (.free x) pFields ∨
+        PreciseTyping3 G p (.sngl (.select (.free x) pFields))) ∧
+      PreciseTyping2 G (.select (.free x) pFields)
+        (.sngl (.select (.free z) qFields)) ∧
+      (.select (.free z) qFields = q ∨
+        PreciseTyping3 G (.select (.free z) qFields) (.sngl q)) := by
+  have aux : ∀ {p : Path} {T : Typ}, PreciseTyping3 G p T →
+      ∀ (q : Path) (a b : Var) (pfields qfields : Fields),
+        T = .sngl q →
+        p = .select (.free a) pfields →
+        q = .select (.free b) qfields → a ≠ b →
+        ∃ prefixFields nextFields z,
+          z ≠ a ∧
+          (p = .select (.free a) prefixFields ∨
+            PreciseTyping3 G p
+              (.sngl (.select (.free a) prefixFields))) ∧
+          PreciseTyping2 G (.select (.free a) prefixFields)
+            (.sngl (.select (.free z) nextFields)) ∧
+          (.select (.free z) nextFields = q ∨
+            PreciseTyping3 G (.select (.free z) nextFields) (.sngl q)) := by
+    intro path T hpath
+    induction hpath with
+    | precise hprecise =>
+        intro target a b pfields qfields ht hpEq hqEq hab
+        rw [ht, hpEq, hqEq] at hprecise
+        exact ⟨pfields, qfields, b, Ne.symm hab, Or.inl hpEq,
+          hprecise, Or.inl hqEq.symm⟩
+    | snglTrans hfirst hrest ih =>
+        intro target a b pfields qfields ht hpEq hqEq hab
+        rename_i path middle T
+        have hmiddleNamed := hrest.toGeneral.pathNamed
+        cases middle with
+        | select mav mfields =>
+            simp only [Path.Named] at hmiddleNamed
+            obtain ⟨z, rfl⟩ := hmiddleNamed
+            rw [hpEq] at hfirst
+            rw [hpEq]
+            by_cases hzb : z = b
+            · subst z
+              rw [ht] at hrest
+              exact ⟨pfields, mfields, b, Ne.symm hab, Or.inl rfl,
+                hfirst, Or.inr hrest⟩
+            · obtain ⟨prefixFields, nextFields, w, hwa,
+                  hmiddlePrefix, hprefixNext, hnextTarget⟩ :=
+                ih target z b mfields qfields ht rfl hqEq hzb
+              by_cases haz : a = z
+              · subst z
+                have hpathPrefix :
+                    Path.select (.free a) pfields =
+                      Path.select (.free a) prefixFields ∨
+                    PreciseTyping3 G (Path.select (.free a) pfields)
+                      (.sngl (Path.select (.free a) prefixFields)) := by
+                  rcases hmiddlePrefix with hmiddlePrefix | hmiddlePrefix
+                  · rw [hmiddlePrefix] at hfirst
+                    exact Or.inr (.precise hfirst)
+                  · exact Or.inr
+                      ((PreciseTyping3.precise hfirst).snglTrans3 hmiddlePrefix)
+                exact ⟨prefixFields, nextFields, w, hwa,
+                  hpathPrefix, hprefixNext, hnextTarget⟩
+              · rw [ht] at hrest
+                exact ⟨pfields, mfields, z, Ne.symm haz,
+                  Or.inl rfl, hfirst, Or.inr hrest⟩
+  exact aux h q x y sourceFields targetFields rfl hpEq hqEq hxy
 
 theorem PreciseTyping2.lookupSingletonAliases {G : Ctx} {σ : Sta}
     {p q : Path} (h : PreciseTyping2 G p (.sngl q))
