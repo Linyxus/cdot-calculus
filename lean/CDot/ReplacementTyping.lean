@@ -867,6 +867,73 @@ theorem ReplacementPath.subtyp {G : Ctx} {p : Path} {T U : Typ}
   case t => exact hs
   all_goals assumption
 
+theorem ReplacementPath.recElim {G : Ctx} {p : Path} {T : Typ}
+    (hi : Inert G) (h : ReplacementPath G p (.bnd T)) :
+    ReplacementPath G p (T.openPath p) := by
+  generalize heq : Typ.bnd T = U at h
+  induction h generalizing T with
+  | invertible h =>
+      cases heq
+      generalize heq' : Typ.bnd T = U at h
+      induction h generalizing T with
+      | precise hp =>
+          cases heq'
+          rcases hp.bndCases with hopen | ⟨q, V, hpq, hq, hopen⟩
+          · exact .invertible (.precise hopen)
+          · exact (ReplacementPath.invertible (.precise hopen)).replacementQPStar
+              hi hpq hq (T.openPath_repl q _)
+      | recPQ hp hq h hr ih =>
+          cases heq'
+          have hopen := ih rfl
+          exact hopen.replacementPQ hi hp hq
+            (hr.openPath hp.sourceNamed hq.toGeneral.pathNamed _)
+      | selPQ hp hq h ih => cases heq'
+      | snglPQ hp hq h ih => cases heq'
+      | self h => cases heq'
+  | and hT hU ihT ihU => cases heq
+  | bnd h ih =>
+      cases heq
+      exact h
+  | sel h hf ih => cases heq
+  | rcdIntro h ih => cases heq
+  | recQP hp hq h hr ih =>
+      cases heq
+      have hopen := ih rfl
+      exact hopen.replacementQP hi hp hq
+        (hr.openPath hq.toGeneral.pathNamed hp.sourceNamed _)
+  | selQP hp hq h ih => cases heq
+  | snglQP hp hq h ih => cases heq
+  | top h ih => cases heq
+  | trm h hs ih => cases heq
+  | typ h hLo hHi ih => cases heq
+  | all L h hdom hbody ih => cases heq
+
+theorem ReplacementPath.fieldElim {G : Ctx} {p : Path}
+    {a : Signature.TrmLabel} {T : Typ} (hi : Inert G)
+    (h : ReplacementPath G p (.rcd (.trm a T))) :
+    ReplacementPath G (p.selectField a) T := by
+  generalize heq : Typ.rcd (Dec.trm a T) = U at h
+  induction h generalizing a T with
+  | invertible h =>
+      cases heq
+      cases h with
+      | precise h => exact .invertible (.precise h.fieldElim)
+  | and hT hU ihT ihU => cases heq
+  | bnd h ih => cases heq
+  | sel h hf ih => cases heq
+  | rcdIntro h ih =>
+      cases heq
+      exact h
+  | recQP hp hq h hr ih => cases heq
+  | selQP hp hq h ih => cases heq
+  | snglQP hp hq h ih => cases heq
+  | top h ih => cases heq
+  | trm h hs ih =>
+      cases heq
+      exact (ih rfl).subtyp hi hs
+  | typ h hLo hHi ih => cases heq
+  | all L h hdom hbody ih => cases heq
+
 theorem ReplacementPath.rcdToPrecise {G : Ctx} {p : Path}
     {A : Signature.TypLabel} {S U : Typ} (hi : Inert G)
     (h : ReplacementPath G p (.rcd (.typ A S U))) :

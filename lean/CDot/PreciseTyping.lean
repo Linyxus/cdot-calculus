@@ -72,6 +72,34 @@ theorem PreciseTyping3.bot_false {G : Ctx} {p : Path}
       exact h.bot_false hi
   | snglTrans _ _ ih => exact ih heq
 
+theorem PreciseTyping2.bndElim {G : Ctx} {p : Path} {T : Typ}
+    (h : PreciseTyping2 G p (.bnd T)) :
+    PreciseTyping2 G p (T.openPath p) := by
+  cases h with
+  | flow h => exact .flow (.open h)
+
+theorem PreciseTyping3.bndCases {G : Ctx} {p : Path} {T : Typ}
+    (h : PreciseTyping3 G p (.bnd T)) :
+    PreciseTyping3 G p (T.openPath p) ∨
+      ∃ q U, PreciseTyping3 G p (.sngl q) ∧
+        PreciseTyping2 G q U ∧ PreciseTyping3 G p (T.openPath q) := by
+  generalize heq : Typ.bnd T = V at h
+  induction h generalizing T with
+  | precise h =>
+      cases heq
+      exact Or.inl (.precise h.bndElim)
+  | snglTrans hs h ih =>
+      rename_i p₀ q₀ W
+      rcases ih heq with hopen | ⟨q, U, hpq, hq, hopen⟩
+      · have hexists : ∃ U, PreciseTyping2 G q₀ U := by
+          cases h with
+          | precise h => exact ⟨_, h⟩
+          | snglTrans hs _ => exact ⟨_, hs⟩
+        obtain ⟨U, hq⟩ := hexists
+        exact Or.inr ⟨_, U, .precise hs, hq, .snglTrans hs hopen⟩
+      · exact Or.inr ⟨q, U, .snglTrans hs hpq, hq,
+          .snglTrans hs hopen⟩
+
 theorem PreciseTyping2.backtrack {G : Ctx} {p : Path}
     {a : Signature.TrmLabel} {T : Typ}
     (h : PreciseTyping2 G (p.selectField a) T) :
