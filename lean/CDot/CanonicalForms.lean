@@ -92,4 +92,45 @@ theorem Typed.valBndToNew {G : Ctx} {v : Val} {T : Typ}
   cases heq
   exact ⟨r, A, U, ds, T', rfl, hp, hcomp⟩
 
+theorem Typed.valPreciseSubtype {G : Ctx} {v : Val} {T : Typ}
+    (h : Typed G (.val v) T) :
+    ∃ U, PreciseVal G v U ∧ Subtyp G U T := by
+  apply Typed.rec
+    (motive_1 := fun G t T _ => ∀ v, t = .val v →
+      ∃ U, PreciseVal G v U ∧ Subtyp G U T)
+    (motive_2 := fun _ _ _ _ _ _ => True)
+    (motive_3 := fun _ _ _ _ _ _ => True)
+    (motive_4 := fun _ _ _ _ => True)
+  case allIntro =>
+    intro G S t U L hbody ih v heq
+    cases heq
+    exact ⟨.all S U, .allIntro L hbody, .refl⟩
+  case newIntro =>
+    intro p A G U ds L hdefs hself ihdefs ihself v heq
+    cases heq
+    exact ⟨.bnd U, .newIntro L hdefs hself, .refl⟩
+  case sub =>
+    intro G t S T ht hs ih iht v heq
+    obtain ⟨U, hp, hUS⟩ := ih v heq
+    exact ⟨U, hp, .trans hUS hs⟩
+  case var => intros; contradiction
+  case allElim => intros; contradiction
+  case newElim => intros; contradiction
+  case rcdIntro => intros; contradiction
+  case letE => intros; contradiction
+  case caseE => intros; contradiction
+  case sngl => intros; contradiction
+  case self => intros; contradiction
+  case pathElim => intros; contradiction
+  case recIntro => intros; contradiction
+  case recElim => intros; contradiction
+  case andIntro => intros; contradiction
+  all_goals first | rfl | (intros; trivial)
+
+theorem Typed.valAllocationType {G : Ctx} {v : Val} {T : Typ}
+    (h : Typed G (.val v) T) :
+    ∃ U, PreciseVal G v U ∧ Subtyp G U T ∧ InertTyp U := by
+  obtain ⟨U, hp, hsub⟩ := h.valPreciseSubtype
+  exact ⟨U, hp, hsub, hp.inertTyp⟩
+
 end CDot
