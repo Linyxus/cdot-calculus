@@ -124,4 +124,29 @@ theorem finseqUnique (functional : ∀ a b c, R a b → R a c → b = c)
     | refl => rfl
     | step hr _ => exact False.elim (hb' _ hr)
 
+theorem infSeqStarInv (functional : ∀ a b c, R a b → R a c → b = c)
+    (hab : Star R a b) (hinf : InfSeq R a) : InfSeq R b := by
+  induction hab with
+  | refl => exact hinf
+  | @step a b c hab hbc ih =>
+      obtain ⟨f, hf0, hfstep⟩ := hinf
+      have hab' : R a (f 1) := by
+        simpa only [hf0, Nat.zero_add] using hfstep 0
+      have heq : b = f 1 := functional a b (f 1) hab hab'
+      subst b
+      apply ih
+      exact ⟨fun n => f (n + 1), rfl, fun n => by
+        simpa only [Nat.add_assoc] using hfstep (n + 1)⟩
+
+theorem infSeqFinseqExcl (functional : ∀ a b c, R a b → R a c → b = c)
+    (hab : Star R a b) (hb : Irred R b) (hinf : InfSeq R a) : False := by
+  obtain ⟨f, hf0, hfstep⟩ := infSeqStarInv functional hab hinf
+  exact hb (f 1) (by simpa only [hf0, Nat.zero_add] using hfstep 0)
+
+theorem InfSeq.allSeqInf (functional : ∀ a b c, R a b → R a c → b = c)
+    (hinf : InfSeq R a) : AllSeqInf R a := by
+  intro b hab
+  obtain ⟨f, hf0, hfstep⟩ := infSeqStarInv functional hab hinf
+  exact ⟨f 1, by simpa only [hf0, Nat.zero_add] using hfstep 0⟩
+
 end CDot
