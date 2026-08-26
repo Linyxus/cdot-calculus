@@ -106,6 +106,53 @@ theorem Env.Binds.middle_type_eq {G₁ G₂ : Ctx} {x : Var} {S T : Typ}
     (h : Env.Binds x T (Env.concat (G₁.push x S) G₂)) : T = S :=
   h.functional (Env.Binds.middle_of_ok hok)
 
+theorem Env.removeMiddleSubst_dom_subset {G₁ G₂ : Ctx} {x : Var}
+    {S : Typ} {p : Path} :
+    (Env.concat G₁ (Ctx.subst x p G₂)).dom ⊆
+      (Env.concat (G₁.push x S) G₂).dom := by
+  intro y hy
+  induction G₂ with
+  | nil =>
+      change y ∈ G₁.dom at hy
+      change y ∈ (G₁.push x S).dom
+      simp only [Env.push, Env.dom, List.map_cons, List.mem_toFinset, List.mem_cons]
+      exact Or.inr (by simpa only [Env.dom, List.mem_toFinset] using hy)
+  | cons binding G₂ ih =>
+      obtain ⟨z, U⟩ := binding
+      simp only [Env.concat, Ctx.subst, List.map_cons, List.cons_append,
+        Env.dom, List.mem_toFinset, List.mem_cons] at hy ⊢
+      rcases hy with rfl | hy
+      · exact Or.inl rfl
+      · apply Or.inr
+        have hout := ih (by
+          simpa [Env.dom, Env.concat, Ctx.subst, List.map_append] using hy)
+        simp [Env.dom, Env.concat, Env.push, List.map_append] at hout ⊢
+        rcases hout with rfl | hG₂ | hG₁
+        · exact Or.inr (Or.inl rfl)
+        · exact Or.inl hG₂
+        · exact Or.inr (Or.inr hG₁)
+
+theorem Env.Ok.removeMiddleSubst {G₁ G₂ : Ctx} {x : Var}
+    {S : Typ} {p : Path} (hok : Env.Ok (Env.concat (G₁.push x S) G₂)) :
+    Env.Ok (Env.concat G₁ (Ctx.subst x p G₂)) := by
+  induction G₂ with
+  | nil =>
+      change List.Nodup (x :: G₁.map Prod.fst) at hok
+      exact (List.nodup_cons.mp hok).2
+  | cons binding G₂ ih =>
+      obtain ⟨y, U⟩ := binding
+      change List.Nodup (y :: (Env.concat (G₁.push x S) G₂).map Prod.fst) at hok
+      change List.Nodup (y :: (Env.concat G₁ (Ctx.subst x p G₂)).map Prod.fst)
+      apply List.Nodup.cons
+      · intro hy
+        have hy' : y ∈ (Env.concat G₁ (Ctx.subst x p G₂)).dom := by
+          simpa only [Env.dom, List.mem_toFinset] using hy
+        have := Env.removeMiddleSubst_dom_subset (G₁ := G₁) (G₂ := G₂)
+          (x := x) (S := S) (p := p) hy'
+        exact (List.nodup_cons.mp hok).1 (by
+          simpa only [Env.dom, List.mem_toFinset] using this)
+      · exact ih (List.nodup_cons.mp hok).2
+
 mutual
   theorem Typ.tightBounds_subst (T : Typ) (h : T.tightBounds) (x : Var) (p : Path) :
       (T.subst x p).tightBounds := by
