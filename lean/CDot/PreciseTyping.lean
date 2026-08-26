@@ -1,4 +1,5 @@
 import CDot.PreciseFlow
+import CDot.Sequences
 
 /-! # Second- and third-level precise typing -/
 
@@ -149,6 +150,24 @@ theorem PreciseTyping3.path_false {G : Ctx} {p q : Path}
       exact h.path_false hi
   | snglTrans hp hq ih => exact ih heq
 
+theorem PreciseTyping3.precise2Exists {G : Ctx} {p : Path} {T : Typ}
+    (h : PreciseTyping3 G p T) : ∃ U, PreciseTyping2 G p U := by
+  induction h with
+  | precise h => exact ⟨_, h⟩
+  | snglTrans hp hq ih => exact ⟨_, hp⟩
+
+theorem PreciseTyping3.last {G : Ctx} {p : Path} {T : Typ}
+    (h : PreciseTyping3 G p T) :
+    PreciseTyping2 G p T ∨
+      ∃ q, PreciseTyping3 G p (.sngl q) ∧ PreciseTyping2 G q T := by
+  induction h with
+  | precise h => exact Or.inl h
+  | snglTrans hp hq ih =>
+      rename_i p' q T'
+      rcases ih with hlast | ⟨r, hpr, hlast⟩
+      · exact Or.inr ⟨q, .precise hp, hlast⟩
+      · exact Or.inr ⟨r, .snglTrans hp hpr, hlast⟩
+
 inductive Wf : Ctx → Prop where
   | empty : Wf Env.empty
   | push : Wf G → Env.Fresh x G →
@@ -161,5 +180,20 @@ theorem Wf.prefix {G : Ctx} {x : Var} {T : Typ}
     (h : Wf (G.push x T)) : Wf G := by
   cases h with
   | push h _ _ => exact h
+
+/-! ## Typed replacement composition -/
+
+def TypedReplStep (G : Ctx) (T U : Typ) : Prop :=
+  ∃ p q V, PreciseFlow G p (.sngl q) (.sngl q) ∧
+    PreciseTyping2 G q V ∧ ReplTyp q p T U
+
+def ReplComposition (G : Ctx) : Typ → Typ → Prop := Star (TypedReplStep G)
+
+inductive TypedPathReplStep (G : Ctx) : Path → Path → Prop where
+  | step : PreciseFlow G p (.sngl q) (.sngl q) → PreciseTyping2 G q U →
+      TypedPathReplStep G (q.selectFields fields) (p.selectFields fields)
+
+def PathReplComposition (G : Ctx) : Path → Path → Prop :=
+  Star (TypedPathReplStep G)
 
 end CDot
