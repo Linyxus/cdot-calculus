@@ -182,6 +182,161 @@ theorem PreciseTyping3.decTyp_eq {G : Ctx} {p : Path}
   · exact False.elim hbad.rcd_false
   · exact hrecord.singleTyp_eq
 
+theorem PreciseTyping2.record_sngl_false {G : Ctx} {p q : Path}
+    {R : Typ} {D : Dec} (hi : Inert G)
+    (hr : PreciseFlow G p R (.rcd D))
+    (hs : PreciseTyping2 G p (.sngl q)) : False := by
+  generalize heq : Typ.sngl q = V at hs
+  induction hs generalizing q R D with
+  | flow hs =>
+      cases heq
+      have hsource : R = .sngl q := hr.source_unique hi hs |>.trans
+        (hs.snglSource_eq hi)
+      obtain ⟨T, hR⟩ := hr.recordSource_bnd hi
+      rw [hR] at hsource
+      cases hsource
+  | snglTrans hp hq ihp ihq =>
+      cases heq
+      obtain ⟨R', hr'⟩ := hr.backtrackRecord
+      exact ihp hr' rfl
+
+theorem PreciseTyping2.decTypTarget_unique {G : Ctx} {p : Path}
+    {A : Signature.TypLabel} {S₁ S₂ : Typ} (hi : Inert G)
+    (h₁ : PreciseTyping2 G p (.rcd (.typ A S₁ S₁)))
+    (h₂ : PreciseTyping2 G p (.rcd (.typ A S₂ S₂))) : S₁ = S₂ := by
+  cases h₁ with
+  | flow h₁ =>
+      cases h₂ with
+      | flow h₂ => exact h₁.decTypTarget_unique hi h₂
+
+theorem PreciseTyping2.snglField_cases {G : Ctx} {p q : Path}
+    {a : Signature.TrmLabel} (h : PreciseTyping2 G (p.selectField a) (.sngl q)) :
+    (∃ R, PreciseFlow G (p.selectField a) R (.sngl q)) ∨
+      ∃ r, q = r.selectField a ∧ PreciseTyping2 G p (.sngl r) := by
+  generalize heq : p.selectField a = s at h
+  cases h with
+  | flow h => exact Or.inl ⟨_, h⟩
+  | snglTrans hp hq =>
+      rename_i p' r b U
+      obtain ⟨rfl, rfl⟩ := Path.selectField_injective heq
+      exact Or.inr ⟨r, rfl, hp⟩
+
+theorem PreciseTyping2.snglTarget_unique {G : Ctx} {p q₁ q₂ : Path}
+    (hi : Inert G) (h₁ : PreciseTyping2 G p (.sngl q₁))
+    (h₂ : PreciseTyping2 G p (.sngl q₂)) : q₁ = q₂ := by
+  generalize heq : Typ.sngl q₁ = V at h₁
+  induction h₁ generalizing q₁ q₂ with
+  | flow h₁ =>
+      cases heq
+      cases h₂ with
+      | flow h₂ =>
+          have hs : _ = _ := h₁.source_unique hi h₂
+          rw [h₁.snglSource_eq hi, h₂.snglSource_eq hi] at hs
+          exact Typ.sngl.inj hs
+      | snglTrans hp hq =>
+          obtain ⟨R, hr⟩ := h₁.backtrackRecord
+          exact False.elim (hp.record_sngl_false hi hr)
+  | snglTrans hp hq ihp ihq =>
+      cases heq
+      rcases h₂.snglField_cases with ⟨R, h₂⟩ | ⟨r, rfl, hp₂⟩
+      · obtain ⟨R, hr⟩ := h₂.backtrackRecord
+        exact False.elim (hp.record_sngl_false hi hr)
+      · have hbase := ihp hp₂ rfl
+        subst r
+        rfl
+
+theorem PreciseTyping3.decTypTarget_unique {G : Ctx} {p : Path}
+    {A : Signature.TypLabel} {S₁ S₂ : Typ} (hi : Inert G)
+    (h₁ : PreciseTyping3 G p (.rcd (.typ A S₁ S₁)))
+    (h₂ : PreciseTyping3 G p (.rcd (.typ A S₂ S₂))) : S₁ = S₂ := by
+  generalize heq : Typ.rcd (Dec.typ A S₁ S₁) = V at h₁
+  induction h₁ generalizing S₁ S₂ with
+  | precise h₁ =>
+      cases heq
+      cases h₂ with
+      | precise h₂ => exact h₁.decTypTarget_unique hi h₂
+      | snglTrans hs h₂ =>
+          cases h₁ with
+          | flow hr => exact False.elim (hs.record_sngl_false hi hr)
+  | snglTrans hs h₁ ih =>
+      cases h₂ with
+      | precise h₂ =>
+          cases h₂ with
+          | flow hr => exact False.elim (hs.record_sngl_false hi hr)
+      | snglTrans hs₂ h₂ =>
+          have hq := hs.snglTarget_unique hi hs₂
+          subst hq
+          exact ih h₂ heq
+
+theorem PreciseTyping2.recordType_sngl_false {G : Ctx} {p q : Path}
+    {T : Typ} (hi : Inert G) (hrecord : RecordType T)
+    (hT : PreciseTyping2 G p T) (hs : PreciseTyping2 G p (.sngl q)) : False := by
+  cases hT with
+  | flow hT =>
+      cases hs with
+      | flow hs =>
+          obtain ⟨V, hV⟩ := hT.recordTypeSource_bnd hi hrecord
+          have hsource := hT.source_unique hi hs
+          rw [hV, hs.snglSource_eq hi] at hsource
+          cases hsource
+      | snglTrans hp hq =>
+          obtain ⟨R, hr⟩ := hT.backtrackRecord
+          exact hp.record_sngl_false hi hr
+  | snglTrans hp hq =>
+      obtain ⟨labels, hrecord⟩ := hrecord
+      cases hrecord
+
+theorem PreciseTyping3.invertSngl2_record {G : Ctx} {p q : Path}
+    {T : Typ} (hi : Inert G) (hrecord : RecordType T)
+    (hT : PreciseTyping3 G p T) (hs : PreciseTyping2 G p (.sngl q)) :
+    PreciseTyping3 G q T := by
+  induction hT with
+  | precise hT => exact False.elim (hT.recordType_sngl_false hi hrecord hs)
+  | snglTrans hs' hT ih =>
+      have hq := hs'.snglTarget_unique hi hs
+      subst hq
+      exact hT
+
+theorem PreciseTyping3.invertSngl_record {G : Ctx} {p q : Path}
+    {T : Typ} (hi : Inert G) (hrecord : RecordType T)
+    (hT : PreciseTyping3 G p T) (hs : PreciseTyping3 G p (.sngl q)) :
+    PreciseTyping3 G q T := by
+  generalize heq : Typ.sngl q = U at hs
+  induction hs generalizing q T with
+  | precise hs =>
+      cases heq
+      exact hT.invertSngl2_record hi hrecord hs
+  | snglTrans hs hrest ih =>
+      have hT' := hT.invertSngl2_record hi hrecord hs
+      exact ih hrecord hT' heq
+
+theorem PreciseTyping3.fieldSngl {G : Ctx} {p q : Path}
+    {a : Signature.TrmLabel} {T : Typ}
+    (hs : PreciseTyping3 G p (.sngl q))
+    (hq : PreciseTyping3 G (q.selectField a) T) :
+    PreciseTyping3 G (p.selectField a) (.sngl (q.selectField a)) := by
+  generalize heq : Typ.sngl q = U at hs
+  induction hs generalizing q T a with
+  | precise hs =>
+      cases heq
+      obtain ⟨U, hq₂⟩ := hq.precise2Exists
+      exact .precise (.snglTrans hs hq₂)
+  | snglTrans hs hrest ih =>
+      have htail := ih hq heq
+      obtain ⟨U, hbase⟩ := htail.precise2Exists
+      exact .snglTrans (.snglTrans hs hbase) htail
+
+theorem PreciseTyping3.fieldTransSngl {G : Ctx} {p q : Path}
+    {fields : Fields} {T : Typ} (hs : PreciseTyping3 G p (.sngl q))
+    (hq : PreciseTyping3 G (q.selectFields fields) T) :
+    PreciseTyping3 G (p.selectFields fields) (.sngl (q.selectFields fields)) := by
+  induction fields generalizing T with
+  | nil => simpa only [Path.selectFields_nil] using hs
+  | cons a fields ih =>
+      rw [Path.selectFields_cons] at hq ⊢
+      obtain ⟨U, hbase⟩ := hq.backtrack
+      exact (ih hbase).fieldSngl hq
+
 inductive Wf : Ctx → Prop where
   | empty : Wf Env.empty
   | push : Wf G → Env.Fresh x G →

@@ -317,6 +317,37 @@ theorem PreciseFlow.decTypTarget_unique {G : Ctx} {p : Path}
   subst T₁
   exact h₁.decTyp_unique hi h₂
 
+theorem PreciseFlow.snglSource_eq {G : Ctx} {p q : Path} {T : Typ}
+    (hi : Inert G) (h : PreciseFlow G p T (.sngl q)) : T = .sngl q := by
+  rcases (h.inertSngl hi).1 with hinert | ⟨r, rfl⟩
+  · cases hinert with
+    | all =>
+        have hbad := h.envAll_eq
+        cases hbad
+    | bnd hrecord =>
+        rcases h.bndTarget hi with hbad | hbad
+        · cases hbad
+        · rcases hbad with ⟨labels, hbad⟩
+          cases hbad
+  · have heq := h.envSngl_eq
+    exact congrArg Typ.sngl (Typ.sngl.inj heq.symm)
+
+theorem PreciseFlow.recordTypeSource_bnd {G : Ctx} {p : Path} {T U : Typ}
+    (hi : Inert G) (h : PreciseFlow G p T U) (hr : RecordType U) :
+    ∃ V, T = .bnd V := by
+  rcases (h.inertSngl hi).1 with hinert | ⟨q, rfl⟩
+  · cases hinert with
+    | all =>
+        have heq := h.envAll_eq
+        rw [heq] at hr
+        obtain ⟨labels, hr⟩ := hr
+        cases hr
+    | bnd hrecord => exact ⟨_, rfl⟩
+  · have heq := h.envSngl_eq
+    rw [heq] at hr
+    obtain ⟨labels, hr⟩ := hr
+    cases hr
+
 theorem PreciseVal.new_type_eq {G : Ctx} {r : Path} {A : Signature.TypLabel}
     {T U : Typ} {ds : Defs} (h : PreciseVal G (.new r A T ds) U) : U = .bnd T := by
   cases h
