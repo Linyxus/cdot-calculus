@@ -116,6 +116,19 @@ theorem get_eq_some {α : Type} {x : Var} {a : α} {G : Env α}
   case here => simp [Env.get]
   case there hne _ ih => simp [Env.get, hne, ih]
 
+theorem mem_dom {α : Type} {x : Var} {a : α} {G : Env α}
+    (h : Env.Binds x a G) : x ∈ G.dom := by
+  induction h with
+  | here => simp [Env.dom]
+  | there hne h ih => simp only [Env.dom, List.map_cons, List.mem_toFinset,
+      List.mem_cons]; exact Or.inr (by simpa only [Env.dom, List.mem_toFinset] using ih)
+
+theorem ne_of_fresh {α : Type} {x y : Var} {a : α} {G : Env α}
+    (h : Env.Binds y a G) (hf : Env.Fresh x G) : y ≠ x := by
+  intro heq
+  subst x
+  exact hf h.mem_dom
+
 end Env.Binds
 
 variable [Signature]

@@ -39,4 +39,31 @@ theorem Subenv.ok {G₁ G₂ : Ctx} (h : Subenv G₁ G₂) : Env.Ok G₁ ∧ Env
   | empty => exact ⟨List.nodup_nil, List.nodup_nil⟩
   | push _ h₁ h₂ _ => exact ⟨h₁, h₂⟩
 
+omit [Signature] in
+theorem Env.okPush {G : Env α} (hok : Env.Ok G) (hf : Env.Fresh x G) :
+    Env.Ok (G.push x a) := by
+  change List.Nodup (x :: G.map Prod.fst)
+  apply List.nodup_cons.mpr
+  exact ⟨by simpa only [Env.Fresh, Env.dom, List.mem_toFinset] using hf, hok⟩
+
+theorem Subenv.binds {G₁ G₂ : Ctx} (hsub : Subenv G₁ G₂)
+    (hb : Env.Binds x T G₂) :
+    ∃ S, Env.Binds x S G₁ ∧ Subtyp G₁ S T := by
+  induction hsub with
+  | empty => exact False.elim hb.empty_false
+  | push hsub hok₁ hok₂ hSU ih =>
+      rename_i Gbase Gbase' y S U
+      cases hb with
+      | here =>
+          have hf : Env.Fresh x Gbase := by
+            have hn := (List.nodup_cons.mp hok₁).1
+            simpa only [Env.Fresh, Env.dom, List.mem_toFinset] using hn
+          exact ⟨S, .here, hSU.mono (.pushRight hf S)⟩
+      | there hxy hb =>
+          obtain ⟨V, hV, hVT⟩ := ih hb
+          have hf : Env.Fresh y Gbase := by
+            have hn := (List.nodup_cons.mp hok₁).1
+            simpa only [Env.Fresh, Env.dom, List.mem_toFinset] using hn
+          exact ⟨V, .there hxy hV, hVT.mono (.pushRight hf S)⟩
+
 end CDot

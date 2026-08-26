@@ -31,6 +31,12 @@ theorem push {G G' : Env α} (h : Env.Extends G G') (x : Var) (a : α) :
   | here => exact .here
   | there hn hb => exact .there hn (h hb)
 
+omit [Signature] in
+theorem pushRight {G : Env α} (hf : Env.Fresh x G) (a : α) :
+    Env.Extends G (G.push x a) := by
+  intro y b hb
+  exact .there (hb.ne_of_fresh hf) hb
+
 end Env.Extends
 
 theorem Typed.mono {G G' : Ctx} {t T} (h : Typed G t T)
