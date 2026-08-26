@@ -431,4 +431,124 @@ theorem SemanticSubtyp.transWithSelection {G : Ctx} (hi : Inert G)
   | selLeft hp h ih => exact .selLeft hp (ih hTU)
   | all L hDom hBody => exact hTU.allSource hi L hDom hBody
 
+theorem SemanticSubtyp.selSource {G : Ctx} {p : Path}
+    {A : Signature.TypLabel} {T U : Typ} (hi : Inert G)
+    (hp : PreciseTyping3 G p (.rcd (.typ A T T)))
+    (h : SemanticSubtyp G (.path p A) U) : SemanticSubtyp G T U := by
+  generalize heq : Typ.path p A = S at h
+  induction h generalizing p A T with
+  | top => exact .top
+  | bot => cases heq
+  | refl =>
+      cases heq
+      exact .selRight hp .refl
+  | andLeft h ih => cases heq
+  | andRight h ih => cases heq
+  | andIntro h₁ h₂ ih₁ ih₂ =>
+      exact .andIntro (ih₁ hp heq) (ih₂ hp heq)
+  | fld h ih => cases heq
+  | typ hLo hHi => cases heq
+  | snglPQRight hpq hq hr h ih =>
+      exact .snglPQRight hpq hq hr (ih hp heq)
+  | snglQPRight hpq hq hr h ih =>
+      exact .snglQPRight hpq hq hr (ih hp heq)
+  | snglPQLeft hpq hq hr h ih =>
+      cases hr with
+      | rcd hr => cases heq
+      | andLeft hr => cases heq
+      | andRight hr => cases heq
+      | path =>
+          rename_i p₀ q₀ fields A₀
+          cases heq
+          have hs := hpq.fieldTransSngl hp
+          have hp' := hs.snglTrans3 hp
+          exact ih hp' rfl
+      | bnd hr => cases heq
+      | allDom hr => cases heq
+      | allCod hr => cases heq
+      | sngl => cases heq
+  | snglQPLeft hpq hq hr h ih =>
+      cases hr with
+      | rcd hr => cases heq
+      | andLeft hr => cases heq
+      | andRight hr => cases heq
+      | path =>
+          rename_i q₀ p₀ fields A₀
+          cases heq
+          have hs := hpq.fieldTransSnglFromLeft hi hp
+          have hp' := hp.invertSngl_record hi (by
+            exact ⟨_, .one .typ rfl⟩) hs
+          exact ih hp' rfl
+      | bnd hr => cases heq
+      | allDom hr => cases heq
+      | allCod hr => cases heq
+      | sngl => cases heq
+  | selRight hp' h ih => exact .selRight hp' (ih hp heq)
+  | selLeft hp' h ih =>
+      cases heq
+      have hT := hp.decTypTarget_unique hi hp'
+      subst hT
+      exact h
+  | all L hdom hbody => cases heq
+
+theorem SemanticSubtyp.trans {G : Ctx} (hi : Inert G)
+    {S T U : Typ} (hST : SemanticSubtyp G S T)
+    (hTU : SemanticSubtyp G T U) : SemanticSubtyp G S U :=
+  hST.transWithSelection hi (fun hp h => h.selSource hi hp) hTU
+
+theorem TightSubtyp.toSemantic {G : Ctx} {S T : Typ}
+    (hi : Inert G) (h : TightSubtyp G S T) : SemanticSubtyp G S T := by
+  apply TightSubtyp.rec
+    (motive_1 := fun _ _ _ _ => True)
+    (motive_2 := fun G S T _ => Inert G → SemanticSubtyp G S T)
+  case var => intros; trivial
+  case allIntro => intros; trivial
+  case allElim => intros; trivial
+  case newIntro => intros; trivial
+  case newElim => intros; trivial
+  case rcdIntro => intros; trivial
+  case letE => intros; trivial
+  case caseE => intros; trivial
+  case sngl => intros; trivial
+  case self => intros; trivial
+  case pathElim => intros; trivial
+  case recIntro => intros; trivial
+  case recElim => intros; trivial
+  case andIntro => intros; trivial
+  case sub => intros; trivial
+  case top => intros; exact .top
+  case bot => intros; exact .bot
+  case refl => intros; exact .refl
+  case trans =>
+    intro G S T U h₁ h₂ ih₁ ih₂ hi
+    exact (ih₁ hi).trans hi (ih₂ hi)
+  case andLeft => intros; exact .andLeft .refl
+  case andRight => intros; exact .andRight .refl
+  case andIntro =>
+    intro G S T U h₁ h₂ ih₁ ih₂ hi
+    exact .andIntro (ih₁ hi) (ih₂ hi)
+  case fld =>
+    intro G T U a h ih hi
+    exact .fld (ih hi)
+  case typ =>
+    intro G S₂ S₁ T₁ T₂ A h₁ h₂ ih₁ ih₂ hi
+    exact .typ h₁ h₂
+  case snglPQ =>
+    intro G p q U T T' hp hq hr hi
+    exact .snglPQRight hp hq hr .refl
+  case snglQP =>
+    intro G p q U T T' hp hq hr hi
+    exact .snglQPRight hp hq hr .refl
+  case selLo =>
+    intro G p A T hp hi
+    exact .selRight hp .refl
+  case selHi =>
+    intro G p A T hp hi
+    exact .selLeft hp .refl
+  case all =>
+    intro G S₂ S₁ T₁ T₂ L hdom hbody ih hi
+    exact .all L hdom hbody
+  case t => exact h
+  case a => exact hi
+
 end CDot

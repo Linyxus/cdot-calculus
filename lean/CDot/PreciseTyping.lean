@@ -326,6 +326,66 @@ theorem PreciseTyping3.fieldSngl {G : Ctx} {p q : Path}
       obtain ⟨U, hbase⟩ := htail.precise2Exists
       exact .snglTrans (.snglTrans hs hbase) htail
 
+theorem PreciseTyping3.fieldElim {G : Ctx} {p : Path}
+    {a : Signature.TrmLabel} {T : Typ}
+    (h : PreciseTyping3 G p (.rcd (.trm a T))) :
+    PreciseTyping3 G (p.selectField a) T := by
+  generalize heq : Typ.rcd (Dec.trm a T) = U at h
+  induction h generalizing a T with
+  | precise h =>
+      cases heq
+      cases h with
+      | flow h => exact .precise (.flow (.fld h))
+  | snglTrans hs h ih =>
+      have hfield := ih heq
+      exact ((PreciseTyping3.precise hs).fieldSngl hfield).snglTrans3 hfield
+
+theorem PreciseTyping2.fieldOtherExists {G : Ctx} {p q : Path}
+    {a : Signature.TrmLabel} {T : Typ} (hi : Inert G)
+    (hs : PreciseTyping2 G p (.sngl q))
+    (hpa : PreciseTyping2 G (p.selectField a) T) :
+    ∃ U, PreciseTyping2 G (q.selectField a) U := by
+  generalize heq : p.selectField a = r at hpa
+  induction hpa generalizing p q a with
+  | flow hpa =>
+      rw [← heq] at hpa
+      obtain ⟨R, hb⟩ := hpa.backtrackRecord
+      have hrecord := ((hpa.inertSngl hi).1).trmRecordType a
+      have hqrec := (PreciseTyping3.precise (.flow hb)).invertSngl2_record
+        hi hrecord hs
+      exact hqrec.fieldElim.precise2Exists
+  | snglTrans hs' hq ihs ihq =>
+      rename_i p' q' b U
+      obtain ⟨rfl, rfl⟩ := Path.selectField_injective heq
+      have hqeq := hs.snglTarget_unique hi hs'
+      subst hqeq
+      exact ⟨U, hq⟩
+
+theorem PreciseTyping3.fieldOtherExists {G : Ctx} {p q : Path}
+    {a : Signature.TrmLabel} {T : Typ} (hi : Inert G)
+    (hs : PreciseTyping3 G p (.sngl q))
+    (hpa : PreciseTyping3 G (p.selectField a) T) :
+    ∃ U, PreciseTyping3 G (q.selectField a) U := by
+  generalize heq : Typ.sngl q = V at hs
+  induction hs generalizing q a T with
+  | precise hs =>
+      cases heq
+      obtain ⟨R, hpa₂⟩ := hpa.precise2Exists
+      obtain ⟨U, hqa₂⟩ := hs.fieldOtherExists hi hpa₂
+      exact ⟨U, .precise hqa₂⟩
+  | snglTrans hs hrest ih =>
+      obtain ⟨R, hpa₂⟩ := hpa.precise2Exists
+      obtain ⟨U, hra₂⟩ := hs.fieldOtherExists hi hpa₂
+      exact ih (.precise hra₂) heq
+
+theorem PreciseTyping3.fieldSnglFromLeft {G : Ctx} {p q : Path}
+    {a : Signature.TrmLabel} {T : Typ} (hi : Inert G)
+    (hs : PreciseTyping3 G p (.sngl q))
+    (hpa : PreciseTyping3 G (p.selectField a) T) :
+    PreciseTyping3 G (p.selectField a) (.sngl (q.selectField a)) := by
+  obtain ⟨U, hqa⟩ := hs.fieldOtherExists hi hpa
+  exact hs.fieldSngl hqa
+
 theorem PreciseTyping3.fieldTransSngl {G : Ctx} {p q : Path}
     {fields : Fields} {T : Typ} (hs : PreciseTyping3 G p (.sngl q))
     (hq : PreciseTyping3 G (q.selectFields fields) T) :
@@ -336,6 +396,18 @@ theorem PreciseTyping3.fieldTransSngl {G : Ctx} {p q : Path}
       rw [Path.selectFields_cons] at hq ⊢
       obtain ⟨U, hbase⟩ := hq.backtrack
       exact (ih hbase).fieldSngl hq
+
+theorem PreciseTyping3.fieldTransSnglFromLeft {G : Ctx} {p q : Path}
+    {fields : Fields} {T : Typ} (hi : Inert G)
+    (hs : PreciseTyping3 G p (.sngl q))
+    (hp : PreciseTyping3 G (p.selectFields fields) T) :
+    PreciseTyping3 G (p.selectFields fields) (.sngl (q.selectFields fields)) := by
+  induction fields generalizing T with
+  | nil => simpa only [Path.selectFields_nil] using hs
+  | cons a fields ih =>
+      rw [Path.selectFields_cons] at hp ⊢
+      obtain ⟨U, hbase⟩ := hp.backtrack
+      exact (ih hbase).fieldSnglFromLeft hi hp
 
 inductive Wf : Ctx → Prop where
   | empty : Wf Env.empty

@@ -169,6 +169,12 @@ theorem InertSngl.bnd_record {T : Typ} (h : InertSngl (.bnd T)) : RecordType T :
     | bnd h => exact ⟨_, h⟩
   · cases h
 
+theorem InertSngl.trmRecordType {T : Typ} (h : InertSngl T)
+    (a : Signature.TrmLabel) : RecordType (.rcd (.trm a T)) := by
+  rcases h with hinert | ⟨p, rfl⟩
+  · exact ⟨_, .one (.trm hinert) rfl⟩
+  · exact ⟨_, .one .trmSngl rfl⟩
+
 theorem Inert.prefix {G : Ctx} {x : Var} {T : Typ}
     (h : Inert (G.push x T)) : Inert G := by
   cases h with
