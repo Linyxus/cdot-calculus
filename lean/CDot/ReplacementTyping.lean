@@ -323,6 +323,399 @@ theorem ReplacementPath.replacementQPStar {G : Ctx}
   | step hr _ ih =>
       exact ih (hsubject.replacementQP3 hi halias htarget hr)
 
+mutual
+  theorem RecordDec.replacementPQ {D D' : Dec} (hD : RecordDec D)
+      {G : Ctx} {subject aliasPath target : Path} {V : Typ}
+      (hsubject : PreciseTyping3 G subject (.rcd D))
+      (halias : PreciseFlow G aliasPath (.sngl target) (.sngl target))
+      (htarget : PreciseTyping2 G target V) (hr : ReplDec aliasPath target D D') :
+      ReplacementPath G subject (.rcd D') := by
+    have ha3 : PreciseTyping3 G aliasPath (.sngl target) := .precise (.flow halias)
+    have ht3 : PreciseTyping3 G target V := .precise htarget
+    cases hD with
+    | typ =>
+        cases hr with
+        | typLo hr =>
+            exact .typ (.invertible (.precise hsubject))
+              (.snglQP ha3 ht3 hr.swap) .refl
+        | typHi hr =>
+            exact .typ (.invertible (.precise hsubject)) .refl
+              (.snglPQ ha3 ht3 hr)
+    | trm hT =>
+        cases hr with
+        | trm hr =>
+            exact .trm (.invertible (.precise hsubject))
+              (.snglPQ ha3 ht3 hr)
+    | trmSngl =>
+        cases hr with
+        | trm hr =>
+            exact .trm (.invertible (.precise hsubject))
+              (.snglPQ ha3 ht3 hr)
+
+  theorem RecordTyp.replacementPQ {T T' : Typ} {labels : Finset Label}
+      (hT : RecordTyp T labels) {G : Ctx} {subject aliasPath target : Path}
+      {V : Typ} (hsubject : PreciseTyping3 G subject T)
+      (halias : PreciseFlow G aliasPath (.sngl target) (.sngl target))
+      (htarget : PreciseTyping2 G target V) (hr : ReplTyp aliasPath target T T') :
+      ReplacementPath G subject T' := by
+    cases hT with
+    | one hD heq =>
+        cases hr with
+        | rcd hr => exact hD.replacementPQ hsubject halias htarget hr
+    | cons hrest hD heq hfresh =>
+        cases hr with
+        | andLeft hr =>
+            exact .and (hrest.replacementPQ hsubject.andLeft halias htarget hr)
+              (.invertible (.precise hsubject.andRight))
+        | andRight hr =>
+            cases hr with
+            | rcd hr =>
+                exact .and (.invertible (.precise hsubject.andLeft))
+                  (hD.replacementPQ hsubject.andRight halias htarget hr)
+
+  theorem InertTyp.replacementPQ {T T' : Typ} (hT : InertTyp T)
+      {G : Ctx} {subject aliasPath target : Path} {V : Typ}
+      (hi : Inert G) (hsubject : PreciseTyping3 G subject T)
+      (halias : PreciseFlow G aliasPath (.sngl target) (.sngl target))
+      (htarget : PreciseTyping2 G target V) (hr : ReplTyp aliasPath target T T') :
+      ReplacementPath G subject T' := by
+    have ha3 : PreciseTyping3 G aliasPath (.sngl target) := .precise (.flow halias)
+    have ht3 : PreciseTyping3 G target V := .precise htarget
+    cases hT with
+    | all =>
+        cases hr with
+        | allDom hr =>
+            exact .all ∅ (.invertible (.precise hsubject))
+              (.snglQP ha3 ht3 hr.swap) (fun _ _ => .refl)
+        | allCod hr =>
+            rename_i S T T'
+            let L := G.dom
+            apply ReplacementPath.all L (.invertible (.precise hsubject)) .refl
+            intro y hy
+            have hok : Env.Ok (G.push y S) := Env.okPush hi.ok hy
+            have hext : Env.Extends G (G.push y S) := .pushRight hy S
+            exact (TightSubtyp.snglPQ (ha3.mono hext hok) (ht3.mono hext hok)
+              (hr.openVar halias.sourceNamed htarget.toGeneral.pathNamed y)).toGeneral
+    | bnd hrecord =>
+        cases hr with
+        | bnd hr =>
+            exact .invertible (.recPQ halias htarget (.precise hsubject) hr)
+end
+
+theorem PreciseTyping3.replacementPQ {G : Ctx} {subject aliasPath target : Path}
+    {T T' V : Typ} (hi : Inert G) (hsubject : PreciseTyping3 G subject T)
+    (halias : PreciseFlow G aliasPath (.sngl target) (.sngl target))
+    (htarget : PreciseTyping2 G target V) (hr : ReplTyp aliasPath target T T') :
+    ReplacementPath G subject T' := by
+  rcases hsubject.inertSngl hi with hinert | hrecord
+  · rcases hinert with hinert | ⟨p, heq⟩
+    · exact hinert.replacementPQ hi hsubject halias htarget hr
+    · subst T
+      cases hr with
+      | sngl => exact .invertible (.snglPQ halias htarget (.precise hsubject))
+  · obtain ⟨labels, hrecord⟩ := hrecord
+    exact hrecord.replacementPQ hsubject halias htarget hr
+
+theorem InvertiblePath.replacementPQ {G : Ctx}
+    {subject aliasPath target : Path} {T T' V : Typ} (hi : Inert G)
+    (hsubject : InvertiblePath G subject T)
+    (halias : PreciseFlow G aliasPath (.sngl target) (.sngl target))
+    (htarget : PreciseTyping2 G target V) (hr : ReplTyp aliasPath target T T') :
+    ReplacementPath G subject T' := by
+  cases hsubject with
+  | precise h => exact h.replacementPQ hi halias htarget hr
+  | recPQ hp hq h hr₀ =>
+      cases hr with
+      | bnd hr => exact .invertible (.recPQ halias htarget (.recPQ hp hq h hr₀) hr)
+  | selPQ hp hq h =>
+      obtain ⟨fields, hsrc, rfl⟩ := hr.path_target
+      have hcur := InvertiblePath.selPQ hp hq h
+      rw [hsrc] at hcur
+      exact .invertible (.selPQ halias htarget hcur)
+  | snglPQ hp hq h =>
+      obtain ⟨fields, hsrc, rfl⟩ := hr.sngl_target
+      have hcur := InvertiblePath.snglPQ hp hq h
+      rw [hsrc] at hcur
+      exact .invertible (.snglPQ halias htarget hcur)
+  | self h =>
+      obtain ⟨fields, hsrc, rfl⟩ := hr.sngl_target
+      have hself : InvertiblePath G subject (.sngl (aliasPath.selectFields fields)) := by
+        rw [← hsrc]
+        exact .self h
+      exact .invertible (.snglPQ halias htarget hself)
+
+mutual
+  theorem ReplTyp.commuteTyped {q p : Path} {T T' : Typ}
+      (h₁ : ReplTyp q p T T') {q₀ r₀ : Path} {T₂ : Typ} {G : Ctx}
+      (h₂ : ReplTyp q₀ r₀ T' T₂) (hi : Inert G)
+      (hp : PreciseFlow G p (.sngl q) (.sngl q))
+      (hq₀ : PreciseFlow G q₀ (.sngl r₀) (.sngl r₀)) :
+      T = T₂ ∨ ∃ T₃, ReplTyp q₀ r₀ T T₃ ∧ ReplTyp q p T₃ T₂ := by
+    cases h₁ with
+    | rcd h₁ =>
+        cases h₂ with
+        | rcd h₂ =>
+            rcases h₁.commuteTyped h₂ hi hp hq₀ with heq | ⟨D₃, hl, hr⟩
+            · exact Or.inl (congrArg Typ.rcd heq)
+            · exact Or.inr ⟨.rcd D₃, .rcd hl, .rcd hr⟩
+    | andLeft h₁ =>
+        cases h₂ with
+        | andLeft h₂ =>
+            rcases h₁.commuteTyped h₂ hi hp hq₀ with heq | ⟨V, hl, hr⟩
+            · exact Or.inl (congrArg (fun X => Typ.and X _) heq)
+            · exact Or.inr ⟨.and V _, .andLeft hl, .andLeft hr⟩
+        | andRight h₂ =>
+            exact Or.inr ⟨.and _ _, .andRight h₂, .andLeft h₁⟩
+    | andRight h₁ =>
+        cases h₂ with
+        | andLeft h₂ =>
+            exact Or.inr ⟨.and _ _, .andLeft h₂, .andRight h₁⟩
+        | andRight h₂ =>
+            rcases h₁.commuteTyped h₂ hi hp hq₀ with heq | ⟨V, hl, hr⟩
+            · exact Or.inl (congrArg (fun X => Typ.and _ X) heq)
+            · exact Or.inr ⟨.and _ V, .andRight hl, .andRight hr⟩
+    | path =>
+        obtain ⟨fields₀, heq, hT₂⟩ := h₂.path_target
+        subst T₂
+        have hout := hp.snglSelect_unique hi hq₀ heq.symm
+        exact Or.inl (congrArg (fun r => Typ.path r _) hout)
+    | bnd h₁ =>
+        cases h₂ with
+        | bnd h₂ =>
+            rcases h₁.commuteTyped h₂ hi hp hq₀ with heq | ⟨V, hl, hr⟩
+            · exact Or.inl (congrArg Typ.bnd heq)
+            · exact Or.inr ⟨.bnd V, .bnd hl, .bnd hr⟩
+    | allDom h₁ =>
+        cases h₂ with
+        | allDom h₂ =>
+            rcases h₁.commuteTyped h₂ hi hp hq₀ with heq | ⟨V, hl, hr⟩
+            · exact Or.inl (congrArg (fun X => Typ.all X _) heq)
+            · exact Or.inr ⟨.all V _, .allDom hl, .allDom hr⟩
+        | allCod h₂ =>
+            exact Or.inr ⟨.all _ _, .allCod h₂, .allDom h₁⟩
+    | allCod h₁ =>
+        cases h₂ with
+        | allDom h₂ =>
+            exact Or.inr ⟨.all _ _, .allDom h₂, .allCod h₁⟩
+        | allCod h₂ =>
+            rcases h₁.commuteTyped h₂ hi hp hq₀ with heq | ⟨V, hl, hr⟩
+            · exact Or.inl (congrArg (fun X => Typ.all _ X) heq)
+            · exact Or.inr ⟨.all _ V, .allCod hl, .allCod hr⟩
+    | sngl =>
+        obtain ⟨fields₀, heq, hT₂⟩ := h₂.sngl_target
+        subst T₂
+        have hout := hp.snglSelect_unique hi hq₀ heq.symm
+        exact Or.inl (congrArg Typ.sngl hout)
+
+  theorem ReplDec.commuteTyped {q p : Path} {D D' : Dec}
+      (h₁ : ReplDec q p D D') {q₀ r₀ : Path} {D₂ : Dec} {G : Ctx}
+      (h₂ : ReplDec q₀ r₀ D' D₂) (hi : Inert G)
+      (hp : PreciseFlow G p (.sngl q) (.sngl q))
+      (hq₀ : PreciseFlow G q₀ (.sngl r₀) (.sngl r₀)) :
+      D = D₂ ∨ ∃ D₃, ReplDec q₀ r₀ D D₃ ∧ ReplDec q p D₃ D₂ := by
+    cases h₁ with
+    | typLo h₁ =>
+        cases h₂ with
+        | typLo h₂ =>
+            rcases h₁.commuteTyped h₂ hi hp hq₀ with heq | ⟨V, hl, hr⟩
+            · exact Or.inl (congrArg (fun X => Dec.typ _ X _) heq)
+            · exact Or.inr ⟨.typ _ V _, .typLo hl, .typLo hr⟩
+        | typHi h₂ =>
+            exact Or.inr ⟨.typ _ _ _, .typHi h₂, .typLo h₁⟩
+    | typHi h₁ =>
+        cases h₂ with
+        | typLo h₂ =>
+            exact Or.inr ⟨.typ _ _ _, .typLo h₂, .typHi h₁⟩
+        | typHi h₂ =>
+            rcases h₁.commuteTyped h₂ hi hp hq₀ with heq | ⟨V, hl, hr⟩
+            · exact Or.inl (congrArg (fun X => Dec.typ _ _ X) heq)
+            · exact Or.inr ⟨.typ _ _ V, .typHi hl, .typHi hr⟩
+    | trm h₁ =>
+        cases h₂ with
+        | trm h₂ =>
+            rcases h₁.commuteTyped h₂ hi hp hq₀ with heq | ⟨V, hl, hr⟩
+            · exact Or.inl (congrArg (fun X => Dec.trm _ X) heq)
+            · exact Or.inr ⟨.trm _ V, .trm hl, .trm hr⟩
+end
+
+theorem ReplacementPath.replacementPQ {G : Ctx}
+    {subject aliasPath target : Path} {T T' V : Typ} (hi : Inert G)
+    (hsubject : ReplacementPath G subject T)
+    (halias : PreciseFlow G aliasPath (.sngl target) (.sngl target))
+    (htarget : PreciseTyping2 G target V) (hr : ReplTyp aliasPath target T T') :
+    ReplacementPath G subject T' := by
+  have ha3 : PreciseTyping3 G aliasPath (.sngl target) := .precise (.flow halias)
+  have ht3 : PreciseTyping3 G target V := .precise htarget
+  generalize heq : T = U at hsubject
+  induction hsubject generalizing T T' with
+  | invertible h =>
+      cases heq
+      exact h.replacementPQ hi halias htarget hr
+  | and h₁ h₂ ih₁ ih₂ =>
+      cases heq
+      cases hr with
+      | andLeft hr => exact .and (ih₁ hr rfl) h₂
+      | andRight hr => exact .and h₁ (ih₂ hr rfl)
+  | bnd h ih =>
+      cases heq
+      cases hr with
+      | bnd hr =>
+          rename_i p T T'
+          apply ReplacementPath.bnd
+          exact ih (hr.openPath halias.sourceNamed htarget.toGeneral.pathNamed p) rfl
+  | sel h hf ih =>
+      cases heq
+      obtain ⟨fields, hsrc, hdst⟩ := hr.path_target
+      rw [hsrc] at hf
+      have hnil := halias.snglFieldsElim hi hf
+      rw [hnil, Path.selectFields_nil] at hf
+      have hsource := halias.source_unique hi hf
+      obtain ⟨B, hB⟩ := hf.recordSource_bnd hi
+      rw [hB, halias.snglSource_eq hi] at hsource
+      cases hsource
+  | rcdIntro h ih =>
+      cases heq
+      cases hr with
+      | rcd hr =>
+          cases hr with
+          | trm hr => exact .rcdIntro (ih hr rfl)
+  | recQP hp hq h hr₀ ih =>
+      cases heq
+      cases hr with
+      | bnd hr =>
+          rcases hr₀.commuteTyped hr hi hp halias with heq | ⟨W, hl, hr⟩
+          · cases heq
+            exact h
+          · have hmid := ih (.bnd hl) rfl
+            exact hmid.replacementQP hi hp hq (.bnd hr)
+  | selQP hp hq h ih =>
+      cases heq
+      rename_i p₀ q₀ W r fields A
+      let hstep : ReplTyp q₀ p₀ (.path (q₀.selectFields fields) A)
+          (.path (p₀.selectFields fields) A) := .path
+      rcases hstep.commuteTyped hr hi hp halias with heq | ⟨W, hl, hr⟩
+      · cases heq
+        exact h
+      · have hmid := ih hl rfl
+        exact hmid.replacementQP hi hp hq hr
+  | snglQP hp hq h ih =>
+      cases heq
+      rename_i p₀ q₀ W r fields
+      let hstep : ReplTyp q₀ p₀ (.sngl (q₀.selectFields fields))
+          (.sngl (p₀.selectFields fields)) := .sngl
+      rcases hstep.commuteTyped hr hi hp halias with heq | ⟨W, hl, hr⟩
+      · cases heq
+        exact h
+      · have hmid := ih hl rfl
+        exact hmid.replacementQP hi hp hq hr
+  | top h ih =>
+      cases heq
+      cases hr
+  | trm h hs ih =>
+      cases heq
+      cases hr with
+      | rcd hr =>
+          cases hr with
+          | trm hr => exact .trm h (.trans hs (.snglPQ ha3 ht3 hr))
+  | typ h hLo hHi ih =>
+      cases heq
+      cases hr with
+      | rcd hr =>
+          cases hr with
+          | typLo hr =>
+              exact .typ h (.trans (.snglQP ha3 ht3 hr.swap) hLo) hHi
+          | typHi hr =>
+              exact .typ h hLo (.trans hHi (.snglPQ ha3 ht3 hr))
+  | all L h hdom hbody ih =>
+      cases heq
+      cases hr with
+      | allDom hr =>
+          let L' := L ∪ G.dom
+          apply ReplacementPath.all L' h
+            (.trans (.snglQP ha3 ht3 hr.swap) hdom)
+          intro y hy
+          simp only [L', Finset.mem_union, not_or] at hy
+          exact (hbody y hy.1).narrow
+            (Subenv.last (TightSubtyp.snglQP ha3 ht3 hr.swap).toGeneral
+              (Env.okPush hi.ok hy.2) (Env.okPush hi.ok hy.2))
+      | allCod hr =>
+          let L' := L ∪ G.dom
+          apply ReplacementPath.all L' h hdom
+          intro y hy
+          simp only [L', Finset.mem_union, not_or] at hy
+          exact .trans (hbody y hy.1)
+            (TightSubtyp.snglPQ
+              (ha3.mono (.pushRight hy.2 _) (Env.okPush hi.ok hy.2))
+              (ht3.mono (.pushRight hy.2 _) (Env.okPush hi.ok hy.2))
+              (hr.openVar halias.sourceNamed htarget.toGeneral.pathNamed y)).toGeneral
+
+theorem ReplacementPath.replacementPQ2 {G : Ctx}
+    {subject aliasPath target : Path} {T T' V : Typ} (hi : Inert G)
+    (hsubject : ReplacementPath G subject T)
+    (halias : PreciseTyping2 G aliasPath (.sngl target))
+    (htarget : PreciseTyping2 G target V) (hr : ReplTyp aliasPath target T T') :
+    ReplacementPath G subject T' := by
+  generalize heq : Typ.sngl target = U at halias
+  induction halias generalizing subject target T T' V with
+  | flow halias =>
+      cases heq
+      have hsource := halias.snglSource_eq hi
+      subst hsource
+      exact hsubject.replacementPQ hi halias htarget hr
+  | snglTrans hp hfield ihp ihfield =>
+      cases heq
+      obtain ⟨V', htarget'⟩ := htarget.backtrack
+      exact ihp hsubject htarget' hr.fieldElim rfl
+
+theorem ReplacementPath.replacementPQ3 {G : Ctx}
+    {subject aliasPath target : Path} {T T' V : Typ} (hi : Inert G)
+    (hsubject : ReplacementPath G subject T)
+    (halias : PreciseTyping3 G aliasPath (.sngl target))
+    (htarget : PreciseTyping2 G target V) (hr : ReplTyp aliasPath target T T') :
+    ReplacementPath G subject T' := by
+  generalize heq : Typ.sngl target = U at halias
+  induction halias generalizing subject target T T' V with
+  | precise halias =>
+      cases heq
+      exact hsubject.replacementPQ2 hi halias htarget hr
+  | snglTrans hp hrest ih =>
+      obtain ⟨W, hr₁, hr₂⟩ := hr.insert _
+      obtain ⟨V', hmiddle⟩ := hrest.precise2Exists
+      have hmid := hsubject.replacementPQ2 hi hp hmiddle hr₁
+      exact ih hmid htarget hr₂ heq
+
+theorem ReplacementPath.replacementPQStar {G : Ctx}
+    {subject aliasPath target : Path} {T T' V : Typ} (hi : Inert G)
+    (hsubject : ReplacementPath G subject T)
+    (halias : PreciseTyping3 G aliasPath (.sngl target))
+    (htarget : PreciseTyping2 G target V)
+    (hr : Star (ReplTyp aliasPath target) T T') :
+    ReplacementPath G subject T' := by
+  induction hr generalizing subject with
+  | refl => exact hsubject
+  | step hr _ ih =>
+      exact ih (hsubject.replacementPQ3 hi halias htarget hr)
+
+theorem ReplacementPath.pathSelIntro {G : Ctx} {p q : Path}
+    {A : Signature.TypLabel} {T : Typ} (hi : Inert G)
+    (hp : PreciseTyping3 G p (.rcd (.typ A T T)))
+    (h : ReplacementPath G q T) : ReplacementPath G q (.path p A) := by
+  generalize heq : Typ.rcd (Dec.typ A T T) = U at hp
+  induction hp generalizing A T with
+  | precise hp =>
+      cases heq
+      cases hp with
+      | flow hp => exact .sel h hp
+  | snglTrans hs hp ih =>
+      have hq := ih h heq
+      obtain ⟨V, htarget⟩ := hp.precise2Exists
+      exact hq.replacementQP2 hi hs htarget (.pathRoot _ _ A)
+
+theorem ReplacementPath.bot_false {G : Ctx} {p : Path} (hi : Inert G)
+    (h : ReplacementPath G p .bot) : False := by
+  cases h with
+  | invertible h => exact h.bot_false hi
+
 theorem ReplacementPath.andParts {G : Ctx} {p : Path} {T U : Typ}
     (h : ReplacementPath G p (.and T U)) :
     ReplacementPath G p T ∧ ReplacementPath G p U := by
@@ -412,6 +805,67 @@ theorem ReplacementPath.pathSelExists {G : Ctx} {p q : Path}
   | trm h hs ih => cases heq
   | typ h hLo hHi ih => cases heq
   | all L h hdom hbody ih => cases heq
+
+theorem ReplacementPath.subtyp {G : Ctx} {p : Path} {T U : Typ}
+    (hi : Inert G) (h : ReplacementPath G p T)
+    (hs : TightSubtyp G T U) : ReplacementPath G p U := by
+  apply TightSubtyp.rec
+    (motive_1 := fun _ _ _ _ => True)
+    (motive_2 := fun G T U _ => Inert G → ∀ {p},
+      ReplacementPath G p T → ReplacementPath G p U)
+  case var => intros; trivial
+  case allIntro => intros; trivial
+  case allElim => intros; trivial
+  case newIntro => intros; trivial
+  case newElim => intros; trivial
+  case rcdIntro => intros; trivial
+  case letE => intros; trivial
+  case caseE => intros; trivial
+  case sngl => intros; trivial
+  case self => intros; trivial
+  case pathElim => intros; trivial
+  case recIntro => intros; trivial
+  case recElim => intros; trivial
+  case andIntro => intros; trivial
+  case sub => intros; trivial
+  case top => intros; exact .top ‹ReplacementPath _ _ _›
+  case bot =>
+    intro G T hi p h
+    exact False.elim (h.bot_false hi)
+  case refl => intros; assumption
+  case trans =>
+    intro G S T U h₁ h₂ ih₁ ih₂ hi p h
+    exact ih₂ hi (ih₁ hi h)
+  case andLeft => intros; exact (‹ReplacementPath _ _ _›).andParts.1
+  case andRight => intros; exact (‹ReplacementPath _ _ _›).andParts.2
+  case andIntro =>
+    intro G S T U h₁ h₂ ih₁ ih₂ hi p h
+    exact .and (ih₁ hi h) (ih₂ hi h)
+  case fld =>
+    intro G T U a hs ih hi p h
+    exact .trm h hs
+  case typ =>
+    intro G S₂ S₁ T₁ T₂ A hLo hHi ihLo ihHi hi p h
+    exact .typ h hLo hHi
+  case snglPQ =>
+    intro G aliasPath target V T T' hp hq hr hi p h
+    obtain ⟨W, hq₂⟩ := hq.precise2Exists
+    exact h.replacementPQ3 hi hp hq₂ hr
+  case snglQP =>
+    intro G aliasPath target V T T' hp hq hr hi p h
+    obtain ⟨W, hq₂⟩ := hq.precise2Exists
+    exact h.replacementQP3 hi hp hq₂ hr
+  case selLo =>
+    intro G p A T hp hi q h
+    exact h.pathSelIntro hi hp
+  case selHi =>
+    intro G p A T hp hi q h
+    exact h.pathSel hi hp
+  case all =>
+    intro G S₂ S₁ T₁ T₂ L hdom hbody ih hi p h
+    exact .all L h hdom hbody
+  case t => exact hs
+  all_goals assumption
 
 theorem ReplacementPath.rcdToPrecise {G : Ctx} {p : Path}
     {A : Signature.TypLabel} {S U : Typ} (hi : Inert G)

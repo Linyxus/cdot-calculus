@@ -332,6 +332,55 @@ theorem PreciseFlow.snglSource_eq {G : Ctx} {p q : Path} {T : Typ}
   · have heq := h.envSngl_eq
     exact congrArg Typ.sngl (Typ.sngl.inj heq.symm)
 
+theorem PreciseFlow.snglFieldsElim {G : Ctx} {p q : Path}
+    {T U : Typ} {fields : Fields} (hi : Inert G)
+    (hs : PreciseFlow G p (.sngl q) (.sngl q))
+    (hf : PreciseFlow G (p.selectFields fields) T U) : fields = [] := by
+  induction fields generalizing T U with
+  | nil => rfl
+  | cons a fields ih =>
+      rw [Path.selectFields_cons] at hf
+      obtain ⟨R, hrest⟩ := hf.backtrackRecord
+      have hnil := ih hrest
+      subst fields
+      simp only [Path.selectFields_nil] at hrest
+      have hsource := hs.source_unique hi hrest
+      obtain ⟨B, hB⟩ := hrest.recordSource_bnd hi
+      rw [hB, hs.snglSource_eq hi] at hsource
+      cases hsource
+
+theorem PreciseFlow.snglSelect_unique {G : Ctx}
+    {p q q₀ r₀ : Path} {fields fields₀ : Fields} (hi : Inert G)
+    (hq : PreciseFlow G q (.sngl p) (.sngl p))
+    (hq₀ : PreciseFlow G q₀ (.sngl r₀) (.sngl r₀))
+    (heq : q₀.selectFields fields₀ = q.selectFields fields) :
+    p.selectFields fields = r₀.selectFields fields₀ := by
+  obtain ⟨rest, hleft | hright⟩ := Path.selectFields_comparable heq
+  · rw [hleft] at hq₀
+    have hnil := hq.snglFieldsElim hi hq₀
+    rw [hnil] at hleft
+    simp only [Path.selectFields_nil] at hleft
+    rw [hnil, Path.selectFields_nil] at hq₀
+    subst q₀
+    have htarget := hq.source_unique hi hq₀
+    have hp : p = r₀ := Typ.sngl.inj htarget
+    subst p
+    have hfields := q.selectFields_right_injective heq
+    subst fields₀
+    rfl
+  · rw [hright] at hq
+    have hnil := hq₀.snglFieldsElim hi hq
+    rw [hnil] at hright
+    simp only [Path.selectFields_nil] at hright
+    rw [hnil, Path.selectFields_nil] at hq
+    subst q
+    have htarget := hq.source_unique hi hq₀
+    have hp : p = r₀ := Typ.sngl.inj htarget
+    subst r₀
+    have hfields := q₀.selectFields_right_injective heq
+    subst fields₀
+    rfl
+
 theorem PreciseFlow.recordTypeSource_bnd {G : Ctx} {p : Path} {T U : Typ}
     (hi : Inert G) (h : PreciseFlow G p T U) (hr : RecordType U) :
     ∃ V, T = .bnd V := by
