@@ -157,4 +157,134 @@ theorem SemanticSubtyp.andSource {G : Ctx} {S T U V : Typ}
   | selLeft hp h ih => cases heq
   | all L hdom hbody => cases heq
 
+theorem SemanticSubtyp.fldSource {G : Ctx} {a : Signature.TrmLabel}
+    {S T U : Typ}
+    (hST : ∀ W, SemanticSubtyp G T W → SemanticSubtyp G S W)
+    (h : SemanticSubtyp G (.rcd (.trm a T)) U) :
+    SemanticSubtyp G (.rcd (.trm a S)) U := by
+  generalize heq : Typ.rcd (Dec.trm a T) = X at h
+  induction h generalizing S T with
+  | top => exact .top
+  | bot => cases heq
+  | refl =>
+      cases heq
+      exact .fld (hST _ .refl)
+  | andLeft h ih => cases heq
+  | andRight h ih => cases heq
+  | andIntro h₁ h₂ ih₁ ih₂ =>
+      exact .andIntro (ih₁ hST heq) (ih₂ hST heq)
+  | fld h ih =>
+      cases heq
+      exact .fld (hST _ h)
+  | typ hLo hHi => cases heq
+  | snglPQRight hp hq hr h ih =>
+      exact .snglPQRight hp hq hr (ih hST heq)
+  | snglQPRight hp hq hr h ih =>
+      exact .snglQPRight hp hq hr (ih hST heq)
+  | snglPQLeft hp hq hr h ih =>
+      cases hr with
+      | rcd hr =>
+          cases hr with
+          | typLo hr => cases heq
+          | typHi hr => cases heq
+          | trm hr =>
+              cases heq
+              apply ih
+              · intro W hW
+                exact hST W (.snglPQLeft hp hq hr hW)
+              · rfl
+      | andLeft hr => cases heq
+      | andRight hr => cases heq
+      | path => cases heq
+      | bnd hr => cases heq
+      | allDom hr => cases heq
+      | allCod hr => cases heq
+      | sngl => cases heq
+  | snglQPLeft hp hq hr h ih =>
+      cases hr with
+      | rcd hr =>
+          cases hr with
+          | typLo hr => cases heq
+          | typHi hr => cases heq
+          | trm hr =>
+              cases heq
+              apply ih
+              · intro W hW
+                exact hST W (.snglQPLeft hp hq hr hW)
+              · rfl
+      | andLeft hr => cases heq
+      | andRight hr => cases heq
+      | path => cases heq
+      | bnd hr => cases heq
+      | allDom hr => cases heq
+      | allCod hr => cases heq
+      | sngl => cases heq
+  | selRight hp h ih => exact .selRight hp (ih hST heq)
+  | selLeft hp h ih => cases heq
+  | all L hdom hbody => cases heq
+
+theorem SemanticSubtyp.typSource {G : Ctx} {A : Signature.TypLabel}
+    {S₁ S₂ T₁ T₂ U : Typ}
+    (hLo : TightSubtyp G S₂ S₁) (hHi : TightSubtyp G T₁ T₂)
+    (h : SemanticSubtyp G (.rcd (.typ A S₂ T₂)) U) :
+    SemanticSubtyp G (.rcd (.typ A S₁ T₁)) U := by
+  generalize heq : Typ.rcd (Dec.typ A S₂ T₂) = X at h
+  induction h generalizing S₂ T₂ with
+  | top => exact .top
+  | bot => cases heq
+  | refl =>
+      cases heq
+      exact .typ hLo hHi
+  | andLeft h ih => cases heq
+  | andRight h ih => cases heq
+  | andIntro h₁ h₂ ih₁ ih₂ =>
+      exact .andIntro (ih₁ hLo hHi heq) (ih₂ hLo hHi heq)
+  | fld h ih => cases heq
+  | typ hLo' hHi' =>
+      cases heq
+      exact .typ (.trans hLo' hLo) (.trans hHi hHi')
+  | snglPQRight hp hq hr h ih =>
+      exact .snglPQRight hp hq hr (ih hLo hHi heq)
+  | snglQPRight hp hq hr h ih =>
+      exact .snglQPRight hp hq hr (ih hLo hHi heq)
+  | snglPQLeft hp hq hr h ih =>
+      cases hr with
+      | rcd hr =>
+          cases hr with
+          | typLo hr =>
+              cases heq
+              apply ih (.trans (.snglPQ hp hq hr) hLo) hHi rfl
+          | typHi hr =>
+              cases heq
+              apply ih hLo (.trans hHi (.snglQP hp hq hr.swap)) rfl
+          | trm hr => cases heq
+      | andLeft hr => cases heq
+      | andRight hr => cases heq
+      | path => cases heq
+      | bnd hr => cases heq
+      | allDom hr => cases heq
+      | allCod hr => cases heq
+      | sngl => cases heq
+  | snglQPLeft hp hq hr h ih =>
+      cases hr with
+      | rcd hr =>
+          cases hr with
+          | typLo hr =>
+              cases heq
+              apply ih (.trans (.snglQP hp hq hr) hLo) hHi rfl
+          | typHi hr =>
+              cases heq
+              apply ih hLo (.trans hHi (.snglPQ hp hq hr.swap)) rfl
+          | trm hr => cases heq
+      | andLeft hr => cases heq
+      | andRight hr => cases heq
+      | path => cases heq
+      | bnd hr => cases heq
+      | allDom hr => cases heq
+      | allCod hr => cases heq
+      | sngl => cases heq
+  | selRight hp h ih => exact .selRight hp (ih hLo hHi heq)
+  | selLeft hp h ih => cases heq
+  | all L hdom hbody => cases heq
+
 end CDot
