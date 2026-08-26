@@ -156,6 +156,58 @@ theorem Star.replTrm {p q T U a} (h : Star (ReplTyp p q) T U) :
   h.map (fun T : Typ => Dec.trm a T) (fun h => ReplDec.trm h)
 
 mutual
+  theorem Typ.openRecPath_repl (T : Typ) (p q : Path) (n : Nat) :
+      Star (ReplTyp p q) (T.openRecPath n p) (T.openRecPath n q) := by
+    cases T with
+    | top => exact .refl Typ.top
+    | bot => exact .refl Typ.bot
+    | rcd D => exact (D.openRecPath_repl p q n).replRcd
+    | and T U =>
+        exact ((T.openRecPath_repl p q n).replAndLeft).trans
+          ((U.openRecPath_repl p q n).replAndRight)
+    | path r A =>
+        cases r with
+        | select x fields =>
+          cases x with
+          | bound i =>
+              cases p
+              cases q
+              simp only [Typ.openRecPath, Path.openRecPath]
+              split
+              · exact .one .path
+              · exact .refl _
+          | free x => exact .refl _
+    | bnd T => exact (T.openRecPath_repl p q (n + 1)).replBnd
+    | all T U =>
+        exact ((T.openRecPath_repl p q n).replAllDom).trans
+          ((U.openRecPath_repl p q (n + 1)).replAllCod)
+    | sngl r =>
+        cases r with
+        | select x fields =>
+          cases x with
+          | bound i =>
+              cases p
+              cases q
+              simp only [Typ.openRecPath, Path.openRecPath]
+              split
+              · exact .one .sngl
+              · exact .refl _
+          | free x => exact .refl _
+
+  theorem Dec.openRecPath_repl (D : Dec) (p q : Path) (n : Nat) :
+      Star (ReplDec p q) (D.openRecPath n p) (D.openRecPath n q) := by
+    cases D with
+    | typ A T U =>
+        exact ((T.openRecPath_repl p q n).replTypLo).trans
+          ((U.openRecPath_repl p q n).replTypHi)
+    | trm a T => exact (T.openRecPath_repl p q n).replTrm
+end
+
+theorem Typ.openPath_repl (T : Typ) (p q : Path) :
+    Star (ReplTyp p q) (T.openPath p) (T.openPath q) :=
+  T.openRecPath_repl p q 0
+
+mutual
   theorem ReplTyp.insert {p q T U} (h : ReplTyp p q T U) (r : Path) :
       ∃ V, ReplTyp p r T V ∧ ReplTyp r q V U := by
     cases h with
@@ -205,6 +257,62 @@ theorem ReplTyp.path_prefixes {p q p' q' A}
     ∃ fields, p' = p.selectFields fields ∧ q' = q.selectFields fields := by
   cases h with
   | path => exact ⟨_, rfl, rfl⟩
+
+mutual
+  theorem ReplTyp.fieldElimAux {p q T U} (h : ReplTyp p q T U) :
+      ∀ p₀ q₀ a, p = p₀.selectField a → q = q₀.selectField a →
+        ReplTyp p₀ q₀ T U := by
+    cases h with
+    | rcd h =>
+        intro p₀ q₀ a hp hq
+        exact .rcd (h.fieldElimAux p₀ q₀ a hp hq)
+    | andLeft h =>
+        intro p₀ q₀ a hp hq
+        exact .andLeft (h.fieldElimAux p₀ q₀ a hp hq)
+    | andRight h =>
+        intro p₀ q₀ a hp hq
+        exact .andRight (h.fieldElimAux p₀ q₀ a hp hq)
+    | path =>
+        intro p₀ q₀ a hp hq
+        cases hp
+        cases hq
+        simpa only [Path.selectFields_selectField] using
+          (ReplTyp.path (p := p₀) (q := q₀) (fields := _ ++ [a]) (A := _))
+    | bnd h =>
+        intro p₀ q₀ a hp hq
+        exact .bnd (h.fieldElimAux p₀ q₀ a hp hq)
+    | allDom h =>
+        intro p₀ q₀ a hp hq
+        exact .allDom (h.fieldElimAux p₀ q₀ a hp hq)
+    | allCod h =>
+        intro p₀ q₀ a hp hq
+        exact .allCod (h.fieldElimAux p₀ q₀ a hp hq)
+    | sngl =>
+        intro p₀ q₀ a hp hq
+        cases hp
+        cases hq
+        simpa only [Path.selectFields_selectField] using
+          (ReplTyp.sngl (p := p₀) (q := q₀) (fields := _ ++ [a]))
+
+  theorem ReplDec.fieldElimAux {p q D E} (h : ReplDec p q D E) :
+      ∀ p₀ q₀ a, p = p₀.selectField a → q = q₀.selectField a →
+        ReplDec p₀ q₀ D E := by
+    cases h with
+    | typLo h =>
+        intro p₀ q₀ a hp hq
+        exact .typLo (h.fieldElimAux p₀ q₀ a hp hq)
+    | typHi h =>
+        intro p₀ q₀ a hp hq
+        exact .typHi (h.fieldElimAux p₀ q₀ a hp hq)
+    | trm h =>
+        intro p₀ q₀ a hp hq
+        exact .trm (h.fieldElimAux p₀ q₀ a hp hq)
+end
+
+theorem ReplTyp.fieldElim {p q : Path} {a : Signature.TrmLabel} {T U : Typ}
+    (h : ReplTyp (p.selectField a) (q.selectField a) T U) :
+    ReplTyp p q T U :=
+  h.fieldElimAux p q a rfl rfl
 
 mutual
   theorem ReplTyp.subst {p q T U} (h : ReplTyp p q T U) (x : Var) (r : Path) :
