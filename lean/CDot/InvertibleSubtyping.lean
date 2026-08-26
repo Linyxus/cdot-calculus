@@ -60,4 +60,28 @@ theorem SemanticSubtyp.toTight {G : Ctx} {S T : Typ}
   | selLeft hp _ ih => exact .trans (.selHi hp) ih
   | all L hdom hbody => exact .all L hdom hbody
 
+theorem SemanticSubtyp.topLeft {G : Ctx} {T U : Typ}
+    (h : SemanticSubtyp G .top T) : SemanticSubtyp G U T := by
+  generalize heq : Typ.top = S at h
+  induction h generalizing U with
+  | top => exact .top
+  | bot => cases heq
+  | refl =>
+      cases heq
+      exact .top
+  | andLeft h ih => cases heq
+  | andRight h ih => cases heq
+  | andIntro hT hU ihT ihU => exact .andIntro (ihT heq) (ihU heq)
+  | fld h ih => cases heq
+  | typ hLo hHi => cases heq
+  | snglPQRight hp hq hr h ih =>
+      exact .snglPQRight hp hq hr (ih heq)
+  | snglQPRight hp hq hr h ih =>
+      exact .snglQPRight hp hq hr (ih heq)
+  | snglPQLeft hp hq hr h ih => cases hr <;> cases heq
+  | snglQPLeft hp hq hr h ih => cases hr <;> cases heq
+  | selRight hp h ih => exact .selRight hp (ih heq)
+  | selLeft hp h ih => cases heq
+  | all L hdom hbody => cases heq
+
 end CDot
