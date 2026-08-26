@@ -61,6 +61,49 @@ theorem Inert.bindsTyp {G : Ctx} {x : Var} {T : Typ}
       | here => exact hU
       | there hne hb => exact ih hb
 
+theorem PreciseFlow.inertSngl {G : Ctx} {p : Path} {T U : Typ}
+    (hi : Inert G) (h : PreciseFlow G p T U) :
+    InertSngl T ∧ (InertSngl U ∨ RecordType U) := by
+  induction h with
+  | bind hok hb =>
+      have hT : InertSngl _ := Or.inl (hi.bindsTyp hb)
+      exact ⟨hT, Or.inl hT⟩
+  | fld h ih =>
+      obtain ⟨hT, hprecise⟩ := ih
+      rcases hprecise with hbad | hrecord
+      · exact False.elim hbad.rcd_false
+      · exact ⟨hrecord.singleTrm, Or.inl hrecord.singleTrm⟩
+  | «open» h ih =>
+      obtain ⟨hT, hprecise⟩ := ih
+      rcases hprecise with hbnd | hbad
+      · exact ⟨hT, Or.inr (hbnd.bnd_record.openPath _)⟩
+      · exact False.elim hbad.bnd_false
+  | andLeft h ih =>
+      obtain ⟨hT, hprecise⟩ := ih
+      rcases hprecise with hbad | hrecord
+      · exact False.elim hbad.and_false
+      · exact ⟨hT, Or.inr hrecord.andLeft⟩
+  | andRight h ih =>
+      obtain ⟨hT, hprecise⟩ := ih
+      rcases hprecise with hbad | hrecord
+      · exact False.elim hbad.and_false
+      · exact ⟨hT, Or.inr hrecord.andRight⟩
+
+theorem PreciseFlow.bot_false {G : Ctx} {p : Path} {T : Typ}
+    (hi : Inert G) (h : PreciseFlow G p T .bot) : False := by
+  rcases (h.inertSngl hi).2 with hbot | hbot
+  · rcases hbot with hbot | ⟨q, hbot⟩ <;> cases hbot
+  · obtain ⟨labels, hbot⟩ := hbot
+    cases hbot
+
+theorem PreciseFlow.path_false {G : Ctx} {p q : Path}
+    {A : Signature.TypLabel} {T : Typ}
+    (hi : Inert G) (h : PreciseFlow G p T (.path q A)) : False := by
+  rcases (h.inertSngl hi).2 with hpath | hpath
+  · rcases hpath with hpath | ⟨r, hpath⟩ <;> cases hpath
+  · obtain ⟨labels, hpath⟩ := hpath
+    cases hpath
+
 theorem PreciseFlow.sourceNamed {G : Ctx} {p : Path} {T U : Typ}
     (h : PreciseFlow G p T U) : p.Named :=
   h.toGeneral.pathNamed

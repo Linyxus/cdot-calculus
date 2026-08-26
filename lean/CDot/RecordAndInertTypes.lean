@@ -76,6 +76,47 @@ def IsSngl (T : Typ) : Prop := ∃ p, T = .sngl p
 
 def InertSngl (T : Typ) : Prop := InertTyp T ∨ IsSngl T
 
+theorem RecordType.singleTrm {a : Signature.TrmLabel} {T : Typ}
+    (h : RecordType (.rcd (.trm a T))) : InertSngl T := by
+  obtain ⟨labels, h⟩ := h
+  cases h with
+  | one hdec heq =>
+      cases hdec with
+      | trm h => exact Or.inl h
+      | trmSngl => exact Or.inr ⟨_, rfl⟩
+
+theorem RecordType.andLeft {T U : Typ} (h : RecordType (.and T U)) :
+    RecordType T := by
+  obtain ⟨labels, h⟩ := h
+  cases h with
+  | cons hT hD heq hfresh => exact ⟨_, hT⟩
+
+theorem RecordType.andRight {T U : Typ} (h : RecordType (.and T U)) :
+    RecordType U := by
+  obtain ⟨labels, h⟩ := h
+  cases h with
+  | cons hT hD heq hfresh => exact ⟨_, .one hD heq⟩
+
+theorem InertSngl.rcd_false {D : Dec} (h : InertSngl (.rcd D)) : False := by
+  rcases h with h | ⟨p, h⟩
+  · cases h
+  · cases h
+
+theorem InertSngl.and_false {T U : Typ} (h : InertSngl (.and T U)) : False := by
+  rcases h with h | ⟨p, h⟩
+  · cases h
+  · cases h
+
+theorem RecordType.bnd_false {T : Typ} (h : RecordType (.bnd T)) : False := by
+  obtain ⟨labels, h⟩ := h
+  cases h
+
+theorem InertSngl.bnd_record {T : Typ} (h : InertSngl (.bnd T)) : RecordType T := by
+  rcases h with h | ⟨p, h⟩
+  · cases h with
+    | bnd h => exact ⟨_, h⟩
+  · cases h
+
 theorem Inert.prefix {G : Ctx} {x : Var} {T : Typ}
     (h : Inert (G.push x T)) : Inert G := by
   cases h with

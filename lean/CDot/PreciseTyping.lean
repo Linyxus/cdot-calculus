@@ -119,6 +119,36 @@ theorem PreciseTyping2.fieldTrans {G : Ctx} {p q : Path} {fields : Fields}
       obtain ⟨U, hbase⟩ := hq.backtrack
       exact .snglTrans (ih hbase) hq
 
+theorem PreciseTyping2.inertSngl {G : Ctx} {p : Path} {T : Typ}
+    (hi : Inert G) (h : PreciseTyping2 G p T) :
+    InertSngl T ∨ RecordType T := by
+  cases h with
+  | flow h => exact (h.inertSngl hi).2
+  | snglTrans => exact Or.inl (Or.inr ⟨_, rfl⟩)
+
+theorem PreciseTyping3.inertSngl {G : Ctx} {p : Path} {T : Typ}
+    (hi : Inert G) (h : PreciseTyping3 G p T) :
+    InertSngl T ∨ RecordType T := by
+  induction h with
+  | precise h => exact h.inertSngl hi
+  | snglTrans hp hq ih => exact ih
+
+theorem PreciseTyping2.path_false {G : Ctx} {p q : Path}
+    {A : Signature.TypLabel} (hi : Inert G)
+    (h : PreciseTyping2 G p (.path q A)) : False := by
+  cases h with
+  | flow h => exact h.path_false hi
+
+theorem PreciseTyping3.path_false {G : Ctx} {p q : Path}
+    {A : Signature.TypLabel} (hi : Inert G)
+    (h : PreciseTyping3 G p (.path q A)) : False := by
+  generalize heq : Typ.path q A = U at h
+  induction h with
+  | precise h =>
+      cases heq
+      exact h.path_false hi
+  | snglTrans hp hq ih => exact ih heq
+
 inductive Wf : Ctx → Prop where
   | empty : Wf Env.empty
   | push : Wf G → Env.Fresh x G →
