@@ -1233,6 +1233,87 @@ theorem Typed.pathProgress {G : Ctx} {σ : Sta} {p : Path} {T : Typ}
   | path q => exact Or.inr ⟨(σ, .path q), .resolve hstep⟩
   | val v => exact Or.inl (.path ⟨v, hstep⟩)
 
+theorem Typed.pathSelectionRecord {G : Ctx} {p q : Path}
+    {A : Signature.TypLabel}
+    (h : Typed G (.path p) (.path q A)) (hi : Inert G) :
+    ∃ T, PreciseTyping3 G q (.rcd (.typ A T T)) := by
+  obtain ⟨T, hq, hp⟩ :=
+    ((h.toTight hi).pathReplacement hi).pathSelExists hi
+  exact ⟨T, hq⟩
+
+theorem Typed.pathSelectionLookupTerminates {G : Ctx} {σ : Sta}
+    {p q : Path} {A : Signature.TypLabel}
+    (h : Typed G (.path p) (.path q A))
+    (hi : Inert G) (hwf : Wf G) (hwt : WellTyped G σ) :
+    ∃ v, Lookup σ (.path q) (.val v) := by
+  obtain ⟨T, hq⟩ := h.pathSelectionRecord hi
+  have hrecord : RecordType (.rcd (.typ A T T)) :=
+    ⟨{Label.typ A}, .one .typ rfl⟩
+  exact hq.lookupRecordTerminates hrecord hi hwf hwt
+
+theorem Lookup.toFinalStep {σ : Sta} {p : Path} {v : Val}
+    (h : Lookup σ (.path p) (.val v)) :
+    ∃ q, Lookup σ (.path p) (.path q) ∧
+      LookupStep σ (.path q) (.val v) := by
+  generalize hsrc : DefRhs.path p = src at h
+  generalize hdst : DefRhs.val v = dst at h
+  induction h generalizing p v with
+  | refl => cases hsrc.trans hdst.symm
+  | @step _ middle _ hstep hrest ih =>
+      cases middle with
+      | path q =>
+          obtain ⟨r, hprefix, hfinal⟩ := ih rfl hdst
+          rw [← hsrc] at hstep
+          rw [← hdst] at hfinal
+          rw [← hsrc, ← hdst]
+          exact ⟨r, (Star.one hstep).trans hprefix, hfinal⟩
+      | val w =>
+          have heq := lookup_val_inv hrest
+          have hwv : w = v := by
+            symm
+            injection hdst.trans heq
+          subst w
+          rw [← hsrc] at hstep
+          rw [← hsrc, ← hdst]
+          exact ⟨p, .refl _, hstep⟩
+
+theorem Typed.resolvePathSelection {G : Ctx} {σ : Sta}
+    {p q : Path} {A : Signature.TypLabel}
+    (h : Typed G (.path p) (.path q A))
+    (hi : Inert G) (hwf : Wf G) (hwt : WellTyped G σ) :
+    ∃ v r, Lookup σ (.path q) (.path r) ∧
+      LookupStep σ (.path r) (.val v) := by
+  obtain ⟨v, hlookup⟩ := h.pathSelectionLookupTerminates hi hwf hwt
+  obtain ⟨r, hprefix, hfinal⟩ := hlookup.toFinalStep
+  exact ⟨v, r, hprefix, hfinal⟩
+
+theorem Typed.canonicalFunction {G : Ctx} {σ : Sta}
+    {p : Path} {S T : Typ} (h : Typed G (.path p) (.all S T))
+    (hi : Inert G) (hwf : Wf G) (hwt : WellTyped G σ) :
+    ∃ L : Vars, ∃ S' body,
+      Lookup σ (.path p) (.val (.lambda S' body)) ∧
+      Subtyp G S S' ∧
+      ∀ y, y ∉ L →
+        Typed (G.push y S) (body.open y) (T.open y) := by
+  obtain ⟨S₀, T₀, L₀, hp, hdom₀, hbody₀⟩ := h.pathAllToPrecise hi
+  obtain ⟨S₁, body, hlookup, hlambda⟩ :=
+    hp.lookupAllTerminates hi hwf hwt
+  obtain ⟨L₁, S₂, body', heq, hdom₁, hbody₁⟩ :=
+    hlambda.valAllToLambda hi
+  cases heq
+  let L : Vars := (L₀ ∪ L₁) ∪ G.dom
+  refine ⟨L, S₁, body, hlookup, hdom₀.trans hdom₁, ?_⟩
+  intro y hy
+  simp only [L, Finset.mem_union, not_or] at hy
+  have hyL₀ : y ∉ L₀ := hy.1.1
+  have hyL₁ : y ∉ L₁ := hy.1.2
+  have hyG : Env.Fresh y G := hy.2
+  have hokS : Env.Ok (G.push y S) := Env.okPush hi.ok hyG
+  have hokS₀ : Env.Ok (G.push y S₀) := Env.okPush hi.ok hyG
+  have hnarrow := (hbody₁ y hyL₁).narrow
+    (Subenv.last hdom₀ hokS hokS₀)
+  exact .sub hnarrow (hbody₀ y hyL₀)
+
 theorem Typed.valPreciseSubtype {G : Ctx} {v : Val} {T : Typ}
     (h : Typed G (.val v) T) :
     ∃ U, PreciseVal G v U ∧ Subtyp G U T := by
