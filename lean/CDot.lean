@@ -15,6 +15,7 @@ import CDot.InvertibleTyping
 import CDot.ReplacementTyping
 import CDot.InvertibleSubtyping
 import CDot.Substitution
+import CDot.GADTRules
 
 /-!
 # cDOT in Lean 4
