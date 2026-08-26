@@ -243,4 +243,120 @@ theorem WellTyped.freshContext {G : Ctx} {store : Sta} {x : Var}
   rw [h.dom_eq]
   exact hx
 
+/-! ## Progress -/
+
+theorem progress {G : Ctx} {σ : Sta} {t : Trm} {T : Typ}
+    (hi : Inert G) (hwf : Wf G) (hwt : WellTyped G σ)
+    (h : Typed G t T) :
+    NormalForm σ t ∨ ∃ state, Red (σ, t) state := by
+  apply Typed.rec
+    (motive_1 := fun G t T _ => ∀ (hi : Inert G) (hwf : Wf G)
+      (σ : Sta), WellTyped G σ →
+        NormalForm σ t ∨ ∃ state, Red (σ, t) state)
+    (motive_2 := fun _ _ _ _ _ _ => True)
+    (motive_3 := fun _ _ _ _ _ _ => True)
+    (motive_4 := fun _ _ _ _ => True)
+  case var =>
+      intro x T G hb hi hwf σ hwt
+      exact (Typed.var hb).pathProgress hi hwt
+  case allIntro => intros; exact Or.inl .val
+  case newIntro => intros; exact Or.inl .val
+  case allElim =>
+      intro G p S T q hfun harg ihfun iharg hi hwf σ hwt
+      rcases ihfun hi hwf σ hwt with hfunNormal | ⟨state, hfunRed⟩
+      · cases hfunNormal with
+        | path hfunResolved =>
+            obtain ⟨vf, hfunStep⟩ := hfunResolved
+            obtain ⟨L, S', body, hlookup, hdom, hbody⟩ :=
+              hfun.canonicalFunction hi hwf hwt
+            have hvf : vf = .lambda S' body :=
+              lookup_functional (.one hfunStep) hlookup
+            subst vf
+            rcases iharg hi hwf σ hwt with hargNormal | ⟨state, hargRed⟩
+            · cases hargNormal with
+              | path hargResolved =>
+                  exact Or.inr ⟨_, .app hfunStep hargResolved⟩
+            · cases hargRed with
+              | resolve hargStep =>
+                  exact Or.inr ⟨_, .ctxAppArg ⟨_, hfunStep⟩ (.resolve hargStep)⟩
+      · cases hfunRed with
+        | resolve hfunStep =>
+            exact Or.inr ⟨_, .ctxAppFun (.resolve hfunStep)⟩
+  case newElim =>
+      intro G p a T hpath ih hi hwf σ hwt
+      exact hpath.newElim.pathProgress hi hwt
+  case rcdIntro =>
+      intro G T p a hpath ih hi hwf σ hwt
+      exact hpath.rcdIntro.pathProgress hi hwt
+  case letE =>
+      intro G t₀ T U body L hbound hbody ihbound ihbody hi hwf σ hwt
+      rcases ihbound hi hwf σ hwt with hnormal | ⟨state, hred⟩
+      · cases hnormal with
+        | val =>
+            rename_i v
+            obtain ⟨x, hx⟩ := Finset.exists_nat_subset_range σ.dom
+            have hxfresh : Env.Fresh x σ := by
+              intro hmem
+              exact (Nat.lt_irrefl x) (Finset.mem_range.mp (hx hmem))
+            exact Or.inr ⟨_, .letVal hxfresh⟩
+        | path hresolved => exact Or.inr ⟨_, .letPath hresolved⟩
+      · exact Or.inr ⟨_, .letTarget hred⟩
+  case caseE =>
+      intro G p S q U A T bodyElse bodyMatch L hp hq hbody helse
+        ihp ihq ihbody ihelse hi hwf σ hwt
+      rcases hp.pathProgress hi hwt with hpNormal | ⟨state, hpRed⟩
+      · cases hpNormal with
+        | path hpResolved =>
+            rcases hq.pathProgress hi hwt with hqNormal | ⟨state, hqRed⟩
+            · cases hqNormal with
+              | path hqResolved =>
+                  obtain ⟨vp, hpStep⟩ := hpResolved
+                  cases vp with
+                  | lambda S body =>
+                      exact Or.inr ⟨_, .caseLambda hpStep⟩
+                  | new tag A₁ U ds =>
+                      obtain ⟨P, hprecise⟩ := hp.precise3Exists hi
+                      have htag := hprecise.lookupObjectTag hpStep hi hwt
+                      obtain ⟨vtag, resolvedTag, htagLookup, htagFinal⟩ :=
+                        htag.resolvePathSelection hi hwf hwt
+                      by_cases hpathEq : resolvedTag = q
+                      · subst resolvedTag
+                        by_cases hlabelEq : A₁ = A
+                        · subst A₁
+                          exact Or.inr ⟨_, .caseMatch hqResolved hpStep htagLookup⟩
+                        · exact Or.inr ⟨_, .caseElse
+                            ⟨vtag, htagFinal⟩ hqResolved hpStep htagLookup
+                            (Or.inr hlabelEq)⟩
+                      · exact Or.inr ⟨_, .caseElse
+                          ⟨vtag, htagFinal⟩ hqResolved hpStep htagLookup
+                          (Or.inl hpathEq)⟩
+            · cases hqRed with
+              | resolve hqStep =>
+                  exact Or.inr ⟨_, .ctxCaseTag hpResolved (.resolve hqStep)⟩
+      · cases hpRed with
+        | resolve hpStep =>
+            exact Or.inr ⟨_, .ctxCaseScrutinee (.resolve hpStep)⟩
+  case sngl =>
+      intro G p q T hp hq ihp ihq hi hwf σ hwt
+      exact (Typed.sngl hp hq).pathProgress hi hwt
+  case self =>
+      intro G p T hp ih hi hwf σ hwt
+      exact (Typed.self hp).pathProgress hi hwt
+  case pathElim =>
+      intro G p q a T hp hq ihp ihq hi hwf σ hwt
+      exact (Typed.pathElim hp hq).pathProgress hi hwt
+  case recIntro =>
+      intro G p T hp ih hi hwf σ hwt
+      exact (Typed.recIntro hp).pathProgress hi hwt
+  case recElim =>
+      intro G p T hp ih hi hwf σ hwt
+      exact (Typed.recElim hp).pathProgress hi hwt
+  case andIntro =>
+      intro G p T U hp hq ihp ihq hi hwf σ hwt
+      exact (Typed.andIntro hp hq).pathProgress hi hwt
+  case sub =>
+      intro G t S T ht hs ih iht hi hwf σ hwt
+      exact ih hi hwf σ hwt
+  all_goals intros <;> trivial
+
 end CDot
