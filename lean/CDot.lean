@@ -13,6 +13,7 @@ import CDot.PreciseTyping
 import CDot.TightTyping
 import CDot.InvertibleTyping
 import CDot.ReplacementTyping
+import CDot.InvertibleSubtyping
 
 /-!
 # cDOT in Lean 4
