@@ -954,6 +954,62 @@ theorem ReplacementPath.snglToInvertible {G : Ctx} {p q : Path} {U : Typ}
   | typ h hLo hHi ih => cases heq
   | all L h hdom hbody ih => cases heq
 
+theorem ReplacementPath.snglReverse {G : Ctx} {p r s : Path} {U : Typ}
+    (hi : Inert G) (hpr : ReplacementPath G p (.sngl r))
+    (hsr : PreciseTyping3 G s (.sngl r)) (hr : PreciseTyping3 G r U) :
+    ReplacementPath G p (.sngl s) := by
+  obtain ⟨V, hr₂⟩ := hr.precise2Exists
+  exact hpr.replacementQP3 hi hsr hr₂ (ReplTyp.rootSngl r s)
+
+theorem ReplacementPath.snglTransPreciseRight {G : Ctx} {p q : Path}
+    {T : Typ} (hi : Inert G) (hpq : ReplacementPath G p (.sngl q))
+    (hqT : PreciseTyping3 G q T) : ReplacementPath G p T := by
+  obtain ⟨r, S, hpr, hr, hqr⟩ := hpq.snglToInvertible hi hqT
+  rcases hpr.snglPreciseCases hi hr with
+    ⟨r', hpr', hr'r⟩ | rfl
+  · have hprr : PreciseTyping3 G p (.sngl r) := by
+      rcases hr'r with rfl | hr'r
+      · exact hpr'
+      · exact hpr'.snglTrans3 hr'r
+    rcases hqr with rfl | hqr
+    · exact .invertible (.precise (hprr.snglTrans3 hqT))
+    · rcases hqT.invertSngl hi hqr with hrT | ⟨s, hsT, hrs⟩
+      · exact .invertible (.precise (hprr.snglTrans3 hrT))
+      · cases hsT
+        rcases hrs with rfl | hsr
+        · exact .invertible (.precise hprr)
+        · exact (ReplacementPath.invertible (.precise hprr)).snglReverse
+            hi hsr hr
+  · rcases hqr with rfl | hqr
+    · exact .invertible (.precise hqT)
+    · rcases hqT.invertSngl hi hqr with hpT | ⟨s, hsT, hps⟩
+      · exact .invertible (.precise hpT)
+      · cases hsT
+        rcases hps with rfl | hsp
+        · exact .invertible hpr
+        · exact (ReplacementPath.invertible hpr).snglReverse hi hsp hr
+
+theorem InvertiblePath.snglTransFromReplacement {G : Ctx} {p q : Path}
+    {T : Typ} (hi : Inert G) (hpq : ReplacementPath G p (.sngl q))
+    (hq : InvertiblePath G q T) : ReplacementPath G p T := by
+  generalize heq : q = r at hq
+  induction hq generalizing p q with
+  | precise hq =>
+      cases heq
+      exact hpq.snglTransPreciseRight hi hq
+  | recPQ hs ht h hr ih =>
+      cases heq
+      exact (ih hpq rfl).replacementPQ hi hs ht (.bnd hr)
+  | selPQ hs ht h ih =>
+      cases heq
+      exact (ih hpq rfl).replacementPQ hi hs ht .path
+  | snglPQ hs ht h ih =>
+      cases heq
+      exact (ih hpq rfl).replacementPQ hi hs ht .sngl
+  | self h =>
+      cases heq
+      exact hpq
+
 theorem ReplacementPath.subtyp {G : Ctx} {p : Path} {T U : Typ}
     (hi : Inert G) (h : ReplacementPath G p T)
     (hs : TightSubtyp G T U) : ReplacementPath G p U := by
