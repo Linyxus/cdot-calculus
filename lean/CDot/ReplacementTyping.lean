@@ -201,4 +201,22 @@ theorem ReplacementVal.bndToInvertible {G : Ctx} {v : Val} {T : Typ}
   | top h ih => cases heq
   | all L h hdom hbody ih => cases heq
 
+theorem ReplacementVal.newPreciseExists {G : Ctx} {r : Path}
+    {A : Signature.TypLabel} {T : Typ} {ds : Defs} {U : Typ}
+    (h : ReplacementVal G (.new r A T ds) U) :
+    ∃ T', PreciseVal G (.new r A T ds) (.bnd T') := by
+  generalize heq : Val.new r A T ds = v at h
+  induction h generalizing r A T ds with
+  | invertible h =>
+      rw [← heq] at h
+      obtain ⟨T', _, hp, _⟩ := h.newToPrecise
+      rw [← heq]
+      exact ⟨T, hp⟩
+  | and hT hU ihT ihU => exact ihT heq
+  | sel h hf ih => exact ih heq
+  | recQP hp hq h hr ih => exact ih heq
+  | selQP hp hq h hr ih => exact ih heq
+  | top h ih => exact ih heq
+  | all L h hdom hbody ih => exact ih heq
+
 end CDot

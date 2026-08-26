@@ -77,4 +77,25 @@ theorem InvertibleVal.and_false {G : Ctx} {v : Val} {T U : Typ}
   cases h with
   | precise h => cases h
 
+theorem InvertibleVal.newToPrecise {G : Ctx} {r : Path}
+    {A : Signature.TypLabel} {T : Typ} {ds : Defs} {U : Typ}
+    (h : InvertibleVal G (.new r A T ds) U) :
+    ∃ T', U = .bnd T' ∧ PreciseVal G (.new r A T ds) (.bnd T) ∧
+      ReplComposition G T' T := by
+  generalize heq : Val.new r A T ds = v at h
+  induction h generalizing r A T ds with
+  | precise h =>
+      cases h with
+      | allIntro L hbody => cases heq
+      | newIntro L hdefs hself =>
+          cases heq
+          exact ⟨T, rfl, .newIntro L hdefs hself, .refl T⟩
+  | recPQ hp hq h hr ih =>
+      rename_i p q W v T₁ T₂
+      obtain ⟨T', heqT, hv, hcomp⟩ := ih heq
+      have hT : T₁ = T' := Typ.bnd.inj heqT
+      subst T'
+      exact ⟨T₂, rfl, hv,
+        (Star.one ⟨p, q, W, hp, hq, hr.swap⟩).trans hcomp⟩
+
 end CDot
