@@ -846,6 +846,124 @@ theorem PreciseTyping3.lookupRecord {G : Ctx} {σ : Sta}
         hp.lookupSingletonAliases hi hwf hwt
       exact Or.inl ⟨r, hstep, halias.transferRecord hi hrecord hq⟩
 
+theorem PreciseTyping2.lookupRecordValue {G : Ctx} {σ : Sta}
+    {p : Path} {T : Typ} (h : PreciseTyping2 G p T)
+    (hrecord : RecordType T) (hi : Inert G) (hwt : WellTyped G σ) :
+    ∃ r A U ds,
+      LookupStep σ (.path p) (.val (.new r A U ds)) := by
+  cases h with
+  | flow hf =>
+      obtain ⟨rhs, hstep, hclass⟩ := hf.lookupClass hi hwt
+      cases hclass with
+      | lambda htyped =>
+          have heq := hf.envAll_eq
+          rw [heq] at hrecord
+          obtain ⟨labels, hrecord⟩ := hrecord
+          cases hrecord
+      | object G₀ G₁ x pT fields hG hp hdefs htag hc₀ hc =>
+          exact ⟨_, _, _, _, hstep⟩
+      | path G₀ G₁ x pT fields hG hp htyped hc₀ hc =>
+          have heq := hf.envSngl_eq
+          rw [heq] at hrecord
+          obtain ⟨labels, hrecord⟩ := hrecord
+          cases hrecord
+  | snglTrans hp hq =>
+      obtain ⟨labels, hrecord⟩ := hrecord
+      cases hrecord
+
+theorem PreciseTyping3.lookupRecordTerminates {G : Ctx} {σ : Sta}
+    {p : Path} {T : Typ} (h : PreciseTyping3 G p T)
+    (hrecord : RecordType T) (hi : Inert G) (hwf : Wf G)
+    (hwt : WellTyped G σ) :
+    ∃ v, Lookup σ (.path p) (.val v) := by
+  induction hwt generalizing p T with
+  | empty =>
+      obtain ⟨U, hp⟩ := h.precise2Exists
+      have hnamed := hp.toGeneral.pathNamed
+      cases p with
+      | select av fields =>
+          simp only [Path.Named] at hnamed
+          obtain ⟨x, rfl⟩ := hnamed
+          obtain ⟨S, hb⟩ := hp.receiverBinds
+          exact False.elim hb.empty_false
+  | @push G σ x v X hwt hxG hxσ hv ih =>
+      have hiBase : Inert G := hi.prefix
+      have hwfBase : Wf G := hwf.prefix
+      have hnamed := h.toGeneral.pathNamed
+      cases p with
+      | select av fields =>
+          simp only [Path.Named] at hnamed
+          obtain ⟨y, rfl⟩ := hnamed
+          by_cases hyx : y = x
+          · subst y
+            rcases h.last with hdirect | ⟨target, halias, htarget⟩
+            · obtain ⟨r, A, U, ds, hstep⟩ :=
+                hdirect.lookupRecordValue hrecord hi (.push hwt hxG hxσ hv)
+              exact ⟨_, .one hstep⟩
+            · have htargetNamed := htarget.toGeneral.pathNamed
+              cases target with
+              | select targetVar targetFields =>
+                  simp only [Path.Named] at htargetNamed
+                  obtain ⟨z, rfl⟩ := htargetNamed
+                  by_cases hzx : z = x
+                  · subst z
+                    have hprefix := halias.lookupSingletonSameReceiver hi hwf
+                      (.push hwt hxG hxσ hv)
+                    obtain ⟨r, A, U, ds, hstep⟩ :=
+                      htarget.lookupRecordValue hrecord hi
+                        (.push hwt hxG hxσ hv)
+                    exact ⟨_, hprefix.trans (.one hstep)⟩
+                  · obtain ⟨prefixFields, nextFields, z', hz'x,
+                        hsourcePrefix, hedge, hnextTarget⟩ :=
+                      halias.previousReceiver hi hwf rfl rfl (Ne.symm hzx)
+                    have hprefix :
+                        Lookup (σ.push x v)
+                          (.path (.select (.free x) fields))
+                          (.path (.select (.free x) prefixFields)) := by
+                      rcases hsourcePrefix with hEq | hprefixAlias
+                      · cases hEq
+                        exact .refl _
+                      · exact hprefixAlias.lookupSingletonSameReceiver hi hwf
+                          (.push hwt hxG hxσ hv)
+                    obtain ⟨runtime, runtimeT, hstep, hruntime, haliases⟩ :=
+                      hedge.lookupSingletonAliases hi hwf
+                        (.push hwt hxG hxσ hv)
+                    obtain ⟨runtimeRoot, runtimeFields, hcross, hruntimeRoot⟩ :=
+                      hedge.lookupSingletonCrossReceiver (Ne.symm hz'x) hi
+                        (.push hwt hxG hxσ hv)
+                    have hruntimeNamed := hruntime.toGeneral.pathNamed
+                    cases runtime with
+                    | select runtimeVar runtimeFields' =>
+                        simp only [Path.Named] at hruntimeNamed
+                        obtain ⟨runtimeRoot', rfl⟩ := hruntimeNamed
+                        have hsame := lookup_step_functional hstep hcross
+                        injection hsame with hpath
+                        injection hpath with havar hfields
+                        have hrootEq : runtimeRoot' = runtimeRoot := by
+                          injection havar
+                        have hruntimeNe : runtimeRoot' ≠ x := by
+                          intro heq
+                          apply hruntimeRoot
+                          rw [← hrootEq, heq]
+                        have hnextRecord : PreciseTyping3 (G.push x X)
+                            (.select (.free z') nextFields) T := by
+                          rcases hnextTarget with hEq | hsuffix
+                          · rw [hEq]
+                            exact .precise htarget
+                          · exact hsuffix.snglTrans3 (.precise htarget)
+                        have hruntimeRecord : PreciseTyping3 (G.push x X)
+                            (.select (.free runtimeRoot') runtimeFields') T :=
+                          haliases.transferRecord hi hrecord hnextRecord
+                        have hruntimeBase := hruntimeRecord.strengthenPush
+                          hi hwfBase hruntimeNe
+                        obtain ⟨result, htail⟩ :=
+                          ih hruntimeBase hrecord hiBase hwfBase
+                        exact ⟨result, hprefix.trans
+                          (.step hstep (htail.weakenPush hxσ))⟩
+          · have hbase := h.strengthenPush hi hwfBase hyx
+            obtain ⟨result, hlookup⟩ := ih hbase hrecord hiBase hwfBase
+            exact ⟨result, hlookup.weakenPush hxσ⟩
+
 theorem PreciseTyping2.lookupSingleton {G : Ctx} {σ : Sta}
     {p q : Path} (h : PreciseTyping2 G p (.sngl q))
     (hi : Inert G) (hwt : WellTyped G σ) :
