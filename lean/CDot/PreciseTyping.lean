@@ -622,6 +622,71 @@ theorem PreciseTyping2.receiverBinds {G : Ctx} {x : Var}
               cases hab
               exact ihp rfl
 
+theorem PreciseTyping2.strengthenPush {G : Ctx} {x y : Var}
+    {T U : Typ} {fields : Fields}
+    (hi : Inert (G.push x T)) (hwf : Wf G)
+    (h : PreciseTyping2 (G.push x T)
+      (.select (.free y) fields) U) (hyx : y ≠ x) :
+    PreciseTyping2 G (.select (.free y) fields) U := by
+  generalize heq : Path.select (.free y) fields = p at h
+  induction h generalizing y fields with
+  | flow h =>
+      cases heq
+      exact .flow (h.strengthenPush hyx)
+  | snglTrans hp hq ihp ihq =>
+      rename_i p q a V
+      cases p with
+      | select av rest =>
+          simp only [Path.selectField] at heq
+          injection heq with havar hfields
+          cases havar
+          cases fields with
+          | nil => cases hfields
+          | cons b fields =>
+              injection hfields with hab hrest
+              cases hab
+              have hpG := ihp hyx rfl
+              obtain ⟨W, hqG⟩ := hpG.singletonTargetTyped hi.prefix hwf
+              have hn := hq.toGeneral.pathNamed
+              cases q with
+              | select qav qfields =>
+                  simp only [Path.Named] at hn
+                  obtain ⟨z, rfl⟩ := hn
+                  obtain ⟨S, hb⟩ := hqG.receiverBinds
+                  have hx : Env.Fresh x G := by
+                    cases hi with
+                    | push _ _ hx => exact hx
+                  have hzx : z ≠ x := hb.ne_of_fresh hx
+                  exact .snglTrans hpG (ihq hzx rfl)
+
+theorem PreciseTyping3.strengthenPush {G : Ctx} {x y : Var}
+    {T U : Typ} {fields : Fields}
+    (hi : Inert (G.push x T)) (hwf : Wf G)
+    (h : PreciseTyping3 (G.push x T)
+      (.select (.free y) fields) U) (hyx : y ≠ x) :
+    PreciseTyping3 G (.select (.free y) fields) U := by
+  generalize heq : Path.select (.free y) fields = p at h
+  induction h generalizing y fields with
+  | precise h =>
+      cases heq
+      exact .precise (h.strengthenPush hi hwf hyx)
+  | snglTrans hp hq ih =>
+      rename_i p q V
+      cases heq
+      have hpG := hp.strengthenPush hi hwf hyx
+      obtain ⟨W, hqG⟩ := hpG.singletonTargetTyped hi.prefix hwf
+      have hn := hq.toGeneral.pathNamed
+      cases q with
+      | select qav qfields =>
+          simp only [Path.Named] at hn
+          obtain ⟨z, rfl⟩ := hn
+          obtain ⟨S, hb⟩ := hqG.receiverBinds
+          have hx : Env.Fresh x G := by
+            cases hi with
+            | push _ _ hx => exact hx
+          have hzx : z ≠ x := hb.ne_of_fresh hx
+          exact .snglTrans hpG (ih hzx rfl)
+
 /-! ## Typed replacement composition -/
 
 def TypedReplStep (G : Ctx) (T U : Typ) : Prop :=
