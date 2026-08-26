@@ -52,6 +52,22 @@ theorem Env.fvFold_contains (G : Ctx) (s : Vars) :
   | cons binding G ih =>
       exact fun _ h => ih _ (Finset.mem_union_left _ h)
 
+theorem Env.fvFold_eq_union (G : Ctx) (s : Vars) :
+    G.foldl (fun xs binding => xs ∪ binding.2.fv) s =
+      s ∪ G.foldl (fun xs binding => xs ∪ binding.2.fv) ∅ := by
+  induction G generalizing s with
+  | nil => simp
+  | cons binding G ih =>
+      simp only [List.foldl_cons, Finset.empty_union]
+      rw [ih (s ∪ binding.2.fv), ih binding.2.fv]
+      simp only [Finset.union_assoc]
+
+@[simp] theorem Ctx.fvTypes_push (G : Ctx) (x : Var) (T : Typ) :
+    Ctx.fvTypes (G.push x T) = T.fv ∪ G.fvTypes := by
+  unfold Ctx.fvTypes Env.fvValues Env.push
+  simp only [List.foldl_cons, Finset.empty_union]
+  rw [Env.fvFold_eq_union]
+
 theorem Env.Binds.fv_mem_ctx {G : Ctx} {y : Var} {T : Typ}
     (h : Env.Binds y T G) {x : Var} (hx : x ∈ T.fv) : x ∈ G.fvTypes := by
   induction h with
@@ -219,6 +235,47 @@ theorem Defs.subst_open (ds : Defs) {x y : Var} {p : Path}
     (hp : p.Named) (hyx : y ≠ x) :
     (ds.open y).subst x p = (ds.subst x p).open y := by
   simpa [Var.substPath, hyx] using ds.subst_openRec p hp x y 0
+
+theorem Path.selfFreshSubst (q : Path) {x y : Var} (hxy : x ≠ y) :
+    x ∉ (q.subst x (.var y)).fv := by
+  cases q with
+  | select a fields =>
+      cases a with
+      | bound n =>
+          change x ∉ (Path.select (.bound n) fields).fv
+          simp [Path.fv, AVar.fv]
+      | free z =>
+          by_cases hzx : z = x
+          · subst z
+            simp [Path.subst, AVar.subst, Var.substPath, Path.var,
+              Path.selectFields, Path.fv, AVar.fv, hxy]
+          · have hxq : x ∉ (Path.select (.free z) fields).fv := by
+              simp only [Path.fv, AVar.fv, Finset.mem_singleton]
+              exact fun hxz => hzx hxz.symm
+            rw [Path.subst_eq_self_of_not_mem hxq]
+            exact hxq
+
+mutual
+  theorem Typ.selfFreshSubst (T : Typ) {x y : Var} (hxy : x ≠ y) :
+      x ∉ (T.subst x (.var y)).fv := by
+    cases T with
+    | top | bot => simp [Typ.subst, Typ.fv]
+    | rcd D => exact Dec.selfFreshSubst D hxy
+    | and T U | all T U =>
+        simp only [Typ.subst, Typ.fv, Finset.mem_union, not_or]
+        exact ⟨Typ.selfFreshSubst T hxy, Typ.selfFreshSubst U hxy⟩
+    | path q A | sngl q =>
+        simpa only [Typ.subst, Typ.fv] using Path.selfFreshSubst q hxy
+    | bnd T => exact Typ.selfFreshSubst T hxy
+
+  theorem Dec.selfFreshSubst (D : Dec) {x y : Var} (hxy : x ≠ y) :
+      x ∉ (D.subst x (.var y)).fv := by
+    cases D with
+    | typ A T U =>
+        simp only [Dec.subst, Dec.fv, Finset.mem_union, not_or]
+        exact ⟨Typ.selfFreshSubst T hxy, Typ.selfFreshSubst U hxy⟩
+    | trm a T => exact Typ.selfFreshSubst T hxy
+end
 
 @[simp] theorem Path.subst_selectField (q : Path) (a : Signature.TrmLabel)
     (x : Var) (p : Path) :
@@ -742,5 +799,50 @@ theorem Typed.substFreshOpenPath {L : Vars} {G : Ctx} {T : Typ}
   have hs := (hbody y hyL).subst (Env.okPush hok hyG) hyCtx hp'
   rw [← Trm.openPath_eq_subst_open_of_fresh u hyu hp.pathNamed] at hs
   simpa only [Typ.subst_eq_self_of_not_mem U hyU] using hs
+
+omit [Signature] in
+theorem Env.Extends.concatSameSuffix {G G' H : Env α}
+    (he : Env.Extends G G') : Env.Extends (Env.concat G H) (Env.concat G' H) := by
+  induction H with
+  | nil => exact he
+  | cons binding H ih =>
+      obtain ⟨y, V⟩ := binding
+      exact ih.push y V
+
+theorem Typed.renameMiddle {G₁ G₂ : Ctx} {z x : Var} {T U : Typ}
+    {t : Trm} (h : Typed (Env.concat (G₁.push z T) G₂) t U)
+    (hzG₁ : z ∉ G₁.fvTypes) (hxG₁ : Env.Fresh x G₁) (hzx : z ≠ x)
+    (hok : Env.Ok
+      (Env.concat ((G₁.push x (T.subst z (.var x))).push z T) G₂)) :
+    Typed (Env.concat (G₁.push x (T.subst z (.var x)))
+      (Ctx.subst z (.var x) G₂))
+      (t.subst z (.var x)) (U.subst z (.var x)) := by
+  let Tx := T.subst z (.var x)
+  let source := Env.concat ((G₁.push x Tx).push z T) G₂
+  let target := Env.concat (G₁.push x Tx) (Ctx.subst z (.var x) G₂)
+  have he₀ : Env.Extends (G₁.push z T) ((G₁.push x Tx).push z T) :=
+    (Env.Extends.pushRight hxG₁ Tx).push z T
+  have hweak : Typed source t U := by
+    exact h.mono he₀.concatSameSuffix
+  have hzHead : z ∉ Ctx.fvTypes (G₁.push x Tx) := by
+    rw [Ctx.fvTypes_push]
+    simp only [Finset.mem_union, not_or]
+    exact ⟨Typ.selfFreshSubst T hzx, hzG₁⟩
+  have htargetOk : Env.Ok target := by
+    exact Env.Ok.removeMiddleSubst (G₁ := G₁.push x Tx) (G₂ := G₂)
+      (x := z) (S := T) (p := .var x) hok
+  have hxbind : Env.Binds x Tx target := by
+    apply Env.Binds.middle_of_ok (G₁ := G₁) (G₂ := Ctx.subst z (.var x) G₂)
+    exact htargetOk
+  apply hweak.substMiddle
+  exact
+    { headCtx := G₁.push x Tx
+      tailCtx := G₂
+      source_eq := rfl
+      target_eq := rfl
+      ok := hok
+      headFresh := hzHead
+      replacement := by
+        simpa [target, Tx, Trm.var] using Typed.var hxbind }
 
 end CDot

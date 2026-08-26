@@ -17,6 +17,7 @@ import CDot.InvertibleSubtyping
 import CDot.Substitution
 import CDot.GADTRules
 import CDot.GeneralToTight
+import CDot.CanonicalForms
 
 /-!
 # cDOT in Lean 4
