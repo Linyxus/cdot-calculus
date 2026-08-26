@@ -547,4 +547,31 @@ inductive TypedPathReplStep (G : Ctx) : Path → Path → Prop where
 def PathReplComposition (G : Ctx) : Path → Path → Prop :=
   Star (TypedPathReplStep G)
 
+theorem ReplComposition.bndInner {G : Ctx} {T U : Typ}
+    (h : ReplComposition G (.bnd T) (.bnd U)) :
+    ReplComposition G T U := by
+  generalize hleft : Typ.bnd T = S at h
+  generalize hright : Typ.bnd U = V at h
+  induction h generalizing T U with
+  | refl =>
+      have heq := Typ.bnd.inj (hleft.trans hright.symm)
+      subst U
+      exact .refl T
+  | step hstep hrest ih =>
+      rw [← hleft] at hstep
+      obtain ⟨p, q, W, hp, hq, hr⟩ := hstep
+      cases hr with
+      | bnd hr =>
+          have htail := ih rfl hright
+          exact (Star.one ⟨p, q, W, hp, hq, hr⟩).trans htail
+
+theorem ReplComposition.bndMap {G : Ctx} {T U : Typ}
+    (h : ReplComposition G T U) :
+    ReplComposition G (.bnd T) (.bnd U) := by
+  induction h with
+  | refl => exact .refl _
+  | step hstep hrest ih =>
+      obtain ⟨p, q, W, hp, hq, hr⟩ := hstep
+      exact (Star.one ⟨p, q, W, hp, hq, .bnd hr⟩).trans ih
+
 end CDot

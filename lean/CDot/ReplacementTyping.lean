@@ -1886,4 +1886,50 @@ theorem ReplacementVal.newPreciseExists {G : Ctx} {r : Path}
   | top h ih => exact ih heq
   | all L h hdom hbody ih => exact ih heq
 
+theorem ReplComposition.openPath {G : Ctx} {T U : Typ}
+    (h : ReplComposition G T U) (r : Path) :
+    ReplComposition G (T.openPath r) (U.openPath r) := by
+  induction h with
+  | refl => exact .refl _
+  | step hstep hrest ih =>
+      obtain ⟨p, q, W, hp, hq, hr⟩ := hstep
+      have hpNamed := hp.sourceNamed
+      have hqNamed := hq.toGeneral.pathNamed
+      exact (Star.one ⟨p, q, W, hp, hq,
+        hr.openPath hqNamed hpNamed r⟩).trans ih
+
+theorem Star.replToComposition {G : Ctx} {p q : Path} {W T U : Typ}
+    (h : Star (ReplTyp q p) T U)
+    (hp : PreciseFlow G p (.sngl q) (.sngl q))
+    (hq : PreciseTyping2 G q W) : ReplComposition G T U := by
+  induction h with
+  | refl => exact .refl _
+  | step hr hrest ih => exact .step ⟨p, q, W, hp, hq, hr⟩ ih
+
+theorem ReplComposition.recordHasBackward {G : Ctx} {T U : Typ}
+    {a : Signature.TrmLabel} {V : Typ} (h : ReplComposition G T U)
+    (hhas : RecordHas U (.trm a V)) :
+    ∃ V', RecordHas T (.trm a V') ∧ ReplComposition G V' V := by
+  induction h generalizing V with
+  | refl => exact ⟨V, hhas, .refl V⟩
+  | step hstep hrest ih =>
+      obtain ⟨p, q, W, hp, hq, hr⟩ := hstep
+      obtain ⟨Vmid, hmid, hmidV⟩ := ih hhas
+      obtain ⟨Vsrc, hsrc, hsrcMid⟩ := hr.recordHasBackward hmid
+      exact ⟨Vsrc, hsrc,
+        (hsrcMid.replToComposition hp hq).trans hmidV⟩
+
+theorem ReplComposition.recordHasForward {G : Ctx} {T U : Typ}
+    {a : Signature.TrmLabel} {V : Typ} (h : ReplComposition G T U)
+    (hhas : RecordHas T (.trm a V)) :
+    ∃ V', RecordHas U (.trm a V') ∧ ReplComposition G V V' := by
+  induction h generalizing V with
+  | refl => exact ⟨V, hhas, .refl V⟩
+  | step hstep hrest ih =>
+      obtain ⟨p, q, W, hp, hq, hr⟩ := hstep
+      obtain ⟨Vmid, hmid, hVMid⟩ := hr.recordHasForward hhas
+      obtain ⟨Vdst, hdst, hmidDst⟩ := ih hmid
+      exact ⟨Vdst, hdst,
+        (hVMid.replToComposition hp hq).trans hmidDst⟩
+
 end CDot

@@ -353,4 +353,60 @@ mutual
     | trm h => exact .trm (h.subst x r)
 end
 
+theorem ReplTyp.recordHasBackward {p q : Path} {T U : Typ}
+    {a : Signature.TrmLabel} {V : Typ} (h : ReplTyp p q T U)
+    (hhas : RecordHas U (.trm a V)) :
+    ∃ V', RecordHas T (.trm a V') ∧ Star (ReplTyp p q) V' V := by
+  cases h with
+  | rcd hdec =>
+      cases hhas
+      cases hdec with
+      | trm h => exact ⟨_, .one, .one h⟩
+  | andLeft h =>
+      cases hhas with
+      | andLeft hhas =>
+          obtain ⟨V', hmember, hr⟩ := h.recordHasBackward hhas
+          exact ⟨V', .andLeft hmember, hr⟩
+      | andRight hhas =>
+          exact ⟨V, .andRight hhas, .refl V⟩
+  | andRight h =>
+      cases hhas with
+      | andLeft hhas => exact ⟨V, .andLeft hhas, .refl V⟩
+      | andRight hhas =>
+          obtain ⟨V', hmember, hr⟩ := h.recordHasBackward hhas
+          exact ⟨V', .andRight hmember, hr⟩
+  | path => cases hhas
+  | bnd => cases hhas
+  | allDom => cases hhas
+  | allCod => cases hhas
+  | sngl => cases hhas
+
+theorem ReplTyp.recordHasForward {p q : Path} {T U : Typ}
+    {a : Signature.TrmLabel} {V : Typ} (h : ReplTyp p q T U)
+    (hhas : RecordHas T (.trm a V)) :
+    ∃ V', RecordHas U (.trm a V') ∧ Star (ReplTyp p q) V V' := by
+  cases h with
+  | rcd hdec =>
+      cases hhas
+      cases hdec with
+      | trm h => exact ⟨_, .one, .one h⟩
+  | andLeft h =>
+      cases hhas with
+      | andLeft hhas =>
+          obtain ⟨V', hmember, hr⟩ := h.recordHasForward hhas
+          exact ⟨V', .andLeft hmember, hr⟩
+      | andRight hhas =>
+          exact ⟨V, .andRight hhas, .refl V⟩
+  | andRight h =>
+      cases hhas with
+      | andLeft hhas => exact ⟨V, .andLeft hhas, .refl V⟩
+      | andRight hhas =>
+          obtain ⟨V', hmember, hr⟩ := h.recordHasForward hhas
+          exact ⟨V', .andRight hmember, hr⟩
+  | path => cases hhas
+  | bnd => cases hhas
+  | allDom => cases hhas
+  | allCod => cases hhas
+  | sngl => cases hhas
+
 end CDot
