@@ -1314,6 +1314,91 @@ theorem Typed.canonicalFunction {G : Ctx} {σ : Sta}
     (Subenv.last hdom₀ hokS hokS₀)
   exact .sub hnarrow (hbody₀ y hyL₀)
 
+theorem PreciseAliases.prepend {G : Ctx} {p q r : Path}
+    (hpq : PreciseTyping3 G p (.sngl q))
+    (hqr : PreciseAliases G q r) : PreciseAliases G p r := by
+  obtain ⟨meeting, hqMeeting, hrMeeting⟩ := hqr
+  refine ⟨meeting, ?_, hrMeeting⟩
+  right
+  rcases hqMeeting with rfl | hqMeeting
+  · exact hpq
+  · exact hpq.snglTrans3 hqMeeting
+
+theorem PreciseTyping2.lookupPathAliases {G : Ctx} {σ : Sta}
+    {p q : Path} {T : Typ} (h : PreciseTyping2 G p T)
+    (hstep : LookupStep σ (.path p) (.path q))
+    (hi : Inert G) (hwf : Wf G) (hwt : WellTyped G σ) :
+    ∃ U, PreciseTyping3 G q U ∧ PreciseAliases G p q := by
+  cases h with
+  | flow hf =>
+      obtain ⟨rhs, hcanonical, hclass⟩ := hf.lookupClass hi hwt
+      have heq := lookup_step_functional hcanonical hstep
+      subst rhs
+      cases hclass with
+      | @path runtime runtimeT static G₀ G₁ x pT fields
+          hG hp htyped hc₀ hc =>
+          obtain ⟨U, hruntime⟩ := htyped.precise3Exists hi
+          have hfStatic : PreciseFlow G p (.sngl static) (.sngl static) := by
+            have heq := hf.envSngl_eq
+            rw [heq] at hf
+            exact hf
+          obtain ⟨V, hstatic⟩ := hfStatic.singletonTargetTyped hi hwf
+          have hstaticRuntime : PreciseAliases G static q :=
+            hc.snglAliases hi hwf (.precise hstatic) hruntime
+          exact ⟨U, hruntime,
+            hstaticRuntime.prepend (.precise (.flow hfStatic))⟩
+  | snglTrans hp hfield =>
+      rename_i source static a U
+      let hwhole : PreciseTyping2 G (source.selectField a)
+          (.sngl (static.selectField a)) := .snglTrans hp hfield
+      obtain ⟨runtime, V, hcanonical, hruntime, halias⟩ :=
+        hwhole.lookupSingletonAliases hi hwf hwt
+      have heq := lookup_step_functional hcanonical hstep
+      injection heq with hpath
+      subst runtime
+      exact ⟨V, hruntime,
+        halias.prepend (.precise hwhole)⟩
+
+theorem PreciseTyping3.lookupPathAliases {G : Ctx} {σ : Sta}
+    {p q : Path} {T : Typ} (h : PreciseTyping3 G p T)
+    (hstep : LookupStep σ (.path p) (.path q))
+    (hi : Inert G) (hwf : Wf G) (hwt : WellTyped G σ) :
+    ∃ U, PreciseTyping3 G q U ∧ PreciseAliases G p q := by
+  cases h with
+  | precise h => exact h.lookupPathAliases hstep hi hwf hwt
+  | snglTrans hp htarget =>
+      obtain ⟨runtime, U, hcanonical, hruntime, halias⟩ :=
+        hp.lookupSingletonAliases hi hwf hwt
+      have heq := lookup_step_functional hcanonical hstep
+      injection heq with hpath
+      subst runtime
+      exact ⟨U, hruntime, halias.prepend (.precise hp)⟩
+
+theorem PreciseAliases.typedReverse {G : Ctx} {p q : Path}
+    {P Q : Typ} (h : PreciseAliases G p q)
+    (hp : PreciseTyping3 G p P) (hq : PreciseTyping3 G q Q)
+    (hi : Inert G) (hwf : Wf G) : Typed G (.path q) (.sngl p) := by
+  obtain ⟨meeting, hpMeeting, hqMeeting⟩ := h
+  have hqToMeeting : Typed G (.path q) (.sngl meeting) := by
+    rcases hqMeeting with rfl | hqMeeting
+    · exact .self hq.toGeneral
+    · exact hqMeeting.toGeneral
+  rcases hpMeeting with rfl | hpMeeting
+  · exact hqToMeeting
+  · obtain ⟨R, hmeeting⟩ := hpMeeting.singletonTargetTyped hi hwf
+    exact .sub hqToMeeting
+      (.snglQP hpMeeting.toGeneral hmeeting.toGeneral
+        (ReplTyp.rootSngl meeting p))
+
+theorem Typed.lookupPathPreserves {G : Ctx} {σ : Sta}
+    {p q : Path} {T : Typ} (h : Typed G (.path p) T)
+    (hstep : LookupStep σ (.path p) (.path q))
+    (hi : Inert G) (hwf : Wf G) (hwt : WellTyped G σ) :
+    Typed G (.path q) T := by
+  obtain ⟨P, hp⟩ := h.precise3Exists hi
+  obtain ⟨Q, hq, halias⟩ := hp.lookupPathAliases hstep hi hwf hwt
+  exact .sngl (halias.typedReverse hp hq hi hwf) h
+
 theorem Typed.valPreciseSubtype {G : Ctx} {v : Val} {T : Typ}
     (h : Typed G (.val v) T) :
     ∃ U, PreciseVal G v U ∧ Subtyp G U T := by
