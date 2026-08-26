@@ -1992,6 +1992,14 @@ theorem CommonRepl.rightSngl {G : Ctx} {T : Typ} {q : Path}
   subst W
   exact hWT.sourceSngl
 
+theorem CommonRepl.rightAll {G : Ctx} {T S U : Typ}
+    (h : CommonRepl G T (.all S U)) :
+    ∃ S' U', T = .all S' U' := by
+  obtain ⟨W, hWT, hWall⟩ := h
+  obtain ⟨S₀, U₀, hW⟩ := hWall.targetAll
+  subst W
+  exact hWT.sourceAll
+
 theorem CommonRepl.subtypes {G : Ctx} {T U : Typ}
     (h : CommonRepl G T U) :
     Subtyp G T U ∧ Subtyp G U T := by

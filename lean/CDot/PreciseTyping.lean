@@ -628,4 +628,31 @@ theorem ReplComposition.targetSngl {G : Ctx} {T : Typ} {q : Path}
       cases hrepl with
       | sngl => exact ⟨_, rfl⟩
 
+theorem ReplComposition.sourceAll {G : Ctx} {S T U : Typ}
+    (h : ReplComposition G (.all S T) U) :
+    ∃ S' T', U = .all S' T' := by
+  generalize hsource : Typ.all S T = V at h
+  induction h generalizing S T with
+  | refl => exact ⟨S, T, hsource.symm⟩
+  | step hstep hrest ih =>
+      rw [← hsource] at hstep
+      obtain ⟨p, q, W, hp, hq, hrepl⟩ := hstep
+      cases hrepl with
+      | allDom => exact ih rfl
+      | allCod => exact ih rfl
+
+theorem ReplComposition.targetAll {G : Ctx} {U S T : Typ}
+    (h : ReplComposition G U (.all S T)) :
+    ∃ S' T', U = .all S' T' := by
+  generalize htarget : Typ.all S T = V at h
+  induction h generalizing S T with
+  | refl => exact ⟨S, T, htarget.symm⟩
+  | step hstep hrest ih =>
+      obtain ⟨S', T', heq⟩ := ih htarget
+      subst_vars
+      obtain ⟨p, q, W, hp, hq, hrepl⟩ := hstep
+      cases hrepl with
+      | allDom => exact ⟨_, _, rfl⟩
+      | allCod => exact ⟨_, _, rfl⟩
+
 end CDot

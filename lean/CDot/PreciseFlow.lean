@@ -231,6 +231,20 @@ theorem PreciseFlow.bndTarget {G : Ctx} {p : Path} {T U : Typ}
         cases himpossible
       · exact Or.inr hrecord.andRight
 
+theorem PreciseFlow.allSource_eq {G : Ctx} {p : Path} {S T U : Typ}
+    (hi : Inert G) (h : PreciseFlow G p U (.all S T)) :
+    U = .all S T := by
+  rcases (h.inertSngl hi).1 with hinert | ⟨q, rfl⟩
+  · cases hinert with
+    | all => exact h.envAll_eq.symm
+    | @bnd V labels hrecord =>
+        rcases h.bndTarget hi with hbad | hbad
+        · cases hbad
+        · obtain ⟨labels, hbad⟩ := hbad
+          cases hbad
+  · have hbad := h.envSngl_eq
+    cases hbad
+
 theorem PreciseFlow.recordHas_of_bnd {G : Ctx} {p : Path} {T U : Typ}
     {D : Dec} (hi : Inert G) (h : PreciseFlow G p (.bnd T) U)
     (hhas : RecordHas U D) : RecordHas (T.openPath p) D := by

@@ -1,5 +1,6 @@
 import CDot.GeneralToTight
 import CDot.Lookup
+import CDot.Reduction
 import CDot.ContextTransport
 import CDot.Narrowing
 import CDot.Substitution
@@ -253,14 +254,14 @@ theorem PreciseVal.newDefsAtBinding {G : Ctx} {r : Path}
       exact hren'.openSelfContext (Env.okPush hi.ok hxG)
 
 inductive LookupClass (G : Ctx) (p : Path) : Typ → DefRhs → Prop where
-  | lambda : Typed G (.val (.lambda S body)) T →
-      LookupClass G p T (.val (.lambda S body))
+  | lambda : Typed G (.val (.lambda S body)) (.all T U) →
+      LookupClass G p (.all T U) (.val (.lambda S body))
   | object (x : Var) (fields : Fields) :
       p = (Path.var x).selectFields fields →
       TypedDefs x fields G (ds.openPath p) (U.openPath p) →
       CommonRepl G T U →
       LookupClass G p (.bnd T) (.val (.new r A U ds))
-  | path : Typed G (.path q) U → LookupClass G p (.sngl r) (.path q)
+  | path : LookupClass G p (.sngl r) (.path q)
 
 theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
     (h : PreciseFlow G p T U) (hi : Inert G) (hwt : WellTyped G σ) :
@@ -313,9 +314,6 @@ theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
       subst T
       obtain ⟨rhs, hstep, hclass⟩ := ih
       cases hclass with
-      | lambda hv =>
-          obtain ⟨r, A, S, ds, heq, hp, hc⟩ := hv.valBndToNewCommon hi
-          cases heq
       | object x fields hp hdefs hc =>
           rename_i r A S ds
           subst p
@@ -331,6 +329,8 @@ theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
                 Defs.hasTermOpenSource (ds := ds) hdOpen
               have hselect : LookupStep σ (.path (current.selectField a))
                   (raw.openPath current) := .selectVal hstep hdRaw
+              obtain ⟨Sstatic, Tstatic, hV⟩ := hcMember.rightAll
+              subst V
               rw [hopen] at hselect
               exact ⟨_, hselect, .lambda (.sub ht hcMember.subtypes.2)⟩
           | new base hbase htight hnested htag =>
@@ -354,10 +354,82 @@ theorem PreciseFlow.lookupClass {G : Ctx} {σ : Sta} {p : Path} {T U : Typ}
               obtain ⟨r', hV⟩ := hcMember.rightSngl
               subst V
               rw [hopen] at hselect
-              exact ⟨_, hselect, .path hq⟩
+              exact ⟨_, hselect, .path⟩
   | «open» h ih => exact ih
   | andLeft h ih => exact ih
   | andRight h ih => exact ih
+
+theorem PreciseTyping2.lookupSingleton {G : Ctx} {σ : Sta}
+    {p q : Path} (h : PreciseTyping2 G p (.sngl q))
+    (hi : Inert G) (hwt : WellTyped G σ) :
+    ∃ r, LookupStep σ (.path p) (.path r) := by
+  generalize heq : Typ.sngl q = T at h
+  induction h generalizing q with
+  | flow h =>
+      cases heq
+      have hsource := h.snglSource_eq hi
+      rw [hsource] at h
+      obtain ⟨rhs, hstep, hclass⟩ := h.lookupClass hi hwt
+      cases hclass with
+      | path => exact ⟨_, hstep⟩
+  | snglTrans hp hq ihp ihq =>
+      cases heq
+      obtain ⟨r, hstep⟩ := ihp rfl
+      exact ⟨_, .selectPath hstep⟩
+
+theorem PreciseTyping2.lookupExists {G : Ctx} {σ : Sta} {p : Path} {T : Typ}
+    (h : PreciseTyping2 G p T) (hi : Inert G) (hwt : WellTyped G σ) :
+    ∃ rhs, LookupStep σ (.path p) rhs := by
+  cases h with
+  | flow h =>
+      obtain ⟨rhs, hstep, hclass⟩ := h.lookupClass hi hwt
+      exact ⟨rhs, hstep⟩
+  | snglTrans hp hq =>
+      obtain ⟨r, hstep⟩ := hp.lookupSingleton hi hwt
+      exact ⟨_, .selectPath hstep⟩
+
+theorem PreciseTyping3.lookupExists {G : Ctx} {σ : Sta} {p : Path} {T : Typ}
+    (h : PreciseTyping3 G p T) (hi : Inert G) (hwt : WellTyped G σ) :
+    ∃ rhs, LookupStep σ (.path p) rhs := by
+  cases h with
+  | precise h =>
+      exact h.lookupExists hi hwt
+  | snglTrans hp hq =>
+      obtain ⟨r, hstep⟩ := hp.lookupSingleton hi hwt
+      exact ⟨_, hstep⟩
+
+theorem PreciseTyping3.lookupAll {G : Ctx} {σ : Sta} {p : Path} {S T : Typ}
+    (h : PreciseTyping3 G p (.all S T))
+    (hi : Inert G) (hwt : WellTyped G σ) :
+    (∃ q, LookupStep σ (.path p) (.path q)) ∨
+    (∃ S' body, LookupStep σ (.path p) (.val (.lambda S' body)) ∧
+      Typed G (.val (.lambda S' body)) (.all S T)) := by
+  cases h with
+  | precise hp =>
+      cases hp with
+      | flow hf =>
+          have hsource := hf.allSource_eq hi
+          rw [hsource] at hf
+          obtain ⟨rhs, hstep, hclass⟩ := hf.lookupClass hi hwt
+          cases hclass with
+          | lambda hv => exact Or.inr ⟨_, _, hstep, hv⟩
+  | snglTrans hp hq =>
+      obtain ⟨r, hstep⟩ := hp.lookupSingleton hi hwt
+      exact Or.inl ⟨r, hstep⟩
+
+theorem Typed.pathLookupExists {G : Ctx} {σ : Sta} {p : Path} {T : Typ}
+    (h : Typed G (.path p) T) (hi : Inert G) (hwt : WellTyped G σ) :
+    ∃ rhs, LookupStep σ (.path p) rhs := by
+  obtain ⟨U, hp⟩ := h.precise3Exists hi
+  exact hp.lookupExists hi hwt
+
+theorem Typed.pathProgress {G : Ctx} {σ : Sta} {p : Path} {T : Typ}
+    (h : Typed G (.path p) T) (hi : Inert G) (hwt : WellTyped G σ) :
+    NormalForm σ (.path p) ∨ ∃ state, Red (σ, .path p) state := by
+  obtain ⟨rhs, hstep⟩ := h.pathLookupExists hi hwt
+  cases rhs with
+  | path q => exact Or.inr ⟨(σ, .path q), .resolve hstep⟩
+  | val v => exact Or.inl (.path ⟨v, hstep⟩)
 
 theorem Typed.valPreciseSubtype {G : Ctx} {v : Val} {T : Typ}
     (h : Typed G (.val v) T) :
