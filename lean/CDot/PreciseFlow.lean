@@ -52,6 +52,20 @@ theorem PreciseVal.toGeneral {G : Ctx} {v : Val} {T : Typ}
   | allIntro L hbody => exact .allIntro L hbody
   | newIntro L hdefs hself => exact .newIntro L hdefs hself
 
+theorem PreciseVal.inertTyp {G : Ctx} {v : Val} {T : Typ}
+    (h : PreciseVal G v T) : InertTyp T := by
+  cases h with
+  | allIntro => exact .all
+  | @newIntro p A G T ds L hdefs hself =>
+      obtain ⟨x, hx⟩ := Finset.exists_nat_subset_range (L ∪ T.fv)
+      have hxfresh : x ∉ L ∪ T.fv := by
+        intro hmem
+        exact (Nat.lt_irrefl x) (Finset.mem_range.mp (hx hmem))
+      have hxL : x ∉ L := by aesop
+      have hxT : x ∉ T.fv := by aesop
+      obtain ⟨labels, hrecord⟩ := (hdefs x hxL).recordType
+      exact .bnd (hrecord.closeOpenRec x 0 hxT rfl)
+
 theorem Inert.bindsTyp {G : Ctx} {x : Var} {T : Typ}
     (hi : Inert G) (hb : Env.Binds x T G) : InertTyp T := by
   induction hi with

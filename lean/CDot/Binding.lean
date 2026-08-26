@@ -135,6 +135,132 @@ variable [Signature]
 
 /-! ## Path selection and opening -/
 
+theorem AVar.openRec_injective_of_fresh {a b : AVar} {x : Var} {n : Nat}
+    (ha : x ∉ a.fv) (hb : x ∉ b.fv)
+    (heq : a.openRec n x = b.openRec n x) : a = b := by
+  cases a with
+  | bound i =>
+      cases b with
+      | bound j =>
+          simp only [AVar.openRec] at heq
+          split_ifs at heq <;> simp_all
+      | free y =>
+          simp only [AVar.fv, Finset.mem_singleton] at hb
+          simp only [AVar.openRec] at heq
+          split_ifs at heq <;> simp_all
+  | free y =>
+      cases b with
+      | bound j =>
+          simp only [AVar.fv, Finset.mem_singleton] at ha
+          simp only [AVar.openRec] at heq
+          split_ifs at heq <;> simp_all
+      | free z =>
+          simp only [AVar.openRec] at heq
+          cases heq
+          rfl
+
+theorem Path.openRec_injective_of_fresh {p q : Path} {x : Var} {n : Nat}
+    (hp : x ∉ p.fv) (hq : x ∉ q.fv)
+    (heq : p.openRec n x = q.openRec n x) : p = q := by
+  cases p with
+  | select a fields =>
+      cases q with
+      | select b suffix =>
+          simp only [Path.openRec] at heq
+          injection heq with hab hfields
+          have := AVar.openRec_injective_of_fresh
+            (a := a) (b := b) (x := x) (n := n) hp hq hab
+          subst b
+          subst suffix
+          rfl
+
+mutual
+  theorem Typ.openRec_injective_of_fresh {T U : Typ} {x : Var} {n : Nat}
+      (hT : x ∉ T.fv) (hU : x ∉ U.fv)
+      (heq : T.openRec n x = U.openRec n x) : T = U := by
+    cases T with
+    | top => cases U <;> simp_all [Typ.openRec]
+    | bot => cases U <;> simp_all [Typ.openRec]
+    | rcd D =>
+        cases U with
+        | rcd E =>
+            simp only [Typ.openRec] at heq
+            injection heq with hDE
+            exact congrArg Typ.rcd
+              (Dec.openRec_injective_of_fresh hT hU hDE)
+        | _ => simp_all [Typ.openRec]
+    | and T₁ T₂ =>
+        cases U with
+        | and U₁ U₂ =>
+            simp only [Typ.fv, Finset.mem_union, not_or] at hT hU
+            simp only [Typ.openRec] at heq
+            injection heq with h₁ h₂
+            exact congrArg₂ Typ.and
+              (Typ.openRec_injective_of_fresh hT.1 hU.1 h₁)
+              (Typ.openRec_injective_of_fresh hT.2 hU.2 h₂)
+        | _ => simp_all [Typ.openRec]
+    | path p A =>
+        cases U with
+        | path q B =>
+            simp only [Typ.openRec] at heq
+            injection heq with hpq hAB
+            cases hAB
+            exact congrArg (fun r => Typ.path r A)
+              (Path.openRec_injective_of_fresh hT hU hpq)
+        | _ => simp_all [Typ.openRec]
+    | bnd T =>
+        cases U with
+        | bnd U =>
+            simp only [Typ.openRec] at heq
+            injection heq with hTU
+            exact congrArg Typ.bnd
+              (Typ.openRec_injective_of_fresh hT hU hTU)
+        | _ => simp_all [Typ.openRec]
+    | all T₁ T₂ =>
+        cases U with
+        | all U₁ U₂ =>
+            simp only [Typ.fv, Finset.mem_union, not_or] at hT hU
+            simp only [Typ.openRec] at heq
+            injection heq with h₁ h₂
+            exact congrArg₂ Typ.all
+              (Typ.openRec_injective_of_fresh hT.1 hU.1 h₁)
+              (Typ.openRec_injective_of_fresh hT.2 hU.2 h₂)
+        | _ => simp_all [Typ.openRec]
+    | sngl p =>
+        cases U with
+        | sngl q =>
+            simp only [Typ.openRec] at heq
+            injection heq with hpq
+            exact congrArg Typ.sngl
+              (Path.openRec_injective_of_fresh hT hU hpq)
+        | _ => simp_all [Typ.openRec]
+
+  theorem Dec.openRec_injective_of_fresh {D E : Dec} {x : Var} {n : Nat}
+      (hD : x ∉ D.fv) (hE : x ∉ E.fv)
+      (heq : D.openRec n x = E.openRec n x) : D = E := by
+    cases D with
+    | typ A T₁ T₂ =>
+        cases E with
+        | typ B U₁ U₂ =>
+            simp only [Dec.fv, Finset.mem_union, not_or] at hD hE
+            simp only [Dec.openRec] at heq
+            injection heq with hAB h₁ h₂
+            cases hAB
+            exact congrArg₂ (Dec.typ A)
+              (Typ.openRec_injective_of_fresh hD.1 hE.1 h₁)
+              (Typ.openRec_injective_of_fresh hD.2 hE.2 h₂)
+        | _ => simp_all [Dec.openRec]
+    | trm a T =>
+        cases E with
+        | trm b U =>
+            simp only [Dec.openRec] at heq
+            injection heq with hab hTU
+            cases hab
+            exact congrArg (Dec.trm a)
+              (Typ.openRec_injective_of_fresh hD hE hTU)
+        | _ => simp_all [Dec.openRec]
+end
+
 @[simp] theorem Path.selectFields_openRecPath
     (n : Nat) (q p : Path) (fields : Fields) :
     (p.openRecPath n q).selectFields fields =
