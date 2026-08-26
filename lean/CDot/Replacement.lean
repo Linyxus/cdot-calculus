@@ -32,6 +32,29 @@ mutual
     | trm h => exact .trm h.swap
 end
 
+mutual
+  theorem ReplTyp.eq_of_paths_eq {p q T U} (h : ReplTyp p q T U)
+      (hpq : p = q) : T = U := by
+    cases hpq
+    cases h with
+    | rcd h => exact congrArg Typ.rcd (h.eq_of_paths_eq rfl)
+    | andLeft h => exact congrArg (fun T => Typ.and T _) (h.eq_of_paths_eq rfl)
+    | andRight h => exact congrArg (fun T => Typ.and _ T) (h.eq_of_paths_eq rfl)
+    | path => rfl
+    | bnd h => exact congrArg Typ.bnd (h.eq_of_paths_eq rfl)
+    | allDom h => exact congrArg (fun T => Typ.all T _) (h.eq_of_paths_eq rfl)
+    | allCod h => exact congrArg (fun T => Typ.all _ T) (h.eq_of_paths_eq rfl)
+    | sngl => rfl
+
+  theorem ReplDec.eq_of_paths_eq {p q D E} (h : ReplDec p q D E)
+      (hpq : p = q) : D = E := by
+    cases hpq
+    cases h with
+    | typLo h => exact congrArg (fun T => Dec.typ _ T _) (h.eq_of_paths_eq rfl)
+    | typHi h => exact congrArg (fun T => Dec.typ _ _ T) (h.eq_of_paths_eq rfl)
+    | trm h => exact congrArg (fun T => Dec.trm _ T) (h.eq_of_paths_eq rfl)
+end
+
 theorem ReplTyp.rootSngl (p q : Path) : ReplTyp p q (.sngl p) (.sngl q) := by
   simpa only [Path.selectFields_nil] using
     (ReplTyp.sngl (p := p) (q := q) (fields := []))
