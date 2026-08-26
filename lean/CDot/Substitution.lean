@@ -84,6 +84,28 @@ theorem Env.Binds.removeMiddleSubst {G₁ G₂ : Ctx} {x y : Var}
       | here => exact .here
       | there hyz h => exact .there hyz (ih h)
 
+theorem Env.Binds.middle_of_ok {G₁ G₂ : Ctx} {x : Var} {S : Typ}
+    (hok : Env.Ok (Env.concat (G₁.push x S) G₂)) :
+    Env.Binds x S (Env.concat (G₁.push x S) G₂) := by
+  induction G₂ with
+  | nil => exact .here
+  | cons binding G₂ ih =>
+      obtain ⟨y, T⟩ := binding
+      change List.Nodup (y :: (Env.concat (G₁.push x S) G₂).map Prod.fst) at hok
+      have hnot := (List.nodup_cons.mp hok).1
+      have htail := ih (List.nodup_cons.mp hok).2
+      apply Env.Binds.there
+      · intro hxy
+        subst y
+        apply hnot
+        simpa only [Env.dom, List.mem_toFinset] using htail.mem_dom
+      · exact htail
+
+theorem Env.Binds.middle_type_eq {G₁ G₂ : Ctx} {x : Var} {S T : Typ}
+    (hok : Env.Ok (Env.concat (G₁.push x S) G₂))
+    (h : Env.Binds x T (Env.concat (G₁.push x S) G₂)) : T = S :=
+  h.functional (Env.Binds.middle_of_ok hok)
+
 mutual
   theorem Typ.tightBounds_subst (T : Typ) (h : T.tightBounds) (x : Var) (p : Path) :
       (T.subst x p).tightBounds := by
