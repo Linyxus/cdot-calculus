@@ -251,6 +251,72 @@ theorem PreciseFlow.decTyp_unique {G : Ctx} {p : Path} {T : Typ}
   exact hrecord.typ_member_unique
     (h₁.recordHas_of_bnd hi .one) (h₂.recordHas_of_bnd hi .one)
 
+theorem PreciseFlow.recordSource_bnd {G : Ctx} {p : Path} {T : Typ}
+    {D : Dec} (hi : Inert G) (h : PreciseFlow G p T (.rcd D)) :
+    ∃ U, T = .bnd U := by
+  rcases (h.inertSngl hi).1 with hinert | ⟨q, rfl⟩
+  · cases hinert with
+    | all =>
+        have hbad := h.envAll_eq
+        cases hbad
+    | bnd hrecord => exact ⟨_, rfl⟩
+  · have hbad := h.envSngl_eq
+    cases hbad
+
+theorem PreciseFlow.binds_of_var {G : Ctx} {x : Var} {T U : Typ}
+    (h : PreciseFlow G (.var x) T U) : Env.Binds x T G := by
+  generalize heq : Path.var x = p at h
+  induction h with
+  | bind hok hb =>
+      cases heq
+      exact hb
+  | fld h ih =>
+      cases ‹Path› with
+      | select av fields =>
+          simp only [Path.selectField, Path.var] at heq
+          cases heq
+  | «open» h ih => exact ih heq
+  | andLeft h ih => exact ih heq
+  | andRight h ih => exact ih heq
+
+theorem PreciseFlow.source_unique {G : Ctx} {p : Path}
+    {T₁ T₂ U₁ U₂ : Typ} (hi : Inert G)
+    (h₁ : PreciseFlow G p T₁ U₁) (h₂ : PreciseFlow G p T₂ U₂) : T₁ = T₂ := by
+  cases p with
+  | select av fields =>
+      induction fields generalizing av T₁ T₂ U₁ U₂ with
+      | nil =>
+          have hn := h₁.sourceNamed
+          simp only [Path.Named] at hn
+          obtain ⟨x, hx⟩ := hn
+          subst av
+          exact (h₁.binds_of_var).functional h₂.binds_of_var
+      | cons a fields ih =>
+          change PreciseFlow G ((Path.select av fields).selectField a) T₁ U₁ at h₁
+          change PreciseFlow G ((Path.select av fields).selectField a) T₂ U₂ at h₂
+          obtain ⟨R₁, hb₁⟩ := h₁.backtrackRecord
+          obtain ⟨R₂, hb₂⟩ := h₂.backtrackRecord
+          have hR : R₁ = R₂ := ih av hb₁ hb₂
+          subst R₂
+          obtain ⟨B, hB⟩ := hb₁.recordSource_bnd hi
+          subst R₁
+          have hrecord := ((hb₁.inertSngl hi).1).bnd_record.openPath
+            (Path.select av fields)
+          obtain ⟨labels, hrecord⟩ := hrecord
+          have hdec := hrecord.has_unique
+            (hb₁.recordHas_of_bnd hi .one) (hb₂.recordHas_of_bnd hi .one) rfl
+          exact Dec.trm.inj hdec |>.2
+
+theorem PreciseFlow.decTypTarget_unique {G : Ctx} {p : Path}
+    {T₁ T₂ S₁ S₂ : Typ} {A : Signature.TypLabel} (hi : Inert G)
+    (h₁ : PreciseFlow G p T₁ (.rcd (.typ A S₁ S₁)))
+    (h₂ : PreciseFlow G p T₂ (.rcd (.typ A S₂ S₂))) : S₁ = S₂ := by
+  have hsource : T₁ = T₂ := h₁.source_unique hi h₂
+  subst T₂
+  obtain ⟨B, hB⟩ := h₁.recordSource_bnd hi
+  subst T₁
+  exact h₁.decTyp_unique hi h₂
+
 theorem PreciseVal.new_type_eq {G : Ctx} {r : Path} {A : Signature.TypLabel}
     {T U : Typ} {ds : Defs} (h : PreciseVal G (.new r A T ds) U) : U = .bnd T := by
   cases h
