@@ -1010,6 +1010,105 @@ theorem InvertiblePath.snglTransFromReplacement {G : Ctx} {p q : Path}
       cases heq
       exact hpq
 
+theorem ReplacementPath.fieldAlias {G : Ctx} {p q : Path}
+    {a : Signature.TrmLabel} {T : Typ} (hi : Inert G)
+    (hpq : ReplacementPath G p (.sngl q))
+    (hqa : ReplacementPath G (q.selectField a) T) :
+    ReplacementPath G (p.selectField a) (.sngl (q.selectField a)) := by
+  obtain ⟨U, hqa⟩ := hqa.preciseExists
+  obtain ⟨V, hq⟩ := hqa.backtrack
+  obtain ⟨r, S, hpr, hr, hqr⟩ := hpq.snglToInvertible hi hq
+  have hra : ∃ W, PreciseTyping3 G (r.selectField a) W := by
+    rcases hqr with rfl | hqr
+    · exact ⟨U, hqa⟩
+    · exact hqr.fieldOtherExists hi hqa
+  obtain ⟨W, hra⟩ := hra
+  rcases hpr.snglPreciseCases hi hr with
+    ⟨r', hpr', hr'r⟩ | rfl
+  · have hpra : PreciseTyping3 G (p.selectField a)
+        (.sngl (r.selectField a)) := by
+      rcases hr'r with rfl | hr'r
+      · exact hpr'.fieldSngl hra
+      · have hr'a := hr'r.fieldSngl hra
+        exact (hpr'.fieldSngl hr'a).snglTrans3 hr'a
+    rcases hqr with rfl | hqr
+    · exact .invertible (.precise hpra)
+    · exact (ReplacementPath.invertible (.precise hpra)).snglReverse
+        hi (hqr.fieldSngl hra) hra
+  · rcases hqr with rfl | hqr
+    · obtain ⟨W, hpa⟩ := hra.precise2Exists
+      exact .invertible (.self hpa)
+    · obtain ⟨W, hpa⟩ := hra.precise2Exists
+      exact (ReplacementPath.invertible (InvertiblePath.self hpa)).snglReverse
+        hi (hqr.fieldSngl hra) hra
+
+theorem ReplacementPath.snglTrans {G : Ctx} {p q : Path} {T : Typ}
+    (hi : Inert G) (hpq : ReplacementPath G p (.sngl q))
+    (hq : ReplacementPath G q T) : ReplacementPath G p T := by
+  generalize heq : q = r at hq
+  induction hq generalizing p q with
+  | invertible hq =>
+      cases heq
+      exact hq.snglTransFromReplacement hi hpq
+  | and hT hU ihT ihU =>
+      cases heq
+      exact .and (ihT hpq rfl) (ihU hpq rfl)
+  | bnd h ih =>
+      rename_i q T
+      cases heq
+      have hopen := ih hpq rfl
+      obtain ⟨U, hq⟩ := h.preciseExists
+      obtain ⟨r, S, hpr, hr, hqr⟩ := hpq.snglToInvertible hi hq
+      obtain ⟨V, hr₂⟩ := hr.precise2Exists
+      rcases hpr.snglPreciseCases hi hr with
+        ⟨r', hpr', hr'r⟩ | rfl
+      · have hopenr : ReplacementPath G p (T.openPath r) := by
+          rcases hqr with rfl | hqr
+          · exact hopen
+          · exact hopen.replacementPQStar hi hqr hr₂
+              (T.openPath_repl q r)
+        have hopenr'_typed : ReplacementPath G p (T.openPath r') ∧
+            ∃ V', PreciseTyping2 G r' V' := by
+          rcases hr'r with rfl | hr'r
+          · exact ⟨hopenr, V, hr₂⟩
+          · exact ⟨hopenr.replacementQPStar hi hr'r hr₂
+              (T.openPath_repl r r'), hr'r.precise2Exists⟩
+        obtain ⟨hopenr', V', hr'₂⟩ := hopenr'_typed
+        exact .bnd (hopenr'.replacementQPStar hi hpr' hr'₂
+          (T.openPath_repl r' p))
+      · rcases hqr with rfl | hqr
+        · exact .bnd hopen
+        · exact .bnd (hopen.replacementPQStar hi hqr hr₂
+            (T.openPath_repl q p))
+  | sel h hf ih =>
+      cases heq
+      exact .sel (ih hpq rfl) hf
+  | rcdIntro h ih =>
+      cases heq
+      have hpqa := hpq.fieldAlias hi h
+      exact .rcdIntro (ih hpqa rfl)
+  | recQP hs ht h hr ih =>
+      cases heq
+      exact .recQP hs ht (ih hpq rfl) hr
+  | selQP hs ht h ih =>
+      cases heq
+      exact .selQP hs ht (ih hpq rfl)
+  | snglQP hs ht h ih =>
+      cases heq
+      exact .snglQP hs ht (ih hpq rfl)
+  | top h ih =>
+      cases heq
+      exact .top (ih hpq rfl)
+  | trm h hs ih =>
+      cases heq
+      exact .trm (ih hpq rfl) hs
+  | typ h hLo hHi ih =>
+      cases heq
+      exact .typ (ih hpq rfl) hLo hHi
+  | all L h hdom hbody ih =>
+      cases heq
+      exact .all L (ih hpq rfl) hdom hbody
+
 theorem ReplacementPath.subtyp {G : Ctx} {p : Path} {T U : Typ}
     (hi : Inert G) (h : ReplacementPath G p T)
     (hs : TightSubtyp G T U) : ReplacementPath G p U := by
