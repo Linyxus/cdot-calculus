@@ -243,6 +243,122 @@ theorem WellTyped.freshContext {G : Ctx} {store : Sta} {x : Var}
   rw [h.dom_eq]
   exact hx
 
+theorem Subtyp.snglPQStar {G : Ctx} {p q : Path} {U S T : Typ}
+    (hpq : Typed G (.path p) (.sngl q)) (hq : Typed G (.path q) U)
+    (hr : Star (ReplTyp p q) S T) : Subtyp G S T := by
+  induction hr with
+  | refl => exact .refl
+  | step hr hrest ih => exact .trans (.snglPQ hpq hq hr) ih
+
+theorem PreciseAliases.symm {G : Ctx} {p q : Path}
+    (h : PreciseAliases G p q) : PreciseAliases G q p := by
+  obtain ⟨r, hp, hq⟩ := h
+  exact ⟨r, hq, hp⟩
+
+theorem PreciseAliases.typedForward {G : Ctx} {p q : Path}
+    {P Q : Typ} (h : PreciseAliases G p q)
+    (hp : PreciseTyping3 G p P) (hq : PreciseTyping3 G q Q)
+    (hi : Inert G) (hwf : Wf G) : Typed G (.path p) (.sngl q) :=
+  h.symm.typedReverse hq hp hi hwf
+
+theorem Typed.lookupPreserves {G : Ctx} {σ : Sta}
+    {p q : Path} {T : Typ} (h : Typed G (.path p) T)
+    (hlookup : Lookup σ (.path p) (.path q))
+    (hi : Inert G) (hwf : Wf G) (hwt : WellTyped G σ) :
+    Typed G (.path q) T := by
+  generalize hsrc : DefRhs.path p = src at hlookup
+  generalize hdst : DefRhs.path q = dst at hlookup
+  induction hlookup generalizing p q T with
+  | refl =>
+      have heq := hsrc.trans hdst.symm
+      injection heq with hpq
+      subst q
+      exact h
+  | @step _ middle _ hstep hrest ih =>
+      cases middle with
+      | path r =>
+          rw [← hsrc] at hstep
+          have hr := h.lookupPathPreserves hstep hi hwf hwt
+          exact ih hr rfl hdst
+      | val v =>
+          have heq := lookup_val_inv hrest
+          rw [← hdst] at heq
+          cases heq
+
+theorem Typed.lookupSingleton {G : Ctx} {σ : Sta}
+    {p q : Path} {T : Typ} (h : Typed G (.path p) T)
+    (hlookup : Lookup σ (.path p) (.path q))
+    (hi : Inert G) (hwf : Wf G) (hwt : WellTyped G σ) :
+    Typed G (.path p) (.sngl q) := by
+  generalize hsrc : DefRhs.path p = src at hlookup
+  generalize hdst : DefRhs.path q = dst at hlookup
+  induction hlookup generalizing p q T with
+  | refl =>
+      have heq := hsrc.trans hdst.symm
+      injection heq with hpq
+      subst q
+      exact .self h
+  | @step _ middle _ hstep hrest ih =>
+      cases middle with
+      | path r =>
+          rw [← hsrc] at hstep
+          obtain ⟨P, hp⟩ := h.precise3Exists hi
+          obtain ⟨R, hr, halias⟩ := hp.lookupPathAliases hstep hi hwf hwt
+          have hfirst := halias.typedForward hp hr hi hwf
+          have hrTyped := h.lookupPathPreserves hstep hi hwf hwt
+          have htail := ih hrTyped rfl hdst
+          exact .sngl hfirst htail
+      | val v =>
+          have heq := lookup_val_inv hrest
+          rw [← hdst] at heq
+          cases heq
+
+theorem Subtyp.andExtendRight {G : Ctx} {S T U : Typ}
+    (h : Subtyp G S T) : Subtyp G (.and S U) (.and T U) :=
+  .andIntro (.trans .andLeft h) .andRight
+
+theorem Subtyp.andExtendLeft {G : Ctx} {S T U : Typ}
+    (h : Subtyp G T U) : Subtyp G (.and S T) (.and S U) :=
+  .andIntro .andLeft (.trans .andRight h)
+
+theorem Typed.instantiateNarrowed {G : Ctx} {L : Vars}
+    {S T U : Typ} {body : Trm} {x : Var}
+    (hi : Inert G) (hxG : Env.Fresh x G)
+    (hsub : Subtyp G S T)
+    (hbody : ∀ y, y ∉ L → Typed (G.push y T) (body.open y) U) :
+    Typed (G.push x S) (body.open x) U := by
+  let avoid : Vars := L ∪ G.dom ∪ G.fvTypes ∪ S.fv ∪ T.fv ∪
+    U.fv ∪ body.fv ∪ {x}
+  obtain ⟨y, hyRange⟩ := Finset.exists_nat_subset_range avoid
+  have hy : y ∉ avoid := by
+    intro hmem
+    exact (Nat.lt_irrefl y) (Finset.mem_range.mp (hyRange hmem))
+  have hyL : y ∉ L := by aesop
+  have hyG : Env.Fresh y G := by aesop
+  have hyCtx : y ∉ G.fvTypes := by aesop
+  have hyS : y ∉ S.fv := by aesop
+  have hyT : y ∉ T.fv := by aesop
+  have hyU : y ∉ U.fv := by aesop
+  have hyBody : y ∉ body.fv := by aesop
+  have hyx : y ≠ x := by aesop
+  have hokS : Env.Ok (G.push y S) := Env.okPush hi.ok hyG
+  have hokT : Env.Ok (G.push y T) := Env.okPush hi.ok hyG
+  have hnarrow := (hbody y hyL).narrow (Subenv.last hsub hokS hokT)
+  have hrenamed := hnarrow.renameLast hyCtx hxG hyx
+    (Env.okPush (Env.okPush hi.ok hxG) (by
+      intro hmem
+      simp only [Env.dom, Env.push, List.map_cons, List.mem_toFinset,
+        List.mem_cons] at hmem
+      rcases hmem with heq | hmem
+      · exact hyx heq
+      · exact hyG (by simpa only [Env.dom, List.mem_toFinset] using hmem)))
+  have hnamed : (Path.var x).Named := ⟨x, rfl⟩
+  simpa only [Typ.subst_eq_self_of_not_mem S hyS,
+    Typ.subst_eq_self_of_not_mem U hyU,
+    Trm.subst_openRec (.var x) hnamed y y body 0,
+    Trm.subst_eq_self_of_not_mem body hyBody,
+    Var.substPath, if_true, ← Trm.openRec_eq_openRecPath_var] using hrenamed
+
 /-! ## Progress -/
 
 theorem progress {G : Ctx} {σ : Sta} {t : Trm} {T : Typ}
