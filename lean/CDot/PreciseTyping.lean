@@ -287,6 +287,58 @@ theorem PreciseTyping2.snglTarget_unique {G : Ctx} {p q₁ q₂ : Path}
         subst r
         rfl
 
+theorem PreciseTyping2.snglTypeExists {G : Ctx} {p q : Path} {T : Typ}
+    (hi : Inert G) (hs : PreciseTyping2 G p (.sngl q))
+    (hT : PreciseTyping2 G p T) : ∃ r, T = .sngl r := by
+  induction hT generalizing q with
+  | flow hT =>
+      cases hs with
+      | flow hs =>
+          have hsource := hs.source_unique hi hT
+          rw [hs.snglSource_eq hi] at hsource
+          rw [← hsource] at hT
+          exact ⟨q, hT.envSngl_eq⟩
+      | snglTrans hp hq =>
+          obtain ⟨R, hr⟩ := hT.backtrackRecord
+          exact False.elim (hp.record_sngl_false hi hr)
+  | snglTrans hp hq ihp ihq => exact ⟨_, rfl⟩
+
+theorem PreciseTyping2.snglType_eq {G : Ctx} {p q : Path} {T : Typ}
+    (hi : Inert G) (hs : PreciseTyping2 G p (.sngl q))
+    (hT : PreciseTyping2 G p T) : T = .sngl q := by
+  obtain ⟨r, rfl⟩ := hs.snglTypeExists hi hT
+  exact congrArg Typ.sngl (hT.snglTarget_unique hi hs)
+
+theorem PreciseTyping2.invertSngl3 {G : Ctx} {p q : Path} {T : Typ}
+    (hi : Inert G) (hT : PreciseTyping2 G p T)
+    (hs : PreciseTyping3 G p (.sngl q)) :
+    ∃ r, Typ.sngl r = T ∧
+      (q = r ∨ PreciseTyping3 G r (.sngl q)) := by
+  generalize heq : Typ.sngl q = U at hs
+  induction hs generalizing q T with
+  | precise hs =>
+      cases heq
+      exact ⟨q, (hs.snglType_eq hi hT).symm, Or.inl rfl⟩
+  | snglTrans hpr hr ih =>
+      cases heq
+      exact ⟨_, (hpr.snglType_eq hi hT).symm, Or.inr hr⟩
+
+theorem PreciseTyping3.invertSngl {G : Ctx} {p q : Path} {T : Typ}
+    (hi : Inert G) (hT : PreciseTyping3 G p T)
+    (hs : PreciseTyping3 G p (.sngl q)) :
+    PreciseTyping3 G q T ∨
+      ∃ r, Typ.sngl r = T ∧
+        (q = r ∨ PreciseTyping3 G r (.sngl q)) := by
+  induction hT with
+  | precise hT => exact Or.inr (hT.invertSngl3 hi hs)
+  | snglTrans hpr hr ih =>
+      obtain ⟨r, heq, hrel⟩ := hpr.invertSngl3 hi hs
+      have hrq : r = _ := Typ.sngl.inj heq
+      subst r
+      rcases hrel with rfl | hrs
+      · exact Or.inl hr
+      · exact ih hrs
+
 theorem PreciseTyping3.decTypTarget_unique {G : Ctx} {p : Path}
     {A : Signature.TypLabel} {S₁ S₂ : Typ} (hi : Inert G)
     (h₁ : PreciseTyping3 G p (.rcd (.typ A S₁ S₁)))
