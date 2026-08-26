@@ -6,6 +6,7 @@ import CDot.Reduction
 import CDot.Replacement
 import CDot.RecordAndInertTypes
 import CDot.Weakening
+import CDot.Subenvironments
 import CDot.PreciseFlow
 import CDot.PreciseTyping
 import CDot.TightTyping

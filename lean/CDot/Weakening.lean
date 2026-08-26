@@ -162,4 +162,85 @@ theorem Typed.mono {G G' : Ctx} {t T} (h : Typed G t T)
     exact Subtyp.all L (ihd G' he) (fun x hx => ihc x hx _ (he.push x _))
   case t => exact h
 
+theorem Subtyp.mono {G G' : Ctx} {S T} (h : Subtyp G S T)
+    (he : Env.Extends G G') : Subtyp G' S T := by
+  revert G'
+  apply Subtyp.rec
+    (motive_1 := fun _ _ _ _ => True)
+    (motive_2 := fun _ _ _ _ _ _ => True)
+    (motive_3 := fun _ _ _ _ _ _ => True)
+    (motive_4 := fun G S T _ => ∀ G', Env.Extends G G' → Subtyp G' S T)
+  case var => intros; trivial
+  case allIntro => intros; trivial
+  case allElim => intros; trivial
+  case newIntro => intros; trivial
+  case newElim => intros; trivial
+  case rcdIntro => intros; trivial
+  case letE => intros; trivial
+  case caseE => intros; trivial
+  case sngl => intros; trivial
+  case self => intros; trivial
+  case pathElim => intros; trivial
+  case recIntro => intros; trivial
+  case recElim => intros; trivial
+  case andIntro => intros; trivial
+  case sub => intros; trivial
+  case typ => intros; trivial
+  case all => intros; trivial
+  case new => intros; trivial
+  case path => intros; trivial
+  case one => intros; trivial
+  case cons => intros; trivial
+  case top =>
+    intro G T G' he
+    exact .top
+  case bot =>
+    intro G T G' he
+    exact .bot
+  case refl =>
+    intro G T G' he
+    exact .refl
+  case trans =>
+    intro G S T U h₁ h₂ ih₁ ih₂ G' he
+    exact .trans (ih₁ G' he) (ih₂ G' he)
+  case andLeft => intros; exact .andLeft
+  case andRight => intros; exact .andRight
+  case andIntro =>
+    intro G S T U h₁ h₂ ih₁ ih₂ G' he
+    exact .andIntro (ih₁ G' he) (ih₂ G' he)
+  case fld =>
+    intro G T U a h ih G' he
+    exact .fld (ih G' he)
+  case fldInv =>
+    intro G U₁ a T₂ T₁ h hu ih G' he
+    exact .fldInv (ih G' he) hu
+  case typ =>
+    intro G S₂ S₁ T₁ T₂ A h₁ h₂ ih₁ ih₂ G' he
+    exact .typ (ih₁ G' he) (ih₂ G' he)
+  case typInvLo =>
+    intro G U₁ A S₂ T₂ S₁ T₁ h hu ih G' he
+    exact .typInvLo (ih G' he) hu
+  case typInvHi =>
+    intro G U₁ A S₂ T₂ S₁ T₁ h hu ih G' he
+    exact .typInvHi (ih G' he) hu
+  case allInv =>
+    intro G S₁ T₁ S₂ T₂ h ih G' he
+    exact .allInv (ih G' he)
+  case snglPQ =>
+    intro G p q U T T' hp hq hr _ _ G' he
+    exact .snglPQ (hp.mono he) (hq.mono he) hr
+  case snglQP =>
+    intro G p q U T T' hp hq hr _ _ G' he
+    exact .snglQP (hp.mono he) (hq.mono he) hr
+  case selLo =>
+    intro G p A S T hp _ G' he
+    exact .selLo (hp.mono he)
+  case selHi =>
+    intro G p A S T hp _ G' he
+    exact .selHi (hp.mono he)
+  case all =>
+    intro G S₂ S₁ T₁ T₂ L hd hc ihd ihc G' he
+    exact .all L (ihd G' he) (fun x hx => ihc x hx _ (he.push x _))
+  case t => exact h
+
 end CDot
