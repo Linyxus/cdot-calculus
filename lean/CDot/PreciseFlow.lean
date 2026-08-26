@@ -122,6 +122,25 @@ theorem PreciseFlow.envSngl_eq {G : Ctx} {p q : Path} {U : Typ}
       rw [← heq] at this
       contradiction
 
+theorem PreciseFlow.backtrackRecord {G : Ctx} {p : Path}
+    {a : Signature.TrmLabel} {T U : Typ}
+    (h : PreciseFlow G (p.selectField a) T U) :
+    ∃ S, PreciseFlow G p S (.rcd (.trm a T)) := by
+  generalize heq : p.selectField a = r at h
+  induction h with
+  | bind hok hb =>
+      cases p with
+      | select x fields =>
+          simp only [Path.selectField, Path.var] at heq
+          cases heq
+  | fld h ih =>
+      rename_i p' S b V
+      obtain ⟨rfl, rfl⟩ := Path.selectField_injective heq
+      exact ⟨S, h⟩
+  | «open» h ih => exact ih heq
+  | andLeft h ih => exact ih heq
+  | andRight h ih => exact ih heq
+
 theorem PreciseVal.new_type_eq {G : Ctx} {r : Path} {A : Signature.TypLabel}
     {T U : Typ} {ds : Defs} (h : PreciseVal G (.new r A T ds) U) : U = .bnd T := by
   cases h

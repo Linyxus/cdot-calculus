@@ -185,6 +185,17 @@ theorem Path.Named.of_selectField {p : Path} {a : Signature.TrmLabel}
   | select x fields =>
       simpa only [Path.selectField, Path.Named] using h
 
+theorem Path.selectField_injective {p q : Path} {a b : Signature.TrmLabel}
+    (h : p.selectField a = q.selectField b) : p = q ∧ a = b := by
+  cases p with
+  | select x fields =>
+      cases q with
+      | select y suffix =>
+          simp only [Path.selectField] at h
+          injection h with hxy hfields
+          injection hfields with hab hrest
+          exact ⟨by simp only [hxy, hrest], hab⟩
+
 @[simp] theorem Path.openRec_eq_openRecPath_var
     (x : Var) (p : Path) (n : Nat) :
     p.openRec n x = p.openRecPath n (.var x) := by
@@ -773,6 +784,12 @@ decreasing_by
     (p.selectFields xs).selectFields ys = p.selectFields (ys ++ xs) := by
   cases p
   simp only [Path.selectFields, List.append_assoc]
+
+@[simp] theorem Path.selectFields_cons (p : Path) (a : Signature.TrmLabel)
+    (fields : Fields) :
+    p.selectFields (a :: fields) = (p.selectFields fields).selectField a := by
+  cases p
+  simp only [Path.selectFields, Path.selectField, List.cons_append]
 
 @[simp] theorem Path.subst_selectFields
     (p : Path) (fields : Fields) (x : Var) (r : Path) :
