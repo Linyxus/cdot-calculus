@@ -371,7 +371,7 @@ theorem TypedDefs.recordTyping {x : Var} {fields : Fields} {G : Ctx}
       refine ⟨d', ?_, heq⟩
       unfold Defs.Has at hd' ⊢
       simp only [Defs.get]
-      rw [if_neg (Ne.symm hne)]
+      rw [ite_eq_right (Ne.symm hne)]
       exact hd'
     · exact ⟨d, by simp [Defs.Has, Defs.get, hdef.label_eq], hdef.label_eq⟩
   all_goals intros <;> trivial

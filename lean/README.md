@@ -1,14 +1,34 @@
 # cDOT Lean port
 
 This directory contains a Lean 4 port of the Coq development in `../cdot`.
-The project is pinned to Lean 4.32.0 and mathlib 4.32.0.
+The project is pinned to Lean 4.34.0 and Mathlib 4.34.0.
+It also loads the FCCT library from the Git submodule at `../external/ctml/fcct/lean`.
 
 ## Build
 
 ```sh
+git submodule update --init external/ctml
 cd lean
-lake update
-lake build
+lake exe cache get Mathlib.Data.Finset.Basic Mathlib.Tactic
+lake build CDot FCCT
+```
+
+The checked-in Lake manifest pins the dependencies; `lake update` is only needed
+when changing those pins. Fetch the Mathlib cache before building to avoid
+compiling it from source.
+
+## FCCT connection
+
+FCCT is a local Lake dependency whose source is pinned by the parent Git
+submodule entry. A future `CDotFCCT` library can import both `CDot` and `FCCT`
+without copying either calculus. Keep the translation and its correspondence
+proofs in this repository; changes to FCCT itself belong in the submodule.
+
+See [the review](../notes/fcct-review.md) for the baseline comparison and planned
+Z primitive. The independent FCCT audit can also run from this project:
+
+```sh
+lake env lean ../notes/fcct/Audit.lean
 ```
 
 ## Porting policy

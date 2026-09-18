@@ -15,4 +15,22 @@ The detailed "step by step" guide explaining how to inspect the mechanised proof
 - The `lambda2GMu/` directory contains sources of the mechanization of the Lambda2Gmu calculus and `lambda2GMu_annotated/` contains sources of the variant with additional type annotations, as described in the paper.
 - The `translation/` directory contains lemmas related to the translation: the typing of the `lib` term and an example showing inversion of tuple equality using our added inversion rules.
 
+# FCCT comparison
 
+The call-by-value FCCT mechanization is available at
+[`external/ctml/fcct/lean`](external/ctml/fcct/lean), within a pinned CTML Git
+submodule. See the [paper/mechanization review](notes/fcct-review.md) for the
+differences from the original FCCT paper, checked proof coverage, and the proposed
+connection with cDOT using CPS and a primitive Z combinator.
+
+```sh
+git submodule update --init external/ctml
+cd external/ctml/fcct/lean
+lake build
+lake env lean ../../../../notes/fcct/Audit.lean
+```
+
+Both FCCT and the cDOT Lean port use Lean 4.34.0. FCCT has no Mathlib dependency;
+cDOT uses Mathlib 4.34.0 and loads FCCT as a local Lake dependency, so future
+translation modules can import both calculi. See the [Lean build guide](lean/README.md)
+for building them together using the Mathlib cache.

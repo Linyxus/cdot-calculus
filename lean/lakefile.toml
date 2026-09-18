@@ -10,7 +10,11 @@ pp.unicode.fun = true
 [[require]]
 name = "mathlib"
 git = "https://github.com/leanprover-community/mathlib4.git"
-rev = "v4.32.0"
+rev = "v4.34.0"
+
+[[require]]
+name = "fcct"
+path = "../external/ctml/fcct/lean"
 
 [[lean_lib]]
 name = "CDot"

@@ -884,7 +884,7 @@ theorem TypedDefs.recordHas {x : Var} {fields : Fields} {G : Ctx}
       refine ⟨d', ?_, htyped⟩
       unfold Defs.Has at hd' ⊢
       simp only [Defs.get]
-      rw [if_neg (Ne.symm hne)]
+      rw [ite_eq_right (Ne.symm hne)]
       exact hd'
     | andRight hhas =>
       cases hhas with

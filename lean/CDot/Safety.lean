@@ -357,7 +357,7 @@ theorem Typed.instantiateNarrowed {G : Ctx} {L : Vars}
     Typ.subst_eq_self_of_not_mem U hyU,
     Trm.subst_openRec (.var x) hnamed y y body 0,
     Trm.subst_eq_self_of_not_mem body hyBody,
-    Var.substPath, if_true, ← Trm.openRec_eq_openRecPath_var] using hrenamed
+    Var.substPath, ite_true, ← Trm.openRec_eq_openRecPath_var] using hrenamed
 
 theorem Typed.substFreshOpenPathDependent {G : Ctx} {L : Vars}
     {S T : Typ} {body : Trm} {p : Path}
