@@ -24,8 +24,9 @@ submodule entry. A future `CDotFCCT` library can import both `CDot` and `FCCT`
 without copying either calculus. Keep the translation and its correspondence
 proofs in this repository; changes to FCCT itself belong in the submodule.
 
-See [the review](../notes/fcct-review.md) for the baseline comparison and planned
-Z primitive. The independent FCCT audit can also run from this project:
+See [the review](../notes/fcct-review.md) for the baseline comparison and the implemented
+Z primitive, including its safety and nontermination proofs. The independent FCCT audit can
+also run from this project:
 
 ```sh
 lake env lean ../notes/fcct/Audit.lean

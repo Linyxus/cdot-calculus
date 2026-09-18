@@ -23,6 +23,9 @@ submodule. See the [paper/mechanization review](notes/fcct-review.md) for the
 differences from the original FCCT paper, checked proof coverage, and the proposed
 connection with cDOT using CPS and a primitive Z combinator.
 
+The submodule now includes the Z primitive, with extended progress, preservation,
+and soundness proofs, plus checked terminating and nonterminating examples.
+
 ```sh
 git submodule update --init external/ctml
 cd external/ctml/fcct/lean

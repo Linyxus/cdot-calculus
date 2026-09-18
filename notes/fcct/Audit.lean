@@ -62,4 +62,10 @@ end FCCT.Review
 #print axioms FCCT.HasType.preservation
 #print axioms FCCT.HasType.soundness
 #print axioms FCCT.Evaluation.Step.deterministic
+#print axioms FCCT.HasType.polyZ
+#print axioms FCCT.HasType.unfoldZ
+#print axioms FCCT.FixpointExamples.guardedPolymorphicPreservation
+#print axioms FCCT.FixpointExamples.terminatingSteps
+#print axioms FCCT.FixpointExamples.loopTyping
+#print axioms FCCT.FixpointExamples.loopDoesNotTerminate
 #print axioms FCCT.Review.noUniformPrefixFreeReplacement

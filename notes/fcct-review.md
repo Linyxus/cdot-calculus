@@ -8,10 +8,10 @@ and its progress and preservation proofs build without additional axioms. It is
 not a mechanization of the paper's original call-by-name system or of all the
 paper's results.
 
-The intended target for the cDOT connection is **FCCT extended with a primitive
-CBV fixpoint, such as Z**, as proposed during this review. This addresses the
-termination mismatch without requiring the source calculus to exclude recursion.
-The imported baseline does not yet contain that extension or a cDOT translation.
+The target for the cDOT connection is **FCCT extended with a primitive
+CBV fixpoint Z**. This addresses the termination mismatch without requiring the
+source calculus to exclude recursion. The extension is now implemented and its
+safety proofs checked; a cDOT translation remains future work.
 Both projects have been upgraded to Lean 4.34.0, and the cDOT Lake project loads
 FCCT as a local dependency across the submodule boundary.
 
@@ -27,11 +27,11 @@ FCCT as a local dependency across the submodule boundary.
   `8bd1529f58875d7be1db26626c9f9bb4e0904449`, under `fcct/lean/`.
   The companion note is under `fcct/latex/`. The upstream branch
   `lean-context-join` was checked to contain that exact commit.
-- Imported version: the [fcct-with-fixpoint branch on LPTK/ctml](https://github.com/LPTK/ctml/tree/fcct-with-fixpoint),
-  at commit `b7df420` (Lean 4.34.0 upgrade). This branch was created and pushed
-  as requested. Its change from the reviewed baseline is limited to the
-  toolchain, deprecated lemma names, and version documentation. Despite the
-  branch name, the Z primitive remains the next step.
+- Imported baseline: the [fcct-with-fixpoint branch on LPTK/ctml](https://github.com/LPTK/ctml/tree/fcct-with-fixpoint),
+  initially at commit `b7df420` (Lean 4.34.0 upgrade), which changed only the
+  toolchain, deprecated lemma names, and version documentation. The branch now
+  extends this baseline with the Z primitive described below, at commit
+  `7a9be5a`; the parent repository's submodule entry pins that extension revision.
 - Local source checkout: `/Users/parreaux/work/Research/papers/ctml/fcct`.
   This is a directory within the CTML Git repository, not a separate repository.
   Accordingly, [external/ctml](../external/ctml) pins CTML as a submodule; the FCCT
@@ -65,7 +65,7 @@ pinned at `5ed2965256430c3649e86755f9576b54eca72435`; FCCT still depends only on
 The original baselines used Lean 4.32.0 for cDOT and 4.33.0 for FCCT. An attempted
 FCCT build on 4.32.0 failed in `FCCT/Inversion.lean:819`, at `rw [List.map_map]`
 in `Subtype.closeWith`, because of a dependent-type transparency mismatch.
-Upgrading both projects resolves that build boundary. FCCT needed only updates
+Upgrading both projects resolves that build boundary. The FCCT toolchain upgrade needed only updates
 to deprecated `if_*` lemma names, plus its toolchain and version documentation;
 its calculus and theorem statements were not changed.
 
@@ -250,17 +250,14 @@ The FCCT library does not contain:
 - principal inference, its completeness, or the characterization of termination;
 - the approximating/context-sensitive inference system;
 - records, intersections, path-dependent types, existential syntax, object
-  identity, pattern matching, or a cDOT translation;
-- a fixpoint primitive.
+  identity, pattern matching, or a cDOT translation.
 
 The larger CTML submodule contains other developments, but those do not become
 FCCT theorems merely by being present in the same repository.
 
-## Intended extension: a primitive Z
+## Implemented extension: a primitive Z
 
-The initial termination mismatch is addressed by extending the target, rather
-than treating it as an obstruction to the overall project. Add a primitive
-value `Z`, with the type scheme
+The initial termination mismatch is addressed by a primitive value `Z`, with the type scheme
 
 ```text
 Z : ∀A. ∀B. ((A → B) → A → B) → A → B
@@ -278,17 +275,33 @@ unfold it before invoking `f`. This is a primitive typed operation; it is not a
 claim that the untyped Z combinator has this scheme in the existing FCCT.
 
 For example, `f = λr. λx. r x` gives a closed diverging computation `Z f true`
-at `Bool`, with `A = B = Bool`. Conversely, `Z (λr. λx. x) true` should return
-`true`. These are useful acceptance examples for the extension.
+at `Bool`, with `A = B = Bool`. Conversely, `Z (λr. λx. x) true` returns
+`true`. Both are now proved in
+[FixpointExamples.lean](../external/ctml/fcct/lean/FCCT/FixpointExamples.lean):
+`terminatingSteps` gives the terminating reduction; `loopDoesNotTerminate`
+rules out every reduction from the looping term to a value, using a five-step
+cycle and determinism. `loopTyping` assigns that term `Bool`.
 
-The existing **type syntax and subtyping relation can stay unchanged**. The
-extension must add the constant to raw terms, scoping/renaming/substitution,
-values, typing (and its size-indexed mirror), and the reduction relation.
-Canonical forms must admit `Z` as an additional function value; progress and
-preservation need the corresponding primitive application case. The current
-landing-predicate proof is about types/subtyping and does not depend on term
-normalization, so it is a promising reusable component. Safety of the extension
-still needs to be proved; it does not follow solely from adding the type scheme.
+The **type syntax and subtyping relation are unchanged**. `Term.zfix`, `Value.zfix`,
+`HasType.zfix`, and `Step.appZ` supply the constant and its rules. Scoping,
+renaming, substitution, size-indexed typing, and typing simplification include
+the new cases. `HasType.canonicalForm` now admits either an abstraction or `Z`.
+Progress, preservation, soundness, and determinism are proved for the extension.
+The landing-predicate proof is reused unchanged.
+
+[Fixpoint.lean](../external/ctml/fcct/lean/FCCT/Fixpoint.lean) derives the
+first-class universal type (`HasType.polyZ`) and types the delayed unfolding in
+arbitrary contexts (`HasType.unfoldZ`). The latter supplies Preservation's new
+case after simplification and arrow inversion. Additional examples check
+argument evaluation and preservation through constraints and quantifiers.
+All these files are included by `import FCCT`; the independent audit prints
+their axiom dependencies alongside the existing safety chain.
+
+Validation of the extension: standalone FCCT and combined `lake build CDot FCCT`
+both pass on Lean 4.34.0. Mathlib reused its 3,076 cached files. The safety proofs
+still use only `propext`, `Classical.choice`, and `Quot.sound`; determinism, the
+terminating reduction, and the nontermination proof use no axioms. No `sorry`
+placeholders or custom axioms are present.
 
 The paper's termination theorem applies to its original closed, weak-head
 program judgment, not to arbitrary guarded typings. In particular, it can type
@@ -334,8 +347,8 @@ discussion of encoding intersections in negative positions
 (`sections/intersection.tex:27–40`) supports this direction, but is not itself
 an encoding of cDOT intersections in arbitrary positions.
 
-After adding Z and re-establishing safety, the first translation milestone
-should establish packing/unpacking and a CPS typing lemma for a small fragment
+With Z and safety established, the first translation milestone should establish
+packing/unpacking and a CPS typing lemma for a small fragment
 with one abstract type member and its bounds. The remaining obligations include
 maintaining witness identity across repeated path use and aliases, dependent
 function results, records/intersections, object self binding, and cDOT's runtime
