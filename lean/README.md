@@ -2,7 +2,10 @@
 
 This directory contains a Lean 4 port of the Coq development in `../cdot`.
 The project is pinned to Lean 4.34.0 and Mathlib 4.34.0.
-It also loads the FCCT library from the Git submodule at `../external/ctml/fcct/lean`.
+The core-DOT translation targets CTML Core with native records, intersections,
+unions, Z, and scoped recursive type declarations, loaded from
+`../external/ctml/lean/CTMLCore` across the Git submodule boundary. The original
+FCCT library at `../external/ctml/fcct/lean` remains available for the baseline review.
 
 ## Build
 
@@ -10,19 +13,76 @@ It also loads the FCCT library from the Git submodule at `../external/ctml/fcct/
 git submodule update --init external/ctml
 cd lean
 lake exe cache get Mathlib.Data.Finset.Basic Mathlib.Tactic
-lake build CDot FCCT
+lake build CDot CDotFCCT CTMLCore FCCT
 ```
 
 The checked-in Lake manifest pins the dependencies; `lake update` is only needed
 when changing those pins. Fetch the Mathlib cache before building to avoid
 compiling it from source.
 
-## FCCT connection
+## CTML Core connection
 
-FCCT is a local Lake dependency whose source is pinned by the parent Git
-submodule entry. A future `CDotFCCT` library can import both `CDot` and `FCCT`
-without copying either calculus. Keep the translation and its correspondence
-proofs in this repository; changes to FCCT itself belong in the submodule.
+`import CDotFCCT.CTML` loads the ongoing translation and its checked CTML components.
+Records and projections use native CTML syntax. Existential packages and computations
+use continuations; their record payloads remain native. Object evaluation uses the Z
+primitive. Recursive
+witnesses use `CTMLCore.Recursive.HasType` and its proved operational safety theorem.
+
+The full typing-preserving translation is unfinished. The existing runtime pass
+accepts the complete chosen core-DOT judgment, while the typing translation currently
+covers an opened fragment, a type-only object constructor pass with generated recursive
+alias witnesses, and concrete examples. The bounded constructor case also compiles
+`let x = new … in x` at requested member bounds, checking them against its generated
+witnesses with CTML's constraint solver. Both cases return target typing proofs for
+the exact runtime compiler output. Unsupported cases fail explicitly, and the
+bounded case preserves fuel exhaustion. The full-source member analysis computes
+scoped witness names, with
+proofs of coverage for recorded references, binder freshness, and target weakening;
+its alias pass generates scoped native witness equations and guarded coercion
+derivations, including field extensions. General member-bound generation and
+discharge through opaque paths remain unfinished. See the
+[translation status](../notes/fcct-translation.md) for precise coverage.
+
+The separate `CTML.Transparent` experiment proves safety for record-subtyping
+inversion combined with recursion guarded by functions. Records retain both
+positive and negative field observations in this model; missing fields satisfy
+the negative observation. Labelled unions consequently retain each component's
+bounds, including when other components are empty. The checked carrier regression
+recovers both bounds on one `p.A` through the same abstract `q.X`, using only the
+two translated context guards. It accepts recursive
+records with suspended fields and rejects the earlier recursive-constraint
+counterexample. `CarrierTranslation.compileSubtyping` now generates a finite carrier
+layout, context guards and target derivation from an actual core-DOT subtyping
+derivation. It handles bounds, selections, intersections, variable paths,
+singleton transport and direct replacement, and rejects unsupported cases. Every
+relevant path gets a complete row of member witnesses and a payload-type witness,
+including members never directly selected. The original shared-witness regression,
+aliases, replacement inside contravariant bounds and member variance compile to
+checked universal constraint abstractions. `CarrierTranslation.compileVariable`
+additionally produces experimental typing derivations for the exact
+`TermCPS.compile` output of supported variable
+typing derivations. Its term context stores each payload at the type in its own
+carrier. The generated result package universally binds all member and payload
+witnesses; packing instantiates them with the producer's existing types. The
+requested view and answer retain their outer scope. Compiled subtyping proofs
+also produce checked identity coercions between whole packages. A closed package
+test uses the generated packing and opening operations, recovers a native record
+view, calls a field and reduces to Unit in five steps.
+The existing constructor passes retain their `CTMLCore.Recursive.HasType` proofs;
+`CarrierConstructorCompilation` also derives experimental typing for their exact
+runtime output and generated alias interfaces. Simultaneous recursive function
+equations are now covered by the experimental safety theorem. A constructor can
+hide their whole scope inside an existential package, including the generic
+carrier interface, without exporting its private equations.
+Connecting package scopes to the remaining source rules, including general fields,
+constructors and dependent calls, and unifying the constructor and carrier
+interfaces, is unfinished.
+
+`import CDotFCCT.Baseline` loads the earlier minimal-FCCT experiments. The compatibility
+umbrella `import CDotFCCT` loads both. The implemented target calculi are local Lake
+dependencies from the pinned submodule. Translation proofs and the isolated
+`Transparent` prototype belong here; adopted changes to the target calculi belong
+in that submodule.
 
 See [the review](../notes/fcct-review.md) for the baseline comparison and the implemented
 Z primitive, including its safety and nontermination proofs. The independent FCCT audit can
@@ -30,6 +90,7 @@ also run from this project:
 
 ```sh
 lake env lean ../notes/fcct/Audit.lean
+lake env lean ../notes/fcct/TranslationAudit.lean
 ```
 
 ## Porting policy

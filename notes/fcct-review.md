@@ -8,12 +8,16 @@ and its progress and preservation proofs build without additional axioms. It is
 not a mechanization of the paper's original call-by-name system or of all the
 paper's results.
 
-The target for the cDOT connection is **FCCT extended with a primitive
-CBV fixpoint Z**. This addresses the termination mismatch without requiring the
-source calculus to exclude recursion. The extension is now implemented and its
-safety proofs checked; a cDOT translation remains future work.
-Both projects have been upgraded to Lean 4.34.0, and the cDOT Lake project loads
-FCCT as a local dependency across the submodule boundary.
+The target for the cDOT connection is now **CTML Core with a primitive CBV fixpoint Z
+and guarded recursive declarations**, using native records, intersections, and unions.
+`Recursive.HasType.safe` proves operational safety for the recursive extension.
+The minimal FCCT development remains the reviewed baseline and an earlier encoding
+experiment. The bridge has proved CPS package rules, bounds variance, recursive
+witnesses, and a total core-DOT runtime pass; the full typing-preserving translation
+is still unimplemented. See [the implementation status](fcct-translation.md) for
+the checked components and remaining obligations.
+The projects use Lean 4.34.0, and the cDOT Lake project loads FCCT and CTML Core as
+local dependencies across the submodule boundary, sharing the cached Mathlib build.
 
 ## Sources and reproducibility
 
@@ -127,7 +131,7 @@ CPS and other administrative reductions. It should distinguish a simulation
 that permits zero steps from the stronger progress condition needed to preserve
 divergence.
 
-Changes to the FCCT calculus, including the planned Z primitive, belong in the
+Changes to the FCCT calculus, including Z and recursive types, belong in the
 submodule. Commit and publish those changes in CTML or a fork before sharing a
 parent revision that points to them. The parent repository records the new
 gitlink; the translation remains here and is checked against that exact version.
@@ -340,18 +344,20 @@ a consumer checked under an abstract `A` and its bounds. Placing the universal
 and constraint introductions around the consumer lambda respects the existing
 CBV value restriction.
 
-This is a proposed encoding, not a theorem established by this review. It
+The fixed-answer version now has proved introduction, elimination, and package
+subtyping rules in `CDotFCCT`; the original review did not prove them. It
 explains why moving the rest of a computation inside a continuation may turn
 strong existential use into ordinary weak existential elimination. The paper's
 discussion of encoding intersections in negative positions
 (`sections/intersection.tex:27–40`) supports this direction, but is not itself
 an encoding of cDOT intersections in arbitrary positions.
 
-With Z and safety established, the first translation milestone should establish
-packing/unpacking and a CPS typing lemma for a small fragment
-with one abstract type member and its bounds. The remaining obligations include
-maintaining witness identity across repeated path use and aliases, dependent
-function results, records/intersections, object self binding, and cDOT's runtime
-tags and case refinements. Reopening one package twice must not silently replace
-one stable path type by two unrelated abstract types. These are separate proof
-obligations beyond the availability of universals and recursion.
+Packing/unpacking and bounds variance are now checked for finite witness telescopes,
+including recursive payloads. The CTML target uses native records and intersections;
+the runtime CPS pass covers all selected core rules, including nested objects and self
+references. The full typing-preserving derivation translation remains unfinished.
+Its central obligation is maintaining witness identity across repeated path use,
+aliases, dependent calls, and different upper-bound views of one abstract type.
+`SharedWitnessRegression.lean` checks a case where independently packaged upper
+views admit different witnesses although DOT identifies the corresponding member.
+Runtime tag tests and cDOT-specific inversion rules remain outside the chosen core scope.

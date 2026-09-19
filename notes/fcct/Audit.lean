@@ -19,6 +19,9 @@ def boolLanding : Landing where
   arrowClosed := by
     intro _ _ _ _ _ _ _ h
     exact False.elim (Ty.noConfusion (congrArg WFTy.raw h.1))
+  recursiveClosed :=
+    ⟨fun h => False.elim (Ty.noConfusion (congrArg WFTy.raw h.1)),
+     fun h => False.elim (Ty.noConfusion (congrArg WFTy.raw h.1))⟩
 
 /-- A closed prefix-free subtype of Bool must itself be Bool. -/
 theorem prefixFreeBelowBool {type : WFTy 0} (prefixFree : type.PrefixFree)
@@ -29,6 +32,7 @@ theorem prefixFreeBelowBool {type : WFTy 0} (prefixFree : type.PrefixFree)
   | var index => exact (Nat.not_lt_zero index hScoped).elim
   | bool => rfl
   | arrow _ _ => exact False.elim (Ty.noConfusion (congrArg WFTy.raw landing.1))
+  | recArrow _ _ => exact False.elim (Ty.noConfusion (congrArg WFTy.raw landing.1))
   | all _ => exact prefixFree.elim
   | constrained _ _ => exact prefixFree.elim
 
@@ -69,3 +73,8 @@ end FCCT.Review
 #print axioms FCCT.FixpointExamples.loopTyping
 #print axioms FCCT.FixpointExamples.loopDoesNotTerminate
 #print axioms FCCT.Review.noUniformPrefixFreeReplacement
+#print axioms FCCT.RecursiveTypeExamples.unfoldSelf
+#print axioms FCCT.RecursiveTypeExamples.foldSelf
+#print axioms FCCT.RecursiveTypeExamples.omegaTyping
+#print axioms FCCT.RecursiveTypeExamples.loopStep
+#print axioms FCCT.RecursiveTypeExamples.boolNotSelf
