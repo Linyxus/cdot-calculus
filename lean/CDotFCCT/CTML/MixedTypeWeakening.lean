@@ -1,12 +1,13 @@
 import CDotFCCT.CTML.MixedGuardWeakening
 import CDotFCCT.CTML.MixedCalculus
+import CDotFCCT.CTML.CarrierEquationBinding
 
 /-!
 # Type-variable weakening through mixed recursive scopes
 
 The fixed label policy is unchanged by type-variable insertion. Both subtyping and
 term typing lift syntactically, including ghost inversion, universal constraints,
-and all three forms of local recursive definitions. No semantic typing rule is added.
+and all forms of local recursive definitions. No semantic typing rule is added.
 -/
 
 set_option autoImplicit false
@@ -184,6 +185,16 @@ mutual
 
     | .recursiveRecordSystem (size := size) system ordinary h => by
         refine .recursiveRecordSystem (system.liftAt index valid) ordinary ?_
+        exact HasType.castContextTo (system.openContext_liftAt s index valid)
+          ((context.insertTypeAt index valid).bindTypes size)
+          (context.insertTypeAt_bindTypes index size valid)
+          (Term.liftTyAt_block_comm term index size).symm
+          ((type.liftAt index valid).weakenBy size)
+          (Ty.liftAt_block_comm type.raw index 0 size (Nat.zero_le index)).symm
+          (h.liftTypeAt (index + size) (by change _ ≤ s.typeDepth + size; omega))
+
+    | .recursiveCarrierSystem (size := size) system h => by
+        refine .recursiveCarrierSystem (system.liftAt index valid) ?_
         exact HasType.castContextTo (system.openContext_liftAt s index valid)
           ((context.insertTypeAt index valid).bindTypes size)
           (context.insertTypeAt_bindTypes index size valid)

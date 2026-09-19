@@ -5,7 +5,7 @@ import CTMLCore.Declarative.Substitution
 # Term-variable weakening for the mixed target
 
 Inserting a term binding preserves the fixed ghost-label policy, subtyping evidence,
-and all three recursive scopes. This structural lemma changes neither type-variable
+and all recursive scopes. This structural lemma changes neither type-variable
 bindings nor recursive equations. It supports packing arbitrary typed payloads into
 continuation-encoded existentials without adding an administrative evaluation step.
 -/
@@ -67,6 +67,12 @@ mutual
 
     | .recursiveRecordSystem (size := size) system ordinary h => by
         refine .recursiveRecordSystem system ordinary ?_
+        rw [← Term.liftTy_liftAt_comm]
+        exact (context.insertAt_bindTypes pos size extra).symm ▸
+          h.weakenAt pos (extra.weakenBy size)
+
+    | .recursiveCarrierSystem (size := size) system h => by
+        refine .recursiveCarrierSystem system ?_
         rw [← Term.liftTy_liftAt_comm]
         exact (context.insertAt_bindTypes pos size extra).symm ▸
           h.weakenAt pos (extra.weakenBy size)

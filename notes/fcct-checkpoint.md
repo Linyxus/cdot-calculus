@@ -21,9 +21,11 @@ Weakening, substitution, constraint transport, progress and indexed safety cover
 The root `CTML.Mixed` model fixes a policy `ghost : FieldName → Bool`:
 
 - Ordinary record fields are recursion guards, including over arbitrary constraint syntax.
-- Ghost fields reflect component subtyping, but do not themselves guard recursion.
+- Ghost fields reflect component subtyping. Pure carrier equations may recurse beneath them
+  by decreasing finite term structure; they do not guard arbitrary recursive constraints.
 - `Mixed.HasType.safe` covers all native term forms, constraints, universals, Z, scalar guarded
-  definitions, simultaneous ordinary-record groups and existing recursive function groups.
+  definitions, simultaneous ordinary-record groups, existing recursive function groups and
+  finite pure carrier systems.
 - `MixedSharedWitness` derives both contradictory bounds of the original source regression from
   EXACTLY its two original context guards, using the same member witness.
 - `MixedExamples` checks closed scalar and mutual record-recursive programs reducing to Unit;
@@ -81,17 +83,27 @@ The solution is downward closed and local at each observation index, satisfies t
 actual mixed type interpretation, and composes with separately guarded runtime feedback.
 `CarrierEquationSyntax` defines finite pure systems and compiles their rows, member views
 and whole-child cycles to the existing carrier syntax. Both polarities are allowed under
-ghost records; independent outer leaves may contain the full target syntax. These results
-do not yet add a scoped typing rule. See [the solver note](fcct-ghost-row-recursion.md).
+ghost records; independent outer leaves may contain the full target syntax.
+`CarrierEquationModel` now solves every finite system in that grammar, with downward closure
+and per-index parameter locality. `CarrierEquationInterpretation` validates its compiled
+equations and outer assumptions. `HasType.recursiveCarrierSystem` closes the scope; safety,
+term/type weakening and assumption transport cover the new rule.
+`CarrierEquationAliases.normalizeChecked` computes guarded systems from raw equations with
+direct aliases, including chains and pure alias cycles. Its solution-transfer theorem recovers
+every original equation; unguarded negative cycles are rejected.
+`CarrierAliasScopes` derives both original bounds using native subtyping in the normalized
+scope. `CarrierEquationExamples` packages whole-child and recursive member equations with
+usable fold/unfold coercions, proves their closed safety and scope consistency, and checks
+opaque field-view transport inside the solved cyclic whole-child scope.
+See [the solver note](fcct-ghost-row-recursion.md).
 
 ## Next proof work
 
 1. Derive the anchored runtime field invariant from general source field views, including opaque
    selections such as `{a:q.X}`, and preserve it across aliases and dependent calls.
 2. Solve the generated whole-child carrier equations together with runtime payload equations.
-   Runtime self rows are already record-guarded. Pure recursive ghost rows remain outside the
-   current syntactic recursion rule; the checked scalar structural solver must be generalized
-   to finite systems and integrated with scope closure and runtime feedback.
+   Both finite pure carrier systems and runtime record systems now have sound scoped rules.
+   Their mutual coupling must be integrated, using the carrier solver's parameter locality.
 3. Unify the type-only constructor interfaces and carrier interfaces, finish all `Core.Typing`
    rules, then prove general source/target operational correspondence.
 

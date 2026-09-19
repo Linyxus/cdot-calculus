@@ -61,6 +61,9 @@ import CDotFCCT.CTML.CarrierFieldViews
 import CDotFCCT.CTML.MixedSubtypeSubstitution
 import CDotFCCT.CTML.MixedGhostRowRecursion
 import CDotFCCT.CTML.CarrierEquationSyntax
+import CDotFCCT.CTML.CarrierEquationAliases
+import CDotFCCT.CTML.CarrierAliasScopes
+import CDotFCCT.CTML.CarrierEquationExamples
 
 /-!
 # The core-DOT to CTML Core bridge

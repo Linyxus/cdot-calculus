@@ -643,9 +643,9 @@ This resolves the target-model conflict between useful record guards and ghost-b
 extraction. It does not yet prove the full source representation. `MixedFieldNames`
 proves the default runtime-label allocation ordinary and disjoint from every generated
 carrier name; `carrierPolicy_names` proves all carrier slots reflective. Custom
-environments must retain that separation. The compiler must also ensure every recursive
-carrier cycle reaches an ordinary record guard or another permitted guard. Cycles
-entirely within ghost components remain unguarded. The actual partial carrier compiler,
+environments must retain that separation. The pure carrier grammar now admits ghost-record
+cycles by a separate finite-term structural solver, including negative occurrences.
+Arbitrary recursive constraints still require ordinary runtime guards. The actual partial carrier compiler,
 its runtime variable pass, generated packages and whole-package coercions now produce
 mixed proofs. The port preserves source inputs, witness allocation, computed types and
 runtime syntax, without adding caller-supplied target evidence. Both existing type-only

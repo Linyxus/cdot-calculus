@@ -1,11 +1,12 @@
 import CDotFCCT.CTML.MixedSystems
+import CDotFCCT.CTML.CarrierEquationTyping
 
 /-!
 # Native CTML with ghost inversion and ordinary record guards
 
 One fixed label policy governs both rules: ghost fields permit subtyping inversion;
 ordinary record fields guard recursive occurrences. Terms and evaluation are native.
-Scalar definitions, ordinary-record groups and existing function groups are scoped.
+Scalar definitions, ordinary-record groups, function groups and pure carrier systems are scoped.
 -/
 
 namespace CDotFCCT.CTML.Mixed
@@ -78,6 +79,10 @@ mutual
         (ordinary : ∀ index, ghost (system.field index) = false) :
         HasType ghost (system.openContext s) (context.bindTypes size)
           (term.liftTy size) (type.weakenBy size) → HasType ghost s context term type
+    /-- Pure reflective equations close by finite record structure in both polarities. -/
+    | recursiveCarrierSystem (system : CarrierEquation.System ghost s.typeDepth size) :
+        HasType ghost (system.openContext s) (context.bindTypes size)
+          (term.liftTy size) (type.weakenBy size) → HasType ghost s context term type
 
   /-- Native record fields may themselves contain local recursive type definitions. -/
   inductive FieldsHaveType (ghost : FieldName → Bool) :
@@ -116,6 +121,9 @@ theorem HasType.var_in_scope {s : SubtypingContext}
       exact Nat.lt_of_lt_of_eq
         (typing.var_in_scope index (congrArg (Term.liftTy _) isVar)) (List.length_map ..)
   | .recursiveRecordSystem _ _ typing => by
+      exact Nat.lt_of_lt_of_eq
+        (typing.var_in_scope index (congrArg (Term.liftTy _) isVar)) (List.length_map ..)
+  | .recursiveCarrierSystem _ typing => by
       exact Nat.lt_of_lt_of_eq
         (typing.var_in_scope index (congrArg (Term.liftTy _) isVar)) (List.length_map ..)
 

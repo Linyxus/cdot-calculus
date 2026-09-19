@@ -45,12 +45,32 @@ well-scoped types, recursive references, negation, unions/intersections and ghos
 records. Formation requires every recursive reference to occur below a record.
 Its compilation lemmas preserve the existing precise carriers and member views,
 including whole-child cycles and recursive bounds with both polarities. A direct
-alias is explicitly unguarded; alias elimination is a separate obligation.
+alias is explicitly unguarded in that grammar.
 
-The scalar result does not yet establish a simultaneous solver for this grammar
-or a new scoped recursive declaration rule. Those extensions still need binding
-and safety integration. In
-particular, a recursive constraint can inspect inclusion on arbitrary terms at
+`CarrierEquationModel.lean` generalizes the solver to arbitrary finite systems of
+these expressions. At a fixed index, successive finite unfoldings agree on all
+terms smaller than the unfolding budget. Taking `sizeOf term + 1` unfoldings
+therefore solves every equation. Negation swaps observations but does not affect
+the structural decrease. The proofs establish downward closure and locality
+in every independent outer leaf at the current observation index.
+
+`CarrierEquationInterpretation.lean` connects the solution to the compiled CTML
+types, removes the variable interpretation's prefix closure using downwardness,
+and validates both generated bounds without strengthening outer assumptions.
+`HasType.recursiveCarrierSystem` closes that scope, with checked operational
+safety, term/type weakening and assumption transport. Its type names erase at
+runtime. No external proof of the desired equations is an input to the rule.
+
+`CarrierEquationAliases.lean` computes a guarded block from equations that are
+either guarded or direct aliases. Bounded propagation finds guarded endpoints;
+pure alias cycles share a chosen independent leaf, defaulting to Bottom. Keeping
+all original indices permits a generic solution-transfer proof for every original
+equation. The checked raw-expression entry point computes the guard certificates
+and rejects unguarded negative self-recursion.
+
+The remaining semantic integration is mutual coupling with runtime rows; the
+carrier solver's parameter locality provides the necessary composition property.
+A recursive constraint can inspect inclusion on arbitrary terms at
 the same index; its observations need not decrease term size. The structural
 argument gives no permission to admit the constrained Curry cycle. Recursive
 constraints remain outside the pure ghost fragment; feedback through ordinary
