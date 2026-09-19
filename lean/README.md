@@ -27,6 +27,8 @@ Records and projections use native CTML syntax. Existential packages and computa
 use continuations; their record payloads remain native. Object evaluation uses the Z
 primitive. Recursive
 witnesses use `CTMLCore.Recursive.HasType` and its proved operational safety theorem.
+Native recursion admits record guards, including simultaneous equations such as
+`A = {next : B}, B = {back : Unit ∪ A}` with no arrows in either equation.
 
 The full typing-preserving translation is unfinished. The existing runtime pass
 accepts the complete chosen core-DOT judgment, while the typing translation currently
@@ -43,7 +45,22 @@ derivations, including field extensions. General member-bound generation and
 discharge through opaque paths remain unfinished. See the
 [translation status](../notes/fcct-translation.md) for precise coverage.
 
-The separate `CTML.Transparent` experiment proves safety for record-subtyping
+The `CTML.Mixed` experiment now proves operational safety with ordinary record-guarded
+recursion and inversion restricted to designated ghost fields. Its fixed field-label
+policy separates those roles; arbitrary constraints and universals remain available.
+The original shared-witness regression uses exactly its original two context guards
+in this model. Checked scalar and mutual record-recursive programs reduce to Unit,
+including a program whose constraint-abstracted cast uses ghost inversion.
+This replaces the arrow-only guard as the intended direction for the carrier model.
+It does not yet port the full carrier compiler. The default runtime-label allocation
+is now proved disjoint from all carrier slots; recursion entirely within ghost
+components remains unguarded.
+`TermCPSObjectTyping` proves the general native object-constructor step from field
+induction hypotheses. `NativeFieldSharing.packTyping` constructs a package with one
+member witness shared by `head` and recursive `next`, deriving its recursive bounds
+from the payload typing. These are constructor lemmas, not the general source compiler.
+
+The earlier separate `CTML.Transparent` experiment proves safety for record-subtyping
 inversion combined with recursion guarded by functions. Records retain both
 positive and negative field observations in this model; missing fields satisfy
 the negative observation. Labelled unions consequently retain each component's
@@ -81,7 +98,7 @@ interfaces, is unfinished.
 `import CDotFCCT.Baseline` loads the earlier minimal-FCCT experiments. The compatibility
 umbrella `import CDotFCCT` loads both. The implemented target calculi are local Lake
 dependencies from the pinned submodule. Translation proofs and the isolated
-`Transparent` prototype belong here; adopted changes to the target calculi belong
+`Transparent` and `Mixed` prototypes belong here; adopted changes to the target calculi belong
 in that submodule.
 
 See [the review](../notes/fcct-review.md) for the baseline comparison and the implemented

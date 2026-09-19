@@ -2,6 +2,8 @@
 
 The translation target is **CTML Core with Z and scoped recursive type declarations**.
 Records, projections, intersections, and unions use CTML's native syntax.
+Record-guarded recursion is a requirement of this target, not an optional relaxation.
+The current checkpoint is summarized in [fcct-checkpoint.md](fcct-checkpoint.md).
 Existential packages and computations use continuations; record payloads remain native.
 The earlier minimal-FCCT bridge
 modules remain as baseline experiments; the compiler produces CTML terms.
@@ -27,6 +29,11 @@ directions of guarded recursive equations, retaining function behavior and field
 The typing fundamental lemma now covers both Core and the recursive extension.
 `Recursive.HasType.safe` proves that every finitely reachable term is a value or can step.
 This establishes operational safety; syntactic preservation for the extension remains open.
+The native extension now includes simultaneous record equations with no function guard.
+The separate `Mixed` model proves safety when ordinary record fields guard recursion
+and designated ghost fields support component inversion. It preserves arbitrary
+constraints and validates the original shared-bound regression. The earlier
+`Transparent` model's arrow-only guard is not a requirement of the intended target.
 
 The chosen source scope is core DOT: functions, recursive objects, records,
 intersections, abstract type members and their bounds. Runtime tag tests and the
@@ -113,6 +120,11 @@ dependency directory links to the same cached packages.
 | [Generated carrier scopes](../lean/CDotFCCT/CTML/CarrierOpening.lean) | Computes the continuation's fresh types and guarded context and proves its equivalence to telescope elimination; the requested view and answer retain their outer references |
 | [Carrier recursive scopes](../lean/CDotFCCT/CTML/TransparentSystems.lean) | Solves any native simultaneous recursive function system in the transparent-record model, validates its equations, and proves that closing its scope preserves semantic typing and safety |
 | [Carrier constructor bridge](../lean/CDotFCCT/CarrierConstructorCompilation.lean) | Derives experimental typing for the exact output and existing interfaces of both automatic type-only object passes; unifying those interfaces with carrier views remains unfinished |
+| [Native object typing step](../lean/CDotFCCT/TermCPSObjectTyping.lean) | Generates a record-guarded self equation and types the exact CPS object output from field induction hypotheses and package evidence |
+| [Native recursive field sharing](../lean/CDotFCCT/CTML/NativeFieldSharing.lean) | Constructs a package sharing one member witness across `head` and recursive `next`; the payload typing generates both witnesses and recursive bounds |
+| [Mixed record safety](../lean/CDotFCCT/CTML/MixedSafety.lean) | Proves operational safety with ordinary record guards, ghost-component inversion, arbitrary constraints, Z, and simultaneous ordinary-record equations |
+| [Mixed shared bounds](../lean/CDotFCCT/CTML/MixedSharedWitness.lean) | Derives both bounds on the original shared witness from exactly the original two context guards, under a policy permitting direct ordinary-record recursion |
+| [Mixed execution](../lean/CDotFCCT/CTML/MixedExamples.lean) | A ghost-inverting cast of a directly recursive record and a mutual-record program typecheck and reduce to Unit |
 | [Recursive carrier execution](../lean/CDotFCCT/CarrierRecursiveExamples.lean) | A native record contains a Z-defined function with two mutually recursive types; one client opens its equations and calls through both arrows, while another returns the record through the generic carrier package |
 | [Repeated observation example](../lean/CDotFCCT/ObservationExamples.lean) | Two refinements retain an earlier selector and two original views, with `Unit` as answer and `Top → Top` as witness; all guards are discharged and execution checks |
 | [Native observation records](../lean/CDotFCCT/CTML/ObservationRecords.lean) | A complete native row of suspended observations can gain a selector view at one field while retaining the original row and any opaque supertype; the stronger row supports repeated refinements |
@@ -392,7 +404,11 @@ safety theorem to reject the same term. No inversion rule was added to CTML Core
 This rules out that particular shortcut for obtaining native constraints from the coercions;
 it is not an impossibility result for the requested DOT encoding.
 
-### A safe experimental inversion calculus
+### The earlier all-fields-transparent experiment
+
+This experiment made every record field reflective, forcing its stronger recursion
+guard. It is retained as checked prior work; the intended target must permit
+record guards. The mixed model below separates those roles instead.
 
 `CTML/TransparentSafety.lean` proves operational safety for a separate experimental
 judgment, `CTML.Transparent.HasType`. It uses the existing native term syntax and
@@ -590,6 +606,50 @@ inversion rules and stricter recursion guard stay in the experimental target,
 pending the target-rule decision. The current CTML Core dependency has not adopted
 them. The existing constructor passes keep their native proofs alongside the
 new experimental proofs.
+
+### Record guards with reflective ghost fields
+
+`CTML.Mixed` fixes one field-label policy throughout each derivation. Ordinary record
+fields use the existing delayed interpretation, so a record constructor directly
+guards recursive occurrences in any payload, including arbitrary constraint endpoints.
+Ghost fields use the transparent interpretation and permit component inversion.
+They propagate the guardedness obligation rather than serving as guards themselves.
+
+`MixedSubtyping.subtype_sound` validates every native rule; `MixedInversion` adds
+inversion only at designated ghost labels, including labelled carrier unions.
+`MixedRecursion.Definition` constructs genuine fixed points for the corresponding
+guarded syntax. The scoped equations and all native typing rules, including Z,
+are covered by `Mixed.HasType.safe`. `MixedRecordSystems` additionally validates
+simultaneous groups whose components each have an outer ordinary record field.
+This rule is a sufficient formation rule; it does not yet accept every group in
+which some ordinary field appears along each cycle. The mixed judgment does not
+yet include the earlier simultaneous-arrow rule.
+
+`MixedSharedWitness` reuses the exact carrier syntax, witnesses, and two context guards
+of the original regression. It derives `Top ≤ p.A ≤ Bottom` without introducing
+separate member-bound assumptions. The same policy permits `μX.{next:X}` and a
+ghost wrapper around that record. `MixedExamples` checks a finite record at
+`μX.{next:Unit ∪ X}`, casts it through a constraint abstracted over a ghost-field
+bound, and projects Unit. A second program reuses the native mutual-record execution.
+The old constrained record cycle is legal at an ordinary label, while consistency
+rules out its previous inversion-based collapse.
+
+This resolves the target-model conflict between useful record guards and ghost-bound
+extraction. It does not yet prove the full source representation. `MixedFieldNames`
+proves the default runtime-label allocation ordinary and disjoint from every generated
+carrier name; `carrierPolicy_names` proves all carrier slots reflective. Custom
+environments must retain that separation. The compiler must also ensure every recursive
+carrier cycle reaches an ordinary record guard or another permitted guard. Cycles
+entirely within ghost components remain unguarded. Existing `Transparent` compiler
+proofs have not all been transported to the new judgment.
+
+The native constructor work remains usable independently of inversion.
+`TermCPSObjectTyping` generates the self equation from arbitrary native field types
+and proves typing of the exact CPS object syntax given the field induction hypotheses.
+`NativeFieldSharing.packTyping` uses only a payload typing to generate a shared-member
+package for a record with `head` and recursive `next`. Both witnesses and both
+recursive bounds are constructed by that theorem. General source-field compilation
+and source-to-interface alignment still have to supply the induction hypotheses.
 
 ## Shared views reached through bounds
 

@@ -47,6 +47,11 @@ import CDotFCCT.CarrierCompilationExamples
 import CDotFCCT.CarrierRuntimeExamples
 import CDotFCCT.CarrierRecursiveExamples
 import CDotFCCT.CarrierConstructorCompilation
+import CDotFCCT.TermCPSObjectTyping
+import CDotFCCT.CTML.NativeFieldSharing
+import CDotFCCT.CTML.MixedExamples
+import CDotFCCT.CTML.MixedSharedWitness
+import CDotFCCT.CTML.MixedFieldNames
 
 /-!
 # The core-DOT to CTML Core bridge
@@ -58,8 +63,12 @@ continuation encoding is used for existential witnesses and evaluation order.
 
 The general typing-preserving translation is still under development. See
 `notes/fcct-translation.md` for the checked components and remaining obligations.
-The `Transparent` namespace is a separately checked experiment with record inversion
-and stricter recursion guards. Its partial carrier compiler checks subtyping and
+The `Mixed` namespace proves safety with ordinary record guards and inversion only
+for designated ghost fields. It validates the original shared-bound regression
+and direct recursive-record programs under the same discipline. Its general source
+compiler remains unfinished. `Transparent` is the earlier all-fields-transparent
+experiment with arrow-only guards; that restriction is not the intended target.
+Its partial carrier compiler checks subtyping and
 the runtime variable case in that judgment. The existing type-only constructor
 passes also produce checked proofs in it through `carrierTargetTyping`.
 Their interfaces still need to be unified with the carrier encoding; the general

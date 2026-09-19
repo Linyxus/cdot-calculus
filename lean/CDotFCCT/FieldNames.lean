@@ -6,7 +6,8 @@ import Mathlib.Data.List.Basic
 
 DOT's signature need not admit a global injection into strings. A compiler only
 needs distinct target names for the finitely many labels in its input. This
-allocation is deterministic and injective on a supplied finite support.
+allocation is deterministic and injective on a supplied finite support. Each
+runtime name is nonempty, keeping it separate from the carrier-label namespace.
 -/
 
 set_option autoImplicit false
@@ -16,14 +17,14 @@ namespace CDotFCCT.TermCPS
 variable [CDot.Signature]
 
 def fieldName (labels : CDot.Fields) (label : CDot.Signature.TrmLabel) : String :=
-  String.ofList (List.replicate (labels.idxOf label) 'f')
+  String.ofList (List.replicate (labels.idxOf label + 1) 'f')
 
 theorem fieldName_injective {labels : CDot.Fields} {left right : CDot.Signature.TrmLabel}
     (leftMember : left ∈ labels)
     (equal : fieldName labels left = fieldName labels right) : left = right := by
   have lengths := congrArg String.length equal
   simp only [fieldName, String.length_ofList, List.length_replicate] at lengths
-  exact (List.idxOf_inj leftMember).mp lengths
+  exact (List.idxOf_inj leftMember).mp (Nat.add_right_cancel lengths)
 
 def pathLabels : CDot.Path → CDot.Fields
   | .select _ fields => fields

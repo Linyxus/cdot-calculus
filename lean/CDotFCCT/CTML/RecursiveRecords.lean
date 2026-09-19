@@ -39,6 +39,9 @@ private theorem recursiveProjectionInverseAux {s : SubtypingContext}
   | .recursiveSystem (size := size) system body => fun equal =>
       .recursiveSystem system
         (recursiveProjectionInverseAux body (congrArg (Term.liftTy size) equal))
+  | .recursiveRecordSystem (size := size) system body => fun equal =>
+      .recursiveRecordSystem system
+        (recursiveProjectionInverseAux body (congrArg (Term.liftTy size) equal))
   | .forall _ _ _ nonexpansive _ => fun equal =>
       (projectionExpansive (equal ▸ nonexpansive)).elim
   | .constrained _ _ _ _ nonexpansive _ => fun equal =>

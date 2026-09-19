@@ -7,6 +7,7 @@ import CTMLCore.Declarative.RecursiveExamples
 import CTMLCore.Declarative.IndexedExamples
 import CTMLCore.Declarative.IndexedFundamental
 import CTMLCore.Declarative.RecursiveInversionObstruction
+import CTMLCore.Declarative.RecursiveRecordSystemExamples
 
 /-! Run from `lean/`: `lake env lean ../notes/fcct/TranslationAudit.lean`. -/
 
@@ -562,3 +563,66 @@ import CTMLCore.Declarative.RecursiveInversionObstruction
 #print axioms CDotFCCT.CarrierRecursiveExamples.publicProgramSteps
 #print axioms CDotFCCT.TypeOnlyCompilation.Result.carrierTargetTyping
 #print axioms CDotFCCT.BoundedObjectCompilation.Result.carrierTargetTyping
+
+-- Record-guarded recursion and its mixed ghost-carrier model.
+#print axioms CTMLCore.RecursiveRecordSystem.indexedOperator_contractive
+#print axioms CTMLCore.RecursiveRecordSystem.indexedInterpretation_equation
+#print axioms CTMLCore.RecursiveRecordSystem.indexedValidates
+#print axioms CTMLCore.RecursiveRecordSystem.validates
+#print axioms CTMLCore.Indexed.Typing.recursiveRecordSystem
+#print axioms CTMLCore.RecursiveRecordSystemExamples.consistent
+#print axioms CTMLCore.RecursiveRecordSystemExamples.programTyping
+#print axioms CTMLCore.RecursiveRecordSystemExamples.programSafe
+#print axioms CTMLCore.RecursiveRecordSystemExamples.programSteps
+#print axioms CDotFCCT.TermCPS.objectDefinition
+#print axioms CDotFCCT.TermCPS.nativeObjectThunkTyping
+#print axioms CDotFCCT.TermCPS.recursiveObjectThunkTyping
+#print axioms CDotFCCT.TermCPS.computation_object
+#print axioms CDotFCCT.TermCPS.compile_object_eq
+#print axioms CDotFCCT.TermCPS.compileObjectTyping
+#print axioms CDotFCCT.CTML.NativeFieldSharing.interfaceInstance
+#print axioms CDotFCCT.CTML.NativeFieldSharing.objectTyping
+#print axioms CDotFCCT.CTML.NativeFieldSharing.packTyping
+#print axioms CDotFCCT.CTML.RecordGuardAnalysis.runtimeGuards
+#print axioms CDotFCCT.CTML.RecordGuardAnalysis.ghostInverse
+#print axioms CDotFCCT.CTML.RecordGuardAnalysis.recordSolution_equation
+#print axioms CDotFCCT.CTML.RecordGuardAnalysis.ghost_alone_not_guarded
+#print axioms CDotFCCT.CTML.Mixed.interpret_congr
+#print axioms CDotFCCT.CTML.Mixed.interpret_downward
+#print axioms CDotFCCT.CTML.Mixed.interpret_guarded
+#print axioms CDotFCCT.CTML.Mixed.subtype_sound
+#print axioms CDotFCCT.CTML.Mixed.InvertingSubtype.sound
+#print axioms CDotFCCT.CTML.Mixed.Definition.contractive
+#print axioms CDotFCCT.CTML.Mixed.Definition.equation
+#print axioms CDotFCCT.CTML.Mixed.Definition.validates
+#print axioms CDotFCCT.CTML.Mixed.Definition.noCollapse
+#print axioms CDotFCCT.CTML.Mixed.row_inverse
+#print axioms CDotFCCT.CTML.Mixed.RecordSystem.contractive
+#print axioms CDotFCCT.CTML.Mixed.RecordSystem.equation
+#print axioms CDotFCCT.CTML.Mixed.RecordSystem.validates
+#print axioms CDotFCCT.CTML.Mixed.Typing.recursiveRecordSystem
+#print axioms CDotFCCT.CTML.Mixed.HasType.sound
+#print axioms CDotFCCT.CTML.Mixed.HasType.safe
+#print axioms CDotFCCT.CTML.Mixed.carrierPolicy_names
+#print axioms CDotFCCT.CTML.Mixed.memberLowerBound
+#print axioms CDotFCCT.CTML.Mixed.memberUpperBound
+#print axioms CDotFCCT.CTML.Mixed.SharedWitness.sharedBounds
+#print axioms CDotFCCT.CTML.Mixed.SharedWitness.collapse
+#print axioms CDotFCCT.CTML.Mixed.SharedWitness.noValidEnvironment
+#print axioms CDotFCCT.CTML.Mixed.SharedWitness.ordinaryScopeConsistent
+#print axioms CDotFCCT.CTML.Mixed.SharedWitness.carrierScopeConsistent
+#print axioms CDotFCCT.CTML.MixedExamples.castTyping
+#print axioms CDotFCCT.CTML.MixedExamples.castBound
+#print axioms CDotFCCT.CTML.MixedExamples.programTyping
+#print axioms CDotFCCT.CTML.MixedExamples.programSteps
+#print axioms CDotFCCT.CTML.MixedExamples.programSafe
+#print axioms CDotFCCT.CTML.MixedExamples.constrainedCycleConsistent
+#print axioms CDotFCCT.CTML.MixedExamples.Mutual.programTyping
+#print axioms CDotFCCT.CTML.MixedExamples.Mutual.programSteps
+#print axioms CDotFCCT.CTML.MixedExamples.Mutual.programSafe
+#print axioms CDotFCCT.TermCPS.fieldName_ordinary
+#print axioms CDotFCCT.TermCPS.fieldName_ne_carrierCode
+#print axioms CDotFCCT.TermCPS.fieldName_ne_carrierName
+#print axioms CDotFCCT.TermCPS.programEnv_ordinary
+#print axioms CDotFCCT.TermCPS.programEnv_fieldName_injective
+#print axioms CDotFCCT.TermCPS.programEnv_ne_carrierName
