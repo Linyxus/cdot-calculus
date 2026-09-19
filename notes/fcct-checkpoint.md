@@ -75,13 +75,23 @@ slot transport for arbitrary opaque types. The [field-view note](fcct-field-view
 checked source `{a:q.X}` test and the [equation audit](fcct-carrier-equations.md) identifies the
 coupled ghost-carrier/runtime-row system a general whole-child encoding must solve.
 
+`MixedGhostRowRecursion` solves the representative pure equation
+`P = L ∪ {minus : ¬P} ∪ {plus : P}` by structural recursion on finite record terms.
+The solution is downward closed and local at each observation index, satisfies the
+actual mixed type interpretation, and composes with separately guarded runtime feedback.
+`CarrierEquationSyntax` defines finite pure systems and compiles their rows, member views
+and whole-child cycles to the existing carrier syntax. Both polarities are allowed under
+ghost records; independent outer leaves may contain the full target syntax. These results
+do not yet add a scoped typing rule. See [the solver note](fcct-ghost-row-recursion.md).
+
 ## Next proof work
 
 1. Derive the anchored runtime field invariant from general source field views, including opaque
    selections such as `{a:q.X}`, and preserve it across aliases and dependent calls.
 2. Solve the generated whole-child carrier equations together with runtime payload equations.
    Runtime self rows are already record-guarded. Pure recursive ghost rows remain outside the
-   current syntactic recursion rule; a structural semantic solver is being investigated.
+   current syntactic recursion rule; the checked scalar structural solver must be generalized
+   to finite systems and integrated with scope closure and runtime feedback.
 3. Unify the type-only constructor interfaces and carrier interfaces, finish all `Core.Typing`
    rules, then prove general source/target operational correspondence.
 
