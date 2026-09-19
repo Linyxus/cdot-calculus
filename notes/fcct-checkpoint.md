@@ -25,7 +25,7 @@ The root `CTML.Mixed` model fixes a policy `ghost : FieldName → Bool`:
   by decreasing finite term structure; they do not guard arbitrary recursive constraints.
 - `Mixed.HasType.safe` covers all native term forms, constraints, universals, Z, scalar guarded
   definitions, simultaneous ordinary-record groups, existing recursive function groups and
-  finite pure carrier systems.
+  finite pure carrier systems, including their mutual coupling with runtime rows.
 - `MixedSharedWitness` derives both contradictory bounds of the original source regression from
   EXACTLY its two original context guards, using the same member witness.
 - `MixedExamples` checks closed scalar and mutual record-recursive programs reducing to Unit;
@@ -97,13 +97,27 @@ usable fold/unfold coercions, proves their closed safety and scope consistency, 
 opaque field-view transport inside the solved cyclic whole-child scope.
 See [the solver note](fcct-ghost-row-recursion.md).
 
+`CarrierRuntimeEquations` now solves finite runtime and pure carrier blocks together. The
+runtime bodies may be intersections or other mixed guarded syntax; arbitrary constraints
+beneath ordinary records are allowed. The carrier solver's parameter locality establishes
+contractiveness of the outer runtime solution. Both blocks satisfy exact equations in one
+environment, and `HasType.recursiveCarrierRuntime` closes their scope with safety and all
+existing weakening/assumption-transport theorems.
+
+`CarrierRuntimeSelf` instantiates the previously open whole-child self graph:
+`P = precise(D, child=P, members)`, `D = Unit→R`, `R = {a: Anchor(P)}`. Its exact runtime
+object, exported existential package and arbitrary-parent field call are typed solely from
+the generated equations. A closed client executes to Unit. The remaining source allocation
+work is described in [the self-graph note](fcct-carrier-runtime-self.md).
+
 ## Next proof work
 
 1. Derive the anchored runtime field invariant from general source field views, including opaque
    selections such as `{a:q.X}`, and preserve it across aliases and dependent calls.
-2. Solve the generated whole-child carrier equations together with runtime payload equations.
-   Both finite pure carrier systems and runtime record systems now have sound scoped rules.
-   Their mutual coupling must be integrated, using the carrier solver's parameter locality.
+2. Generate the finite coupled carrier/runtime graphs from arbitrary source definitions and
+   path demands. The solver and self-field graph are checked; general source allocation and
+   interface alignment remain. Field presence must be represented separately from child
+   upper bounds so an abstract field view also justifies runtime projection.
 3. Unify the type-only constructor interfaces and carrier interfaces, finish all `Core.Typing`
    rules, then prove general source/target operational correspondence.
 

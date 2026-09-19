@@ -64,6 +64,8 @@ import CDotFCCT.CTML.CarrierEquationSyntax
 import CDotFCCT.CTML.CarrierEquationAliases
 import CDotFCCT.CTML.CarrierAliasScopes
 import CDotFCCT.CTML.CarrierEquationExamples
+import CDotFCCT.CTML.CarrierRuntimeSelf
+import CDotFCCT.CTML.CarrierFieldPresence
 
 /-!
 # The core-DOT to CTML Core bridge

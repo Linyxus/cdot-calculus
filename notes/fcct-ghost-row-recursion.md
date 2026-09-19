@@ -68,8 +68,14 @@ all original indices permits a generic solution-transfer proof for every origina
 equation. The checked raw-expression entry point computes the guard certificates
 and rejects unguarded negative self-recursion.
 
-The remaining semantic integration is mutual coupling with runtime rows; the
-carrier solver's parameter locality provides the necessary composition property.
+`CarrierRuntimeEquations.lean` now composes the finite carrier solver with a finite
+runtime solution. The runtime bodies must guard every name in both blocks, but
+may use intersections and arbitrary constraints beneath ordinary records. The
+carrier solver's parameter locality establishes the outer operator's contractiveness.
+Exact equations, downwardness, scope validation, safety and weakening are checked
+for the combined rule. `CarrierRuntimeSelf` uses it for the whole-child self graph;
+general allocation from source definitions remains compiler work.
+
 A recursive constraint can inspect inclusion on arbitrary terms at
 the same index; its observations need not decrease term size. The structural
 argument gives no permission to admit the constrained Curry cycle. Recursive

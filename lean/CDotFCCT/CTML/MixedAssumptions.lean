@@ -160,6 +160,24 @@ mutual
           set_option backward.isDefEq.respectTransparency false in
             simp only [WFConstraint.weakenBy_sub, WFConstraint.weakenBy_sup]
           exact lifted
+    | .recursiveCarrierRuntime system h => by
+        refine .recursiveCarrierRuntime system ?_
+        refine h.mapAssumptions
+          (target := (system.openContext ⟨s.typeDepth, target⟩).assumptions) ?_
+        intro found membership
+        rcases List.mem_append.mp membership with equation | outer
+        · exact @Subtype.hyp (system.openContext ⟨s.typeDepth, target⟩) found
+            (List.mem_append_left _ equation)
+        · obtain ⟨old, member, rfl⟩ := List.mem_map.mp outer
+          have weakened := (resolve old member).weakenTypes system.size
+          have lifted := weakened.mapAssumptions
+            (target := (system.openContext ⟨s.typeDepth, target⟩).assumptions)
+            (fun guard member =>
+              @Subtype.hyp (system.openContext ⟨s.typeDepth, target⟩) guard
+                (List.mem_append_right _ member))
+          set_option backward.isDefEq.respectTransparency false in
+            simp only [WFConstraint.weakenBy_sub, WFConstraint.weakenBy_sup]
+          exact lifted
     | .recursive definition h => by
         refine .recursive definition ?_
         refine h.mapAssumptions

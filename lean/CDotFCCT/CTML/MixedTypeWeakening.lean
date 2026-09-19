@@ -1,6 +1,7 @@
 import CDotFCCT.CTML.MixedGuardWeakening
 import CDotFCCT.CTML.MixedCalculus
 import CDotFCCT.CTML.CarrierEquationBinding
+import CDotFCCT.CTML.CarrierRuntimeBinding
 
 /-!
 # Type-variable weakening through mixed recursive scopes
@@ -202,6 +203,17 @@ mutual
           ((type.liftAt index valid).weakenBy size)
           (Ty.liftAt_block_comm type.raw index 0 size (Nat.zero_le index)).symm
           (h.liftTypeAt (index + size) (by change _ ≤ s.typeDepth + size; omega))
+
+    | .recursiveCarrierRuntime system h => by
+        refine .recursiveCarrierRuntime (system.liftAt index valid) ?_
+        exact HasType.castContextTo (system.openContext_liftAt s index valid)
+          ((context.insertTypeAt index valid).bindTypes system.size)
+          (context.insertTypeAt_bindTypes index system.size valid)
+          (Term.liftTyAt_block_comm term index system.size).symm
+          ((type.liftAt index valid).weakenBy system.size)
+          (Ty.liftAt_block_comm type.raw index 0 system.size (Nat.zero_le index)).symm
+          (h.liftTypeAt (index + system.size)
+            (by change _ ≤ s.typeDepth + system.size; omega))
 
   theorem FieldsHaveType.liftTypeAt {s : SubtypingContext}
       {context : TypingContext s.typeDepth} {names : List FieldName} {fields : TermFields names}

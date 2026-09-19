@@ -77,6 +77,12 @@ mutual
         exact (context.insertAt_bindTypes pos size extra).symm ▸
           h.weakenAt pos (extra.weakenBy size)
 
+    | .recursiveCarrierRuntime system h => by
+        refine .recursiveCarrierRuntime system ?_
+        rw [← Term.liftTy_liftAt_comm]
+        exact (context.insertAt_bindTypes pos system.size extra).symm ▸
+          h.weakenAt pos (extra.weakenBy system.size)
+
   theorem FieldsHaveType.weakenAt {s : SubtypingContext} {context : TypingContext s.typeDepth}
       {names : List FieldName} {fields : TermFields names}
       {types : List (FieldName × WFTy s.typeDepth)}

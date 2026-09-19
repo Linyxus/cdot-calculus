@@ -1,5 +1,6 @@
 import CDotFCCT.CTML.MixedSystems
 import CDotFCCT.CTML.CarrierEquationTyping
+import CDotFCCT.CTML.CarrierRuntimeTyping
 
 /-!
 # Native CTML with ghost inversion and ordinary record guards
@@ -83,6 +84,12 @@ mutual
     | recursiveCarrierSystem (system : CarrierEquation.System ghost s.typeDepth size) :
         HasType ghost (system.openContext s) (context.bindTypes size)
           (term.liftTy size) (type.weakenBy size) → HasType ghost s context term type
+    /-- Pure carrier rows and guarded runtime rows may refer to each other in one scope. -/
+    | recursiveCarrierRuntime
+        (system : CarrierRuntime.System ghost s.typeDepth runtimeSize carrierSize) :
+        HasType ghost (system.openContext s) (context.bindTypes system.size)
+          (term.liftTy system.size) (type.weakenBy system.size) →
+        HasType ghost s context term type
 
   /-- Native record fields may themselves contain local recursive type definitions. -/
   inductive FieldsHaveType (ghost : FieldName → Bool) :
@@ -124,6 +131,9 @@ theorem HasType.var_in_scope {s : SubtypingContext}
       exact Nat.lt_of_lt_of_eq
         (typing.var_in_scope index (congrArg (Term.liftTy _) isVar)) (List.length_map ..)
   | .recursiveCarrierSystem _ typing => by
+      exact Nat.lt_of_lt_of_eq
+        (typing.var_in_scope index (congrArg (Term.liftTy _) isVar)) (List.length_map ..)
+  | .recursiveCarrierRuntime _ typing => by
       exact Nat.lt_of_lt_of_eq
         (typing.var_in_scope index (congrArg (Term.liftTy _) isVar)) (List.length_map ..)
 

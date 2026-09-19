@@ -76,6 +76,7 @@ mutual
     | .recursiveRecordSystem system ordinary body =>
         body.sound.recursiveRecordSystem system ordinary
     | .recursiveCarrierSystem system body => body.sound.recursiveCarrierSystem system
+    | .recursiveCarrierRuntime system body => body.sound.recursiveCarrierRuntime system
 
   theorem FieldsHaveType.sound {s : SubtypingContext}
       {context : TypingContext s.typeDepth} {names : List FieldName} {fields : TermFields names}
