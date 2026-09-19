@@ -1,5 +1,6 @@
 import CDotFCCT.CoreDerivation
 import CDotFCCT.MemberUses
+import CDotFCCT.CarrierPathGraph
 import CDotFCCT.CTML.MixedCarrierLayout
 import CDotFCCT.CTML.MixedSafety
 
@@ -7,14 +8,15 @@ import CDotFCCT.CTML.MixedSafety
 # Derivation-directed translation of shared member bounds
 
 This is the constraint-producing part of the experimental carrier translation.
-Its input is the actual core-DOT judgment. Context assumptions come exclusively
-from source bindings; selection rules must recover their bounds from those
-assumptions using the translated source derivation.
+Its input is the actual core-DOT judgment. Source assumptions come exclusively
+from source bindings; additional path equations come from a solved finite system.
+Selection rules recover their bounds using the translated source derivation.
 
 The present pass handles member and field bounds, intersections, selections and
 singleton transport between paths. A field view retains a presence flag and
-constrains a child carrier; runtime shape and child-row equations remain separate
-obligations.
+constrains a child carrier. Solved finite path equations justify source field
+elimination and introduction; a runtime shape invariant remains a separate
+obligation.
 Unsupported source rules return `none`.
 The payload type has its own paired slot, so a runtime view yields a bound usable
 by ordinary term typing. `CarrierRuntime` uses this layout for environment values;
@@ -429,11 +431,54 @@ structure SubtypingResult (layout : Layout) (guards : List (WFConstraint layout.
   supCode : TypeCode layout sourceSup sup
   proof : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ sub sup
 
+/-- A generated equation connects one child component to the child's precise row. -/
+structure ChildLink (layout : Layout) (guards : List (WFConstraint layout.depth))
+    (path : Path) (label : Signature.TrmLabel) where
+  type : WFTy layout.depth
+  found : layout.child path label = some type
+  fold : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+    (layout.precise (path.selectField label)) type
+  unfold : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+    type (layout.precise (path.selectField label))
+
+abbrev ChildLinks (layout : Layout) (guards : List (WFConstraint layout.depth)) :=
+  (path : Path) → (label : Signature.TrmLabel) → Option (ChildLink layout guards path label)
+
+structure EdgePresence (layout : Layout) (guards : List (WFConstraint layout.depth))
+    (path : Path) (label : Signature.TrmLabel) where
+  type : WFTy layout.depth
+  found : layout.fieldPresence path label = some type
+  proof : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ WFTy.top type
+
+/-- Each edge in a typed path carries the presence established by its source derivation. -/
+inductive PathPresence (layout : Layout) (guards : List (WFConstraint layout.depth)) :
+    Path → Type where
+  | root (name : Var) : PathPresence layout guards (.var name)
+  | field {path : Path} {label : Signature.TrmLabel} : PathPresence layout guards path →
+      EdgePresence layout guards path label → PathPresence layout guards (path.selectField label)
+
+def PathPresence.parent {layout : Layout} {guards : List (WFConstraint layout.depth)}
+    {path : Path} {label : Signature.TrmLabel}
+    (present : PathPresence layout guards (path.selectField label)) :
+    PathPresence layout guards path := by
+  cases path with
+  | select root fields => cases present with
+    | field parent _ => exact parent
+
+def PathPresence.last {layout : Layout} {guards : List (WFConstraint layout.depth)}
+    {path : Path} {label : Signature.TrmLabel}
+    (present : PathPresence layout guards (path.selectField label)) :
+    EdgePresence layout guards path label := by
+  cases path with
+  | select root fields => cases present with
+    | field _ edge => exact edge
+
 structure PathResult (layout : Layout) (guards : List (WFConstraint layout.depth))
     (path : Path) (source : Typ) where
   type : WFTy layout.depth
   code : TypeCode layout source type
   proof : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ (layout.precise path) type
+  present : PathPresence layout guards path
 
 structure Equivalence (s : SubtypingContext) (left right : WFTy s.typeDepth) : Type where
   forward : InvertingSubtype carrierPolicy s left right
@@ -546,38 +591,63 @@ mutual
   /-- Follow a source path derivation; no requested bound is added to the context. -/
   def pathTyping {layout : Layout} {context : Ctx}
       {guards : List (WFConstraint layout.depth)} (translated : ContextCode layout context guards)
+      (equations : List (WFConstraint layout.depth))
+      (children : ChildLinks layout (equations ++ guards))
       {path : Path} {source : Typ} (derivation : Core.Typing context (.path path) source) :
-      Option (PathResult layout guards path source) :=
+      Option (PathResult layout (equations ++ guards) path source) :=
     match derivation with
     | .var lookup => do
         let ⟨target, code⟩ ← encode layout source
         return ⟨target, code,
-          .native (@CTMLCore.Subtype.hyp ⟨layout.depth, guards⟩
-            (WFConstraint.constr (layout.precise _) target) (translated.contains lookup code))⟩
+          .native (@CTMLCore.Subtype.hyp ⟨layout.depth, equations ++ guards⟩
+            (WFConstraint.constr (layout.precise _) target)
+            (List.mem_append_right equations (translated.contains lookup code))), .root _⟩
     | .andIntro first second => do
-        let left ← pathTyping translated first
-        let right ← pathTyping translated second
-        return ⟨_, .inter left.code right.code, interIntro left.proof right.proof⟩
+        let left ← pathTyping translated equations children first
+        let right ← pathTyping translated equations children second
+        return ⟨_, .inter left.code right.code, interIntro left.proof right.proof, left.present⟩
     | .sub value bound => do
-        let valueCode ← pathTyping translated value
-        let boundCode ← subtyping translated bound
+        let valueCode ← pathTyping translated equations children value
+        let boundCode ← subtyping translated equations children bound
         return ⟨boundCode.sup, boundCode.supCode,
-          valueCode.proof.trans ((valueCode.code.unique boundCode.subCode).symm ▸ boundCode.proof)⟩
-    | .self _ => do
+          valueCode.proof.trans ((valueCode.code.unique boundCode.subCode).symm ▸ boundCode.proof),
+          valueCode.present⟩
+    | .self value => do
+        let existing ← pathTyping translated equations children value
         let ⟨_, .singleton named complete⟩ ← encode layout (.sngl path)
-        return ⟨_, .singleton named complete, .native .refl⟩
+        return ⟨_, .singleton named complete, .native .refl, existing.present⟩
     | .sngl equality value => do
-        let ⟨_, .singleton _ _, aliasProof⟩ ← pathTyping translated equality
-        let valueCode ← pathTyping translated value
-        return ⟨_, valueCode.code, aliasProof.trans valueCode.proof⟩
-    | .newElim _ | .rcdIntro _ | .pathElim _ _ |
-      .recIntro _ | .recElim _ => none
+        let ⟨_, .singleton _ _, aliasProof, present⟩ ←
+          pathTyping translated equations children equality
+        let valueCode ← pathTyping translated equations children value
+        return ⟨_, valueCode.code, aliasProof.trans valueCode.proof, present⟩
+    | @Core.Typing.newElim _ _ parent label _ value => do
+        let ⟨_, .field present code, proof, parentExists⟩ ←
+          pathTyping translated equations children value
+        let link ← children parent label
+        match found : layout.fieldPresence parent label with
+        | none => none
+        | some presence =>
+            return ⟨_, code, link.fold.trans (Layout.fieldChildBound present link.found proof),
+              .field parentExists ⟨presence, found, Layout.fieldPresenceBound present found proof⟩⟩
+    | @Core.Typing.rcdIntro _ _ _ parent label value =>
+        if present : label ∈ layout.fieldLabels then do
+          let child ← pathTyping translated equations children value
+          let link ← children parent label
+          let existsField := child.present.last
+          return ⟨_, .field present child.code,
+            Layout.fieldView_intro present existsField.found link.found existsField.proof
+              (link.unfold.trans child.proof), child.present.parent⟩
+        else none
+    | .pathElim _ _ | .recIntro _ | .recElim _ => none
 
   /-- Translate the bound-related cases of the actual core-DOT subtyping derivation. -/
   def subtyping {layout : Layout} {context : Ctx}
       {guards : List (WFConstraint layout.depth)} (translated : ContextCode layout context guards)
+      (equations : List (WFConstraint layout.depth))
+      (children : ChildLinks layout (equations ++ guards))
       {sourceSub sourceSup : Typ} (derivation : Core.Subtyping context sourceSub sourceSup) :
-      Option (SubtypingResult layout guards sourceSub sourceSup) :=
+      Option (SubtypingResult layout (equations ++ guards) sourceSub sourceSup) :=
     match derivation with
     | .top => do
         let ⟨_, code⟩ ← encode layout sourceSub
@@ -589,8 +659,8 @@ mutual
         let ⟨_, code⟩ ← encode layout sourceSub
         return ⟨_, _, code, code, .native .refl⟩
     | .trans first second => do
-        let left ← subtyping translated first
-        let right ← subtyping translated second
+        let left ← subtyping translated equations children first
+        let right ← subtyping translated equations children second
         return ⟨left.sub, right.sup, left.subCode, right.supCode,
           left.proof.trans ((left.supCode.unique right.subCode).symm ▸ right.proof)⟩
     | @Core.Subtyping.andLeft _ _ leftSource rightSource => do
@@ -602,14 +672,14 @@ mutual
         let ⟨_, right⟩ ← encode layout rightSource
         return ⟨_, _, .inter left right, right, .native .interRight⟩
     | .andIntro first second => do
-        let left ← subtyping translated first
-        let right ← subtyping translated second
+        let left ← subtyping translated equations children first
+        let right ← subtyping translated equations children second
         return ⟨left.sub, _, left.subCode, .inter left.supCode right.supCode,
           interIntro left.proof ((left.subCode.unique right.subCode).symm ▸ right.proof)⟩
     | @Core.Subtyping.typ _ _ _ _ _ _ label lower upper =>
         if present : label ∈ layout.labels then do
-          let lowerCode ← subtyping translated lower
-          let upperCode ← subtyping translated upper
+          let lowerCode ← subtyping translated equations children lower
+          let upperCode ← subtyping translated equations children upper
           return ⟨_, _, .member present lowerCode.supCode upperCode.subCode,
             .member present lowerCode.subCode upperCode.supCode,
             memberVariance (layout.memberSlot label present)
@@ -617,14 +687,14 @@ mutual
         else none
     | @Core.Subtyping.fld _ _ _ _ label body =>
         if present : label ∈ layout.fieldLabels then do
-          let code ← subtyping translated body
+          let code ← subtyping translated equations children body
           return ⟨_, _, .field present code.subCode, .field present code.supCode,
             Layout.fieldView_mono present code.proof⟩
         else none
     | .selLo member => do
-        let value ← pathTyping translated member
+        let value ← pathTyping translated equations children member
         match value with
-        | ⟨_, .member present lower _, proof⟩ =>
+        | ⟨_, .member present lower _, proof, _⟩ =>
             match found : layout.witness _ _ with
             | none => none
             | some witness =>
@@ -632,9 +702,9 @@ mutual
                   memberLowerBound (layout.memberSlot _ present) (carrierPolicy_names layout.slots)
                     (.native .refl) (Layout.asSlot present found proof)⟩
     | .selHi member => do
-        let value ← pathTyping translated member
+        let value ← pathTyping translated equations children member
         match value with
-        | ⟨_, .member present _ upper, proof⟩ =>
+        | ⟨_, .member present _ upper, proof, _⟩ =>
             match found : layout.witness _ _ with
             | none => none
             | some witness =>
@@ -642,7 +712,8 @@ mutual
                   memberUpperBound (layout.memberSlot _ present) (carrierPolicy_names layout.slots)
                     (.native .refl) (Layout.asSlot present found proof)⟩
     | .snglPQ equality _ _ | .snglQP equality _ _ => do
-        let ⟨_, .singleton _ _, equalityProof⟩ ← pathTyping translated equality
+        let ⟨_, .singleton _ _, equalityProof, _⟩ ←
+          pathTyping translated equations children equality
         let ⟨_, subCode⟩ ← encode layout sourceSub
         let ⟨_, supCode⟩ ← encode layout sourceSup
         let replacement ← subCode.transport equalityProof supCode
@@ -702,7 +773,7 @@ def fieldLabels (events : List MemberUses.Event) : List Signature.TrmLabel :=
   (events.flatMap eventFieldLabels).eraseDups
 
 def paths (events : List MemberUses.Event) : List MemberUses.PathKey :=
-  (events.flatMap eventPaths).eraseDups
+  CarrierPathGraph.close (events.flatMap eventPaths)
 
 structure Key where
   path : MemberUses.PathKey
@@ -753,24 +824,150 @@ theorem Layout.ofEvents_complete {events : List MemberUses.Event} {scope : Membe
     simp only [Layout.component, Layout.ofEvents, witnessAt,
       dite_eq_left (key_present present labelPresent), Option.isSome_some]
 
+/-- A source-derived witness table and its solved finite path equations. -/
+structure Allocation where
+  events : List MemberUses.Event
+  scope : MemberUses.Scope
+
+def Allocation.graph (allocated : Allocation) : CarrierPathGraph.Graph Slot where
+  support := slots allocated.events
+  nodes := if fieldLabels allocated.events = [] then [] else paths allocated.events
+  childField
+    | .child label => some label
+    | _ => none
+
+def Allocation.outer (allocated : Allocation) (node : MemberUses.PathKey) (slot : Slot) :
+    WFTy (keys allocated.events).length :=
+  if present : (⟨node, slot⟩ : Key) ∈ keys allocated.events then
+    WFTy.var ((keys allocated.events).idxOf ⟨node, slot⟩) (List.idxOf_lt_length_of_mem present)
+  else WFTy.top
+
+def Allocation.system (allocated : Allocation) := allocated.graph.system allocated.outer
+
+def Allocation.at (allocated : Allocation) (path : Path) (slot : Slot) :
+    Option (WFTy ((keys allocated.events).length + allocated.graph.nodes.length)) :=
+  match path with
+  | .select (.bound _) _ => none
+  | .select (.free name) fields =>
+      let node : MemberUses.PathKey := ⟨allocated.scope.owner name, fields⟩
+      if (⟨node, slot⟩ : Key) ∈ keys allocated.events then
+        some (allocated.graph.component allocated.outer node slot).compile
+      else none
+
+def Allocation.layout (allocated : Allocation) : Layout where
+  depth := (keys allocated.events).length + allocated.graph.nodes.length
+  labels := labels allocated.events
+  fieldLabels := fieldLabels allocated.events
+  witness path label := allocated.at path (.member label)
+  payload path := allocated.at path .payload
+  fieldPresence path label := allocated.at path (.present label)
+  child path label := allocated.at path (.child label)
+
+def Allocation.equations (allocated : Allocation) : List (WFConstraint allocated.layout.depth) :=
+  allocated.system.equations
+
+/-- The generated graph equations have a solution for every outer witness environment. -/
+theorem Allocation.equations_valid (allocated : Allocation) (env : Indexed.Environment) (n : Nat) :
+    Validates carrierPolicy ⟨allocated.layout.depth, allocated.equations⟩
+      (allocated.system.environment env) n := by
+  change Validates carrierPolicy
+    ⟨(keys allocated.events).length + allocated.graph.nodes.length, allocated.system.equations⟩
+    (allocated.system.environment env) n
+  have outer : Validates carrierPolicy ⟨(keys allocated.events).length, []⟩ env n :=
+    fun _ member => (List.not_mem_nil member).elim
+  simpa only [CarrierEquation.System.openContext, List.map_nil, List.append_nil] using
+    allocated.system.validates outer
+
+theorem Allocation.equations_noCollapse (allocated : Allocation) :
+    ¬ InvertingSubtype carrierPolicy ⟨allocated.layout.depth, allocated.equations⟩
+      WFTy.top WFTy.bottom :=
+  CTML.Mixed.noCollapse
+    (allocated.equations_valid (fun _ _ => (fun _ => False, fun _ => False)) 0)
+
+theorem Allocation.component (allocated : Allocation) (path : Path) (slot : Slot) :
+    allocated.layout.component path slot = allocated.at path slot := by
+  cases slot <;> rfl
+
+theorem Allocation.at_eq (allocated : Allocation) {name : Var} {fields : Fields}
+    (present : (⟨allocated.scope.owner name, fields⟩ : MemberUses.PathKey) ∈ paths allocated.events)
+    {slot : Slot} (supported : slot ∈ slots allocated.events) :
+    allocated.at (.select (.free name) fields) slot =
+      some (allocated.graph.component allocated.outer
+        ⟨allocated.scope.owner name, fields⟩ slot).compile := by
+  simp only [Allocation.at, ite_eq_left (key_present present supported)]
+
+theorem Allocation.precise (allocated : Allocation) {name : Var} {fields : Fields}
+    (present : (⟨allocated.scope.owner name, fields⟩ : MemberUses.PathKey) ∈
+      paths allocated.events) :
+    allocated.layout.precise (.select (.free name) fields) =
+      allocated.graph.carrier allocated.outer ⟨allocated.scope.owner name, fields⟩ := by
+  apply CarrierPathGraph.precise_congr (slots allocated.events)
+  intro slot supported
+  rw [allocated.component, allocated.at_eq present supported]
+  rfl
+
+theorem Allocation.node_present (allocated : Allocation) {node : MemberUses.PathKey}
+    (present : node ∈ allocated.graph.nodes) : node ∈ paths allocated.events := by
+  simp only [Allocation.graph] at present
+  split at present
+  · exact (List.not_mem_nil present).elim
+  · exact present
+
+/-- Equation evidence is generated from the solved graph; callers supply only source guards. -/
+def Allocation.children (allocated : Allocation)
+    (source : List (WFConstraint allocated.layout.depth)) :
+    ChildLinks allocated.layout (allocated.equations ++ source) :=
+  fun path label =>
+    match path with
+    | .select (.bound _) _ => none
+    | .select (.free name) fields =>
+        if parentPresent : (⟨allocated.scope.owner name, fields⟩ : MemberUses.PathKey) ∈
+            paths allocated.events then
+          if fieldPresent : label ∈ fieldLabels allocated.events then
+            if childPresent :
+                (⟨allocated.scope.owner name, label :: fields⟩ : MemberUses.PathKey) ∈
+                  allocated.graph.nodes then
+              some ⟨_, allocated.at_eq parentPresent
+                (Layout.fieldPresent (layout := allocated.layout) fieldPresent),
+                by
+                  rw [Path.selectField, allocated.precise (allocated.node_present childPresent)]
+                  exact allocated.graph.child_fold allocated.outer source
+                    ⟨allocated.scope.owner name, fields⟩ (.child label) label rfl childPresent,
+                by
+                  rw [Path.selectField, allocated.precise (allocated.node_present childPresent)]
+                  exact allocated.graph.child_unfold allocated.outer source
+                    ⟨allocated.scope.owner name, fields⟩ (.child label) label rfl childPresent⟩
+            else none
+          else none
+        else none
+
 def contextEvents (context : Ctx) : List MemberUses.Event :=
   context.map (fun binding => .typeUse ⟨[], context, binding.2⟩)
 
 structure CompiledSubtyping (context : Ctx) (sourceSub sourceSup : Typ) where
-  layout : Layout
-  guards : List (WFConstraint layout.depth)
-  contextCode : ContextCode layout context guards
-  result : SubtypingResult layout guards sourceSub sourceSup
+  allocation : Allocation
+  sourceGuards : List (WFConstraint allocation.layout.depth)
+  contextCode : ContextCode allocation.layout context sourceGuards
+  result : SubtypingResult allocation.layout (allocation.equations ++ sourceGuards)
+    sourceSub sourceSup
+
+def CompiledSubtyping.layout {context : Ctx} {sourceSub sourceSup : Typ}
+    (compiled : CompiledSubtyping context sourceSub sourceSup) : Layout :=
+  compiled.allocation.layout
+
+def CompiledSubtyping.guards {context : Ctx} {sourceSub sourceSup : Typ}
+    (compiled : CompiledSubtyping context sourceSub sourceSup) :
+    List (WFConstraint compiled.layout.depth) :=
+  compiled.allocation.equations ++ compiled.sourceGuards
 
 /-- Generate the layout and guards, then check the actual source derivation. -/
 def compileSubtyping {context : Ctx} {sourceSub sourceSup : Typ}
     (derivation : Core.Subtyping context sourceSub sourceSup) :
     Option (CompiledSubtyping context sourceSub sourceSup) := do
-  let layout := Layout.ofEvents
-    (contextEvents context ++ MemberUses.subtyping derivation [] []) []
-  let ⟨guards, contextCode⟩ ← encodeContext layout context
-  let result ← subtyping contextCode derivation
-  return ⟨layout, guards, contextCode, result⟩
+  let allocated : Allocation := ⟨contextEvents context ++ MemberUses.subtyping derivation [] [], []⟩
+  let ⟨guards, contextCode⟩ ← encodeContext allocated.layout context
+  let result ← subtyping contextCode allocated.equations (allocated.children guards) derivation
+  return ⟨allocated, guards, contextCode, result⟩
 
 /-- A generated ghost bound has the corresponding checked identity coercion. -/
 theorem SubtypingResult.identityTyping {layout : Layout}
@@ -819,7 +1016,7 @@ def CompiledSubtyping.closedType {context : Ctx} {sourceSub sourceSup : Typ}
   abstractTypes compiled.layout.depth
     (abstractGuards compiled.guards (WFTy.arrow compiled.result.sub compiled.result.sup))
 
-/-- Both witness and constraint abstractions are generated from the source context. -/
+/-- Witnesses and constraints come from source bindings and the solved path graph. -/
 theorem CompiledSubtyping.closedTyping {context : Ctx} {sourceSub sourceSup : Typ}
     (compiled : CompiledSubtyping context sourceSub sourceSup) :
     CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty (.abs (.var 0))

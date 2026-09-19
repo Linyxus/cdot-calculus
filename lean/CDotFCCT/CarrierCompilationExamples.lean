@@ -28,7 +28,7 @@ def compiled : CompiledSubtyping SharedWitnessRegression.sourceContext .top .bot
 /-- Each path gets a runtime-type witness as well as both source member witnesses. -/
 theorem completeRows : compiled.layout.depth = 6 := by decide +kernel
 
-theorem twoContextGuards : compiled.guards.length = 2 := compiled.contextCode.length
+theorem twoContextGuards : compiled.guards.length = 2 := by decide +kernel
 
 theorem collapse :
     InvertingSubtype carrierPolicy ⟨compiled.layout.depth, compiled.guards⟩ WFTy.top WFTy.bottom :=
@@ -92,7 +92,7 @@ def compiledReplacement : CompiledSubtyping aliasContext beforeReplacement after
 def compiledReverse : CompiledSubtyping aliasContext afterReplacement beforeReplacement :=
   (compileSubtyping replaceLowerBack).get (by decide +kernel)
 
-theorem replacementContextGuards : compiledReplacement.guards.length = 3 :=
+theorem replacementContextGuards : compiledReplacement.sourceGuards.length = 3 :=
   compiledReplacement.contextCode.length
 
 theorem replacementClosedTyping :
@@ -122,7 +122,7 @@ def fieldUpper : Core.Subtyping aliasContext opaqueField (.rcd (.trm "a" .top)) 
 def compiledField : CompiledSubtyping aliasContext opaqueField (.rcd (.trm "a" .top)) :=
   (compileSubtyping fieldUpper).get (by decide +kernel)
 
-theorem fieldContextGuards : compiledField.guards.length = 3 :=
+theorem fieldContextGuards : compiledField.sourceGuards.length = 3 :=
   compiledField.contextCode.length
 
 theorem fieldClosedTyping :
@@ -144,6 +144,46 @@ def compiledFieldReplacement :
 theorem fieldReplacementClosedTyping :
     CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
       (.abs (.var 0)) compiledFieldReplacement.closedType := compiledFieldReplacement.closedTyping
+
+def graphMember : Typ := .rcd (.typ "A" .bot .top)
+def graphContext : Ctx := [(0, .rcd (.trm "a" (.rcd (.trm "b" graphMember))))]
+def graphPath : Path := ((.var 0 : Path).selectField "a").selectField "b"
+
+/-- Two field eliminations reach the same finite graph node used by the selected member. -/
+def graphSelection : Core.Subtyping graphContext (.path graphPath "A") .top :=
+  .selHi (.newElim (.newElim (.var .here)))
+
+def compiledGraph : CompiledSubtyping graphContext (.path graphPath "A") .top :=
+  (compileSubtyping graphSelection).get (by decide +kernel)
+
+theorem graphSourceGuards : compiledGraph.sourceGuards.length = 1 :=
+  compiledGraph.contextCode.length
+
+theorem graphClosedTyping :
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
+      (.abs (.var 0)) compiledGraph.closedType := compiledGraph.closedTyping
+
+def graphAliasContext : Ctx :=
+  [(0, .rcd (.trm "a" (.sngl (.var 1)))), (1, graphMember)]
+
+/-- Presence follows the left path through an alias to a different root. -/
+def graphAliasField : Core.Typing graphAliasContext (.path ((.var 0 : Path).selectField "a"))
+    graphMember :=
+  .sngl (.newElim (.var .here)) (.var (.there (by decide) .here))
+
+def graphAliasIntroduction : Core.Typing graphAliasContext (.var 0)
+    (.rcd (.trm "a" graphMember)) := .rcdIntro graphAliasField
+
+def graphAliasSelection : Core.Subtyping graphAliasContext
+    (.path ((.var 0 : Path).selectField "a") "A") .top := .selHi graphAliasField
+
+def compiledGraphAlias : CompiledSubtyping graphAliasContext
+    (.path ((.var 0 : Path).selectField "a") "A") .top :=
+  (compileSubtyping graphAliasSelection).get (by decide +kernel)
+
+theorem graphAliasClosedTyping :
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
+      (.abs (.var 0)) compiledGraphAlias.closedType := compiledGraphAlias.closedTyping
 
 /-- Unsupported recursive types fail at the encoder instead of receiving a dummy type. -/
 theorem rejectsRecursive :

@@ -42,6 +42,14 @@ Generated packing/opening scopes and whole-package coercions use the same mixed 
 Both automatic type-only object passes also produce mixed proofs for their existing output and
 alias interfaces. No new target evidence is required from compiler callers.
 
+`CarrierPathGraph` now generates a finite pure equation system for demanded paths, closed under
+prefixes. The compiler uses its solved child equations for actual `Core.newElim` and `rcdIntro`
+derivations. `PathPresence` retains each edge's source-derived presence evidence through aliases.
+`ContextCode` still has one guard per source binding; `Allocation.equations` is a separate prefix
+whose satisfiability and non-collapse are proved. Nested `p.a.b.A` selection and alias-based field
+introduction compile automatically. Runtime variable packaging remains exact; a general runtime
+projection pass is still missing.
+
 The older `Transparent` model remains checked prior work. Its arrow-only rule is not a limitation
 on DOT or on native CTML recursion. The mixed relation remains in the root bridge; it has not
 replaced the native submodule judgment.
@@ -122,15 +130,34 @@ Present fields require their actual payload shape; absent fields discharge the c
 bound under `Top ≤ Bottom`. A finite graph interface must carry these invariants through
 successive child openings. No unconditional runtime shape is inferred from child bounds.
 
+`CarrierRuntimeInterface` provides one shared existential telescope for a finite demanded graph.
+Its generated guards retain child equations and conditional runtime shapes. Packing/opening is
+typed, and `twoStep` recovers successive field shapes and final witnesses from the actual exported
+guard list plus explicit source presence proofs. Producers must still generate those invariants;
+this generic interface is not a completed source runtime compiler.
+
+`RecursiveCarrierBoundObstruction` checks a separate first-class issue. The source can derive
+`p.a : p.A` when `p : q.X` and `q.X` is bounded above by
+`μself.({A:Bottom..Top} & {a:self.A})`. A uniform scalar bound on the current independent-component
+union carrier cannot characterize the needed relation `child ≤ A`: any bound admitting the two
+diagonal component assignments also admits their invalid mixture. This is proved for arbitrary
+semantic upper candidates, not just one attempted syntax. It limits this representation, not
+FCCT in general. Constraint assertions and local universal-dictionary extraction are checked, but
+the unchanged membership test cannot support a complete such dictionary. Correlated carriers and
+explicit runtime coercion evidence are being investigated. See
+[the recursive-bound obligation](fcct-recursive-bound-obligation.md).
+
 ## Next proof work
 
-1. Derive the anchored runtime field invariant from general source field views, including opaque
+1. Resolve first-class recursive bounds without losing relationships between an unknown object's
+   own components. A finite graph for named paths does not by itself solve this issue.
+2. Derive the anchored runtime field invariant from general source field views, including opaque
    selections such as `{a:q.X}`, and preserve it across aliases and dependent calls.
-2. Generate the finite coupled carrier/runtime graphs from arbitrary source definitions and
+3. Generate the finite coupled carrier/runtime graphs from arbitrary source definitions and
    path demands. The solver and self-field graph are checked; general source allocation and
    interface alignment remain. Field presence must be represented separately from child
    upper bounds so an abstract field view also justifies runtime projection.
-3. Unify the type-only constructor interfaces and carrier interfaces, finish all `Core.Typing`
+4. Unify the type-only constructor interfaces and carrier interfaces, finish all `Core.Typing`
    rules, then prove general source/target operational correspondence.
 
 No general translation or impossibility theorem is claimed. Operational target safety is proved;

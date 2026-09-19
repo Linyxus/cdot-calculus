@@ -47,6 +47,22 @@ theorem fieldPackageTyping :
       (CarrierCompilationExamples.compiledField.closedPackageType (WFTy.cls "Unit")) :=
   CarrierCompilationExamples.compiledField.closedPackageTyping _
 
+def compiledFieldIntroduction :
+    CompiledVariable CarrierCompilationExamples.graphAliasContext 0
+      (.rcd (.trm "a" CarrierCompilationExamples.graphMember)) :=
+  (compileVariable CarrierCompilationExamples.graphAliasIntroduction).get (by decide +kernel)
+
+/-- The source field-introduction derivation reuses its alias path's generated presence proof. -/
+theorem fieldIntroductionTyping (answer : WFTy compiledFieldIntroduction.layout.depth) :
+    CTML.Mixed.HasType carrierPolicy
+      ⟨compiledFieldIntroduction.layout.depth, compiledFieldIntroduction.guards⟩
+      (compiledFieldIntroduction.layout.runtimeContext CarrierCompilationExamples.graphAliasContext)
+      (TermCPS.compile (runtimeEnvironment CarrierCompilationExamples.graphAliasContext)
+        CarrierCompilationExamples.graphAliasIntroduction)
+      (compiledFieldIntroduction.interface.package answer) :=
+  compiledFieldIntroduction.runtime_eq CarrierCompilationExamples.graphAliasIntroduction ▸
+    compiledFieldIntroduction.typing answer
+
 def unit : Term := .record "Unit" .nil
 def identity : Term := .abs (.var 0)
 def unitType {depth : Nat} : WFTy depth := WFTy.cls "Unit"

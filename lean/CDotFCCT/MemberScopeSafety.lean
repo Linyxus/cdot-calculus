@@ -60,12 +60,19 @@ theorem ValidEvents.append {first second : List Event}
     (left : ValidEvents first) (right : ValidEvents second) : ValidEvents (first ++ second) :=
   List.forall_mem_append.mpr ⟨left, right⟩
 
+theorem subjectUse_valid {scope : Scope} (context : Ctx) (term : Trm)
+    (unique : (scope.map Prod.snd).Nodup) : ValidEvents (subjectUse scope context term) :=
+  match term with
+  | .path _ => ValidEvents.cons ⟨unique, trivial⟩ ValidEvents.nil
+  | .val _ | .app _ _ | .letE _ _ | .caseE _ _ _ _ _ => ValidEvents.nil
+
 mutual
   theorem typing_valid {context : Ctx} {term : Trm} {type : Typ}
       (derivation : Core.Typing context term type) {scope : Scope} {address : Address}
       (before : scope.Before address) : ValidEvents (typing derivation scope address) := by
     rw [typing.eq_def]
     refine ValidEvents.cons ⟨before.unique, trivial⟩ ?_
+    refine (subjectUse_valid context term before.unique).append ?_
     exact match derivation with
     | .var _ => ValidEvents.nil
     | .allIntro excluded body => by

@@ -68,8 +68,8 @@ def Result.computationType {context : Ctx} {child : Var} (compiled : Result cont
 theorem Result.lookup {context : Ctx} {child : Var} (compiled : Result context child) :
     (compiled.childCompilation.layout.runtimeContext context).Lookup
       (runtimeIndex context child) (compiled.components Slot.payload) := by
-  simpa only [Result.components, Layout.component, compiled.childCompilation.found,
-    Option.getD_some] using compiled.childCompilation.lookup
+  simpa only [Result.components, Layout.component, compiled.childCompilation.payload_eq]
+    using compiled.childCompilation.lookup
 
 /-- The complete field computation, including its self and continuation binders, is unchanged. -/
 theorem runtime_eq {context : Ctx} {tag : Path} {tagLabel : Signature.TypLabel}
@@ -119,8 +119,8 @@ theorem Result.fieldTyping {context : Ctx} {child : Var} (compiled : Result cont
       compiled.childCompilation.guards⟩)
     compiled.childCompilation.layout.slots Slot.payload List.mem_cons_self
     compiled.components field answer parentTyping
-  simpa only [Result.components, Layout.component, compiled.childCompilation.found,
-    Option.getD_some] using continuationTyping
+  simpa only [Result.components, Layout.component, compiled.childCompilation.payload_eq]
+    using continuationTyping
 
 /-- A failed child/context encoding remains an explicit unsupported case. -/
 def compile {context : Ctx} {tag : Path} {tagLabel : Signature.TypLabel}

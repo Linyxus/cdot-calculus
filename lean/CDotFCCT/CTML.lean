@@ -67,6 +67,8 @@ import CDotFCCT.CTML.CarrierEquationExamples
 import CDotFCCT.CTML.CarrierRuntimeSelf
 import CDotFCCT.CTML.CarrierFieldPresence
 import CDotFCCT.CarrierRuntimeSelfSource
+import CDotFCCT.CTML.CarrierRuntimeInterface
+import CDotFCCT.RecursiveCarrierBoundObstruction
 
 /-!
 # The core-DOT to CTML Core bridge

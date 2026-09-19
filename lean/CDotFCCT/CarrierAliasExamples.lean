@@ -57,7 +57,7 @@ theorem compiledTyping (answer : WFTy compiled.childCompilation.layout.depth) :
       (compiled.computationType (env.fieldName "a") answer) :=
   compiled.typing sourceDerivation answer
 
-theorem originalGuards : compiled.childCompilation.guards.length = context.length :=
+theorem originalGuards : compiled.childCompilation.sourceGuards.length = context.length :=
   compiled.childCompilation.contextCode.length
 
 theorem ordinaryField : carrierPolicy (env.fieldName "a") = false :=

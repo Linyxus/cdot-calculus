@@ -229,12 +229,17 @@ def binder (kind : BinderKind) (address : Address) (scope : Scope) (context : Ct
   ⟨kind, address, scope, context, representative excluded (context.dom ∪ extra),
     fun member => representative_extra _ _ (Finset.mem_union_left _ member)⟩
 
+/-- A path used only as a judgment's subject still needs a shared carrier node. -/
+def subjectUse (scope : Scope) (context : Ctx) : Trm → List Event
+  | .path path => [.typeUse ⟨scope, context, .sngl path⟩]
+  | _ => []
+
 mutual
   /-- Traverse the complete input judgment; no core constructor is rejected. -/
   def typing {context : Ctx} {term : Trm} {type : Typ}
       (derivation : Core.Typing context term type) (scope : Scope) (address : Address) :
       List Event :=
-    .typeUse ⟨scope, context, type⟩ ::
+    .typeUse ⟨scope, context, type⟩ :: subjectUse scope context term ++
     match derivation with
     | .var _ => []
     | .allIntro excluded body =>

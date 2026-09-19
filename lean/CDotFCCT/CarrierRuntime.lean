@@ -10,8 +10,8 @@ runtime environment stores a value at that type. This pass computes a CPS term
 and its record-guarded-target typing derivation from a supported source derivation
 whose term is a variable. It uses the exact variable case of `TermCPS.compile`.
 
-The result interface existentially binds every member witness and its payload
-type. Its requested view can refer to the opened source environment, as required
+The result interface existentially binds member, field and payload witnesses.
+Its requested view can refer to the opened source environment, as required
 for path-dependent result types. Translating constructors and field/function
 elimination remain separate obligations. This is not the full core-DOT compiler.
 -/
@@ -53,13 +53,31 @@ theorem lookupMapped {depth : Nat} (types : Var → WFTy depth) {names : List Va
             (ih (List.mem_of_ne_of_mem same present)))
 
 structure CompiledVariable (context : Ctx) (name : Var) (source : Typ) where
-  layout : Layout
-  guards : List (WFConstraint layout.depth)
-  contextCode : ContextCode layout context guards
-  carrier : PathResult layout guards (.var name) source
-  payload : WFTy layout.depth
-  found : layout.payload (.var name) = some payload
+  allocation : Allocation
+  sourceGuards : List (WFConstraint allocation.layout.depth)
+  contextCode : ContextCode allocation.layout context sourceGuards
+  carrier : PathResult allocation.layout (allocation.equations ++ sourceGuards) (.var name) source
+  payload : WFTy allocation.layout.depth
+  allocationFound : allocation.layout.payload (.var name) = some payload
   present : name ∈ context.map Prod.fst
+
+def CompiledVariable.layout {context : Ctx} {name : Var} {source : Typ}
+    (compiled : CompiledVariable context name source) : Layout := compiled.allocation.layout
+
+def CompiledVariable.guards {context : Ctx} {name : Var} {source : Typ}
+    (compiled : CompiledVariable context name source) :
+    List (WFConstraint compiled.layout.depth) :=
+  compiled.allocation.equations ++ compiled.sourceGuards
+
+theorem CompiledVariable.found {context : Ctx} {name : Var} {source : Typ}
+    (compiled : CompiledVariable context name source) :
+    compiled.layout.payload (.var name) = some compiled.payload := compiled.allocationFound
+
+theorem CompiledVariable.payload_eq {context : Ctx} {name : Var} {source : Typ}
+    (compiled : CompiledVariable context name source) :
+    (compiled.layout.payload (.var name)).getD WFTy.top = compiled.payload := by
+  rw [compiled.found]
+  rfl
 
 def Layout.valueInterface (layout : Layout) (view : WFTy layout.depth) :
     CTML.Interface layout.depth := CarrierLayout.interface layout.slots Slot.payload view
@@ -73,7 +91,7 @@ def CompiledVariable.instance {context : Ctx} {name : Var} {source : Typ}
     InterfaceInstance carrierPolicy ⟨compiled.layout.depth, compiled.guards⟩
       compiled.interface compiled.payload := by
   simpa only [CompiledVariable.interface, Layout.valueInterface, Layout.component,
-    compiled.found, Option.getD_some] using
+    compiled.payload_eq] using
     CarrierLayout.packingInstance (s := ⟨compiled.layout.depth, compiled.guards⟩)
       compiled.layout.slots Slot.payload List.mem_cons_self
       (fun slot => (compiled.layout.component (.var name) slot).getD WFTy.top)
@@ -88,7 +106,7 @@ theorem CompiledVariable.lookup {context : Ctx} {name : Var} {source : Typ}
     (compiled.layout.runtimeContext context).Lookup
       (runtimeIndex context name) compiled.payload := by
   simpa only [Layout.runtimeType, Layout.runtimeContext, runtimeIndex,
-    compiled.found, Option.getD_some] using
+    compiled.payload_eq] using
     lookupMapped compiled.layout.runtimeType compiled.present
 
 theorem CompiledVariable.typing {context : Ctx} {name : Var} {source : Typ}
@@ -108,13 +126,13 @@ def compileVariable {context : Ctx} {name : Var} {source : Typ}
     (derivation : Core.Typing context (.var name) source) :
     Option (CompiledVariable context name source) :=
   if present : name ∈ context.map Prod.fst then do
-    let layout := Layout.ofEvents
-      (contextEvents context ++ MemberUses.typing derivation [] []) []
-    let ⟨guards, contextCode⟩ ← encodeContext layout context
-    let carrier ← pathTyping contextCode derivation
-    match found : layout.payload (.var name) with
+    let allocated : Allocation :=
+      ⟨contextEvents context ++ MemberUses.typing derivation [] [], []⟩
+    let ⟨guards, contextCode⟩ ← encodeContext allocated.layout context
+    let carrier ← pathTyping contextCode allocated.equations (allocated.children guards) derivation
+    match found : allocated.layout.payload (.var name) with
     | none => none
-    | some payload => return ⟨layout, guards, contextCode, carrier, payload, found, present⟩
+    | some payload => return ⟨allocated, guards, contextCode, carrier, payload, found, present⟩
   else none
 
 /-- A source subtyping result transports packages without reopening or rebuilding the value. -/
