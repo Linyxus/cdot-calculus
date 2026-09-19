@@ -41,6 +41,12 @@ theorem replacementPackageTyping :
       (CarrierCompilationExamples.compiledReplacement.closedPackageType (WFTy.cls "Unit")) :=
   CarrierCompilationExamples.compiledReplacement.closedPackageTyping _
 
+/-- Field covariance is checked for the same continuation-encoded value packages. -/
+theorem fieldPackageTyping :
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty (.abs (.var 0))
+      (CarrierCompilationExamples.compiledField.closedPackageType (WFTy.cls "Unit")) :=
+  CarrierCompilationExamples.compiledField.closedPackageTyping _
+
 def unit : Term := .record "Unit" .nil
 def identity : Term := .abs (.var 0)
 def unitType {depth : Nat} : WFTy depth := WFTy.cls "Unit"
@@ -52,8 +58,29 @@ def record : Term := .record "Object" recordFields
 def singleLayout {depth : Nat} (member payload : WFTy depth) : Layout where
   depth := depth
   labels := ["A"]
+  fieldLabels := []
   witness _ _ := some member
   payload _ := some payload
+  fieldPresence _ _ := none
+  child _ _ := none
+
+def absentLayout : Layout where
+  depth := 0
+  labels := []
+  fieldLabels := ["a"]
+  witness _ _ := none
+  payload _ := some WFTy.top
+  fieldPresence _ _ := some WFTy.bottom
+  child _ _ := some WFTy.top
+
+/-- A child bound of Top does not fabricate an absent source field. -/
+theorem absentField :
+    ¬ InvertingSubtype carrierPolicy SubtypingContext.empty (absentLayout.precise (.var 0))
+      (absentLayout.fieldView "a" List.mem_cons_self WFTy.top) :=
+  fun typing => CTML.Mixed.noCollapse
+    (empty_validates carrierPolicy (fun _ _ => (fun _ => False, fun _ => False)) 0)
+    (Layout.fieldPresenceBound (layout := absentLayout) (path := .var 0)
+      List.mem_cons_self rfl typing)
 
 def carrier {depth : Nat} (member payload : WFTy depth) : WFTy depth :=
   (singleLayout member payload).precise (.var 0)
@@ -80,17 +107,17 @@ theorem payloadRecord : InvertingSubtype carrierPolicy inside delta recordType :
       (.native .interRight)
 
 def interface : CTML.Interface 0 :=
-  CarrierLayout.interface (singleLayout (WFTy.top : WFTy 0) WFTy.top).slots none view
+  CarrierLayout.interface (singleLayout (WFTy.top : WFTy 0) WFTy.top).slots Slot.payload view
 
 def clientBody : Term := .app (.proj (.var 0) "run") unit
 
-def clientScope : CarrierLayout.Opening (Option String) :=
+def clientScope : CarrierLayout.Opening Slot :=
   CarrierLayout.opening (depth := 0) (singleLayout (WFTy.top : WFTy 0) WFTy.top).slots
     view [] TypingContext.empty clientBody unitType
 
 theorem clientScopeTyping :
     CarrierLayout.Opening.Check carrierPolicy
-      (singleLayout (WFTy.top : WFTy 0) WFTy.top).slots none clientScope :=
+      (singleLayout (WFTy.top : WFTy 0) WFTy.top).slots Slot.payload clientScope :=
   .application (.projection (.subsumption (.native (.var _ _ _ .here)) payloadRecord))
     (.native (.record .nil))
 
@@ -109,7 +136,7 @@ theorem supplied : InvertingSubtype carrierPolicy SubtypingContext.empty
 def suppliedInstance :
     InterfaceInstance carrierPolicy SubtypingContext.empty interface recordType := by
   exact CarrierLayout.packingInstance (s := SubtypingContext.empty)
-    (singleLayout WFTy.top recordType).slots none List.mem_cons_self
+    (singleLayout WFTy.top recordType).slots Slot.payload List.mem_cons_self
     (fun slot => ((singleLayout WFTy.top recordType).component (.var 0) slot).getD WFTy.top)
     view supplied
 
@@ -126,7 +153,7 @@ theorem packedTyping : CTML.Mixed.HasType carrierPolicy SubtypingContext.empty T
 
 theorem programTyping :
     CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty program unitType :=
-  CarrierLayout.unpackTyping _ none packedTyping clientScopeTyping
+  CarrierLayout.unpackTyping _ Slot.payload packedTyping clientScopeTyping
 
 theorem programSafe {reached : Term} (steps : Steps program reached) :
     Value reached ∨ ∃ next, Step reached next := programTyping.safe steps

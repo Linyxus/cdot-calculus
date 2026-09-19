@@ -113,6 +113,38 @@ theorem varianceClosedTyping :
     CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
       (.abs (.var 0)) compiledVariance.closedType := compiledVariance.closedTyping
 
+def opaqueField : Typ := .rcd (.trm "a" abstractMember)
+
+/-- The child type remains an opaque selection while the source field rule widens it. -/
+def fieldUpper : Core.Subtyping aliasContext opaqueField (.rcd (.trm "a" .top)) :=
+  .fld (.selHi (.var (.there (by decide) (.there (by decide) .here))))
+
+def compiledField : CompiledSubtyping aliasContext opaqueField (.rcd (.trm "a" .top)) :=
+  (compileSubtyping fieldUpper).get (by decide +kernel)
+
+theorem fieldContextGuards : compiledField.guards.length = 3 :=
+  compiledField.contextCode.length
+
+theorem fieldClosedTyping :
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
+      (.abs (.var 0)) compiledField.closedType := compiledField.closedTyping
+
+def beforeFieldReplacement : Typ := .rcd (.trm "a" (.path (.var 1) "A"))
+def afterFieldReplacement : Typ := .rcd (.trm "a" (.path (.var 0) "A"))
+
+/-- Singleton transport traverses the whole-child field view. -/
+def replaceField : Core.Subtyping aliasContext beforeFieldReplacement afterFieldReplacement :=
+  .snglPQ (.var .here) (.var (.there (by decide) .here))
+    (.rcd (.trm (.path (fields := []))))
+
+def compiledFieldReplacement :
+    CompiledSubtyping aliasContext beforeFieldReplacement afterFieldReplacement :=
+  (compileSubtyping replaceField).get (by decide +kernel)
+
+theorem fieldReplacementClosedTyping :
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
+      (.abs (.var 0)) compiledFieldReplacement.closedType := compiledFieldReplacement.closedTyping
+
 /-- Unsupported recursive types fail at the encoder instead of receiving a dummy type. -/
 theorem rejectsRecursive :
     (compileSubtyping (Core.Subtyping.refl : Core.Subtyping [] (.bnd .top) (.bnd .top))).isNone =

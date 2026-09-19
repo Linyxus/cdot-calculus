@@ -11,8 +11,11 @@ Its input is the actual core-DOT judgment. Context assumptions come exclusively
 from source bindings; selection rules must recover their bounds from those
 assumptions using the translated source derivation.
 
-The present pass handles member declarations, intersections, selections and
-singleton transport between paths. Unsupported source rules return `none`.
+The present pass handles member and field bounds, intersections, selections and
+singleton transport between paths. A field view retains a presence flag and
+constrains a child carrier; runtime shape and child-row equations remain separate
+obligations.
+Unsupported source rules return `none`.
 The payload type has its own paired slot, so a runtime view yields a bound usable
 by ordinary term typing. `CarrierRuntime` uses this layout for environment values;
 the general term compiler is unfinished.
@@ -27,38 +30,76 @@ open CTML.Transparent (MemberSlot)
 
 variable [Signature]
 
+/-- Field presence and child-carrier bounds use distinct shared components. -/
+inductive Slot where
+  | payload
+  | member : Signature.TypLabel → Slot
+  | present : Signature.TrmLabel → Slot
+  | child : Signature.TrmLabel → Slot
+  deriving DecidableEq
+
 /-- Syntactic witness allocation, with no supplied subtyping or typing proofs. -/
 structure Layout where
   depth : Nat
   labels : List Signature.TypLabel
+  fieldLabels : List Signature.TrmLabel
   witness : Path → Signature.TypLabel → Option (WFTy depth)
   payload : Path → Option (WFTy depth)
+  fieldPresence : Path → Signature.TrmLabel → Option (WFTy depth)
+  child : Path → Signature.TrmLabel → Option (WFTy depth)
 
-def Layout.slots (layout : Layout) : List (Option Signature.TypLabel) :=
-  none :: layout.labels.map some
+def Layout.slots (layout : Layout) : List Slot :=
+  .payload :: (layout.labels.map .member ++
+    layout.fieldLabels.flatMap (fun label => [.present label, .child label]))
 
-def Layout.component (layout : Layout) (path : Path) :
-    Option Signature.TypLabel → Option (WFTy layout.depth)
-  | none => layout.payload path
-  | some label => layout.witness path label
+def Layout.component (layout : Layout) (path : Path) : Slot → Option (WFTy layout.depth)
+  | .payload => layout.payload path
+  | .member label => layout.witness path label
+  | .present label => layout.fieldPresence path label
+  | .child label => layout.child path label
 
 theorem Layout.memberPresent {layout : Layout} {label : Signature.TypLabel}
-    (present : label ∈ layout.labels) : some label ∈ layout.slots :=
-  List.mem_cons_of_mem none (List.mem_map.mpr ⟨label, present, rfl⟩)
+    (present : label ∈ layout.labels) : Slot.member label ∈ layout.slots :=
+  List.mem_cons_of_mem _ (List.mem_append_left _ (List.mem_map.mpr ⟨label, present, rfl⟩))
+
+theorem Layout.fieldPresent {layout : Layout} {label : Signature.TrmLabel}
+    (present : label ∈ layout.fieldLabels) : Slot.child label ∈ layout.slots :=
+  List.mem_cons_of_mem _ (List.mem_append_right _
+    (List.mem_flatMap.mpr ⟨label, present, by simp⟩))
+
+theorem Layout.presencePresent {layout : Layout} {label : Signature.TrmLabel}
+    (present : label ∈ layout.fieldLabels) : Slot.present label ∈ layout.slots :=
+  List.mem_cons_of_mem _ (List.mem_append_right _
+    (List.mem_flatMap.mpr ⟨label, present, by simp⟩))
 
 def Layout.memberSlot (layout : Layout) (label : Signature.TypLabel)
     (present : label ∈ layout.labels) : MemberSlot (CarrierLayout.names layout.slots) :=
-  CarrierLayout.slot layout.slots (some label) (Layout.memberPresent present)
+  CarrierLayout.slot layout.slots (.member label) (Layout.memberPresent present)
+
+def Layout.fieldSlot (layout : Layout) (label : Signature.TrmLabel)
+    (present : label ∈ layout.fieldLabels) : MemberSlot (CarrierLayout.names layout.slots) :=
+  CarrierLayout.slot layout.slots (.child label) (Layout.fieldPresent present)
+
+def Layout.presenceSlot (layout : Layout) (label : Signature.TrmLabel)
+    (present : label ∈ layout.fieldLabels) : MemberSlot (CarrierLayout.names layout.slots) :=
+  CarrierLayout.slot layout.slots (.present label) (Layout.presencePresent present)
 
 def Layout.payloadSlot (layout : Layout) : MemberSlot (CarrierLayout.names layout.slots) :=
-  CarrierLayout.slot layout.slots none List.mem_cons_self
+  CarrierLayout.slot layout.slots .payload List.mem_cons_self
 
 theorem Layout.memberSlot_congr {layout : Layout} {left right : Signature.TypLabel}
     (equal : left = right) (leftPresent : left ∈ layout.labels)
     (rightPresent : right ∈ layout.labels) :
     layout.memberSlot left leftPresent = layout.memberSlot right rightPresent :=
-  CarrierLayout.slot_congr (congrArg some equal)
+  CarrierLayout.slot_congr (congrArg Slot.member equal)
     (Layout.memberPresent leftPresent) (Layout.memberPresent rightPresent)
+
+theorem Layout.fieldSlot_congr {layout : Layout} {left right : Signature.TrmLabel}
+    (equal : left = right) (leftPresent : left ∈ layout.fieldLabels)
+    (rightPresent : right ∈ layout.fieldLabels) :
+    layout.fieldSlot left leftPresent = layout.fieldSlot right rightPresent :=
+  CarrierLayout.slot_congr (congrArg Slot.child equal)
+    (Layout.fieldPresent leftPresent) (Layout.fieldPresent rightPresent)
 
 def Layout.completeAt (layout : Layout) (path : Path) : Bool :=
   layout.slots.all (fun slot => (layout.component path slot).isSome)
@@ -66,11 +107,16 @@ def Layout.completeAt (layout : Layout) (path : Path) : Bool :=
 theorem Layout.completeAt_member {layout : Layout} {path : Path}
     (complete : layout.completeAt path = true) {label : Signature.TypLabel}
     (present : label ∈ layout.labels) : (layout.witness path label).isSome = true :=
-  List.all_eq_true.mp complete (some label) (Layout.memberPresent present)
+  List.all_eq_true.mp complete (.member label) (Layout.memberPresent present)
 
 theorem Layout.completeAt_payload {layout : Layout} {path : Path}
     (complete : layout.completeAt path = true) : (layout.payload path).isSome = true :=
-  List.all_eq_true.mp complete none List.mem_cons_self
+  List.all_eq_true.mp complete .payload List.mem_cons_self
+
+theorem Layout.completeAt_child {layout : Layout} {path : Path}
+    (complete : layout.completeAt path = true) {label : Signature.TrmLabel}
+    (present : label ∈ layout.fieldLabels) : (layout.child path label).isSome = true :=
+  List.all_eq_true.mp complete (.child label) (Layout.fieldPresent present)
 
 def Layout.precise (layout : Layout) (path : Path) : WFTy layout.depth :=
   CarrierLayout.precise layout.slots
@@ -78,6 +124,20 @@ def Layout.precise (layout : Layout) (path : Path) : WFTy layout.depth :=
 
 def Layout.runtimeView (layout : Layout) (type : WFTy layout.depth) : WFTy layout.depth :=
   layout.payloadSlot.view WFTy.bottom type (fun _ => WFTy.top)
+
+/-- Presence is separate from the child's bound; it will discharge a generated runtime invariant. -/
+def Layout.fieldView (layout : Layout) (label : Signature.TrmLabel)
+    (present : label ∈ layout.fieldLabels) (type : WFTy layout.depth) : WFTy layout.depth :=
+  WFTy.intersection
+    ((layout.presenceSlot label present).view WFTy.top WFTy.top (fun _ => WFTy.top))
+    ((layout.fieldSlot label present).view WFTy.bottom type (fun _ => WFTy.top))
+
+theorem Layout.fieldView_congr {layout : Layout} {left right : Signature.TrmLabel}
+    (equal : left = right) (leftPresent : left ∈ layout.fieldLabels)
+    (rightPresent : right ∈ layout.fieldLabels) (type : WFTy layout.depth) :
+    layout.fieldView left leftPresent type = layout.fieldView right rightPresent type := by
+  subst right
+  rfl
 
 /-- A certificate that the source type has a supported, non-erased encoding. -/
 inductive TypeCode (layout : Layout) : Typ → WFTy layout.depth → Type where
@@ -96,6 +156,10 @@ inductive TypeCode (layout : Layout) : Typ → WFTy layout.depth → Type where
       TypeCode layout (.rcd (.typ label lower upper))
         ((layout.memberSlot label present).view
           lowerType upperType (fun _ => WFTy.top))
+  | field {label : Signature.TrmLabel} {body : Typ} {type : WFTy layout.depth}
+      (present : label ∈ layout.fieldLabels) :
+      TypeCode layout body type → TypeCode layout (.rcd (.trm label body))
+        (layout.fieldView label present type)
 
 def encode (layout : Layout) (type : Typ) :
     Option (Sigma (TypeCode layout type)) :=
@@ -120,7 +184,12 @@ def encode (layout : Layout) (type : Typ) :
         let ⟨_, upperCode⟩ ← encode layout upper
         return ⟨_, .member present lowerCode upperCode⟩
       else none
-  | .rcd (.trm _ _) | .bnd _ | .all _ _ | .sngl (.select (.bound _) _) => none
+  | .rcd (.trm label body) =>
+      if present : label ∈ layout.fieldLabels then do
+        let ⟨_, code⟩ ← encode layout body
+        return ⟨_, .field present code⟩
+      else none
+  | .bnd _ | .all _ _ | .sngl (.select (.bound _) _) => none
 
 theorem TypeCode.unique {layout : Layout} {source : Typ} {left right : WFTy layout.depth}
     (first : TypeCode layout source left) (second : TypeCode layout source right) :
@@ -143,6 +212,10 @@ theorem TypeCode.unique {layout : Layout} {source : Typ} {left right : WFTy layo
             (fun lower upper =>
               (layout.memberSlot _ present).view lower upper (fun _ => WFTy.top))
             (ihLower secondLower) (ihUpper secondUpper)
+  | field present firstBody ih =>
+      cases second with
+      | field _ secondBody =>
+          exact congrArg (layout.fieldView _ present) (ih secondBody)
 
 /-- Each generated guard has exactly one source-context binding as its origin. -/
 inductive ContextCode (layout : Layout) : Ctx → List (WFConstraint layout.depth) → Type where
@@ -198,6 +271,16 @@ theorem interIntro {s : SubtypingContext} {source left right : WFTy s.typeDepth}
   simp only [List.mem_cons, List.not_mem_nil, or_false]
   rintro guard (rfl | rfl) <;> assumption
 
+theorem Layout.fieldView_mono {layout : Layout} {guards : List (WFConstraint layout.depth)}
+    {label : Signature.TrmLabel} (present : label ∈ layout.fieldLabels)
+    {sub sup : WFTy layout.depth}
+    (included : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ sub sup) :
+    InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+      (layout.fieldView label present sub) (layout.fieldView label present sup) :=
+  interIntro (.native .interLeft) ((InvertingSubtype.native .interRight).trans
+    (memberVariance (layout.fieldSlot label present) (.native .refl) included
+      (fun _ _ => .native .refl)))
+
 theorem Layout.asSlot {layout : Layout} {guards : List (WFConstraint layout.depth)}
     {path : Path} {label : Signature.TypLabel}
     (present : label ∈ layout.labels) {witness target : WFTy layout.depth}
@@ -224,7 +307,8 @@ theorem Layout.payloadBound {layout : Layout} {guards : List (WFConstraint layou
           (fun slot => (layout.component path slot).getD WFTy.top)))
       (layout.runtimeView target) := by
     simpa only [Layout.precise, Layout.payloadSlot,
-      CarrierLayout.precise_eq_slot (support := layout.slots) (label := none) List.mem_cons_self,
+      CarrierLayout.precise_eq_slot (support := layout.slots) (label := Slot.payload)
+        List.mem_cons_self,
       Layout.component, found, Option.getD_some] using typing
   exact memberUpperBound layout.payloadSlot (carrierPolicy_names layout.slots)
     (.native .refl) atSlot
@@ -261,8 +345,81 @@ theorem Layout.runtimeView_intro {layout : Layout} {guards : List (WFConstraint 
       (layout.runtimeView target) :=
     memberVariance layout.payloadSlot (.native .botLe) upperBound (fun _ _ => .native .leTop)
   simpa only [Layout.precise, Layout.payloadSlot,
-    CarrierLayout.precise_eq_slot (support := layout.slots) (label := none) List.mem_cons_self,
+    CarrierLayout.precise_eq_slot (support := layout.slots) (label := Slot.payload)
+      List.mem_cons_self,
     Layout.component, found, Option.getD_some] using evidence
+
+/-- A component's row view is introduced using its actual allocated witness. -/
+theorem Layout.componentView_intro {layout : Layout} {guards : List (WFConstraint layout.depth)}
+    {path : Path} {slot : Slot} (present : slot ∈ layout.slots)
+    {witness lower upper : WFTy layout.depth}
+    (found : layout.component path slot = some witness)
+    (lowerBound : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ lower witness)
+    (upperBound : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ witness upper) :
+    InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ (layout.precise path)
+      ((CarrierLayout.slot layout.slots slot present).view lower upper (fun _ => WFTy.top)) := by
+  have evidence : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+      ((CarrierLayout.slot layout.slots slot present).precise witness
+        (CarrierLayout.components layout.slots layout.slots
+          (fun item => (layout.component path item).getD WFTy.top)))
+      ((CarrierLayout.slot layout.slots slot present).view lower upper (fun _ => WFTy.top)) :=
+    memberVariance _ lowerBound upperBound (fun _ _ => .native .leTop)
+  simpa only [Layout.precise, CarrierLayout.precise_eq_slot present, found, Option.getD_some]
+    using evidence
+
+/-- Field introduction retains presence evidence as well as the requested child bound. -/
+theorem Layout.fieldView_intro {layout : Layout} {guards : List (WFConstraint layout.depth)}
+    {path : Path} {label : Signature.TrmLabel} (present : label ∈ layout.fieldLabels)
+    {presence child target : WFTy layout.depth}
+    (presenceFound : layout.fieldPresence path label = some presence)
+    (childFound : layout.child path label = some child)
+    (existsField : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ WFTy.top presence)
+    (childBound : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ child target) :
+    InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+      (layout.precise path) (layout.fieldView label present target) :=
+  interIntro
+    (Layout.componentView_intro (Layout.presencePresent present) presenceFound
+      existsField (.native .leTop))
+    (Layout.componentView_intro (Layout.fieldPresent present) childFound
+      (.native .botLe) childBound)
+
+/-- Carrier field bounds expose the separate flag needed by a generated runtime invariant. -/
+theorem Layout.fieldPresenceBound {layout : Layout} {guards : List (WFConstraint layout.depth)}
+    {path : Path} {label : Signature.TrmLabel} (present : label ∈ layout.fieldLabels)
+    {presence target : WFTy layout.depth}
+    (found : layout.fieldPresence path label = some presence)
+    (typing : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+      (layout.precise path) (layout.fieldView label present target)) :
+    InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ WFTy.top presence := by
+  have view := typing.trans (InvertingSubtype.native CTMLCore.Subtype.interLeft)
+  have atSlot : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+      ((layout.presenceSlot label present).precise presence
+        (CarrierLayout.components layout.slots layout.slots
+          (fun slot => (layout.component path slot).getD WFTy.top)))
+      ((layout.presenceSlot label present).view WFTy.top WFTy.top (fun _ => WFTy.top)) := by
+    simpa only [Layout.precise, Layout.presenceSlot,
+      CarrierLayout.precise_eq_slot (Layout.presencePresent present), Layout.component,
+      found, Option.getD_some] using view
+  exact memberLowerBound (layout.presenceSlot label present) (carrierPolicy_names layout.slots)
+    (.native .refl) atSlot
+
+theorem Layout.fieldChildBound {layout : Layout} {guards : List (WFConstraint layout.depth)}
+    {path : Path} {label : Signature.TrmLabel} (present : label ∈ layout.fieldLabels)
+    {child target : WFTy layout.depth} (found : layout.child path label = some child)
+    (typing : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+      (layout.precise path) (layout.fieldView label present target)) :
+    InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ child target := by
+  have view := typing.trans (InvertingSubtype.native CTMLCore.Subtype.interRight)
+  have atSlot : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+      ((layout.fieldSlot label present).precise child
+        (CarrierLayout.components layout.slots layout.slots
+          (fun slot => (layout.component path slot).getD WFTy.top)))
+      ((layout.fieldSlot label present).view WFTy.bottom target (fun _ => WFTy.top)) := by
+    simpa only [Layout.precise, Layout.fieldSlot,
+      CarrierLayout.precise_eq_slot (Layout.fieldPresent present), Layout.component,
+      found, Option.getD_some] using view
+  exact memberUpperBound (layout.fieldSlot label present) (carrierPolicy_names layout.slots)
+    (.native .refl) atSlot
 
 structure SubtypingResult (layout : Layout) (guards : List (WFConstraint layout.depth))
     (sourceSub sourceSup : Typ) where
@@ -372,6 +529,16 @@ def TypeCode.transport {layout : Layout} {guards : List (WFConstraint layout.dep
             (Layout.memberSlot_congr sameLabel rightPresent present)
           return combined.castRight aligned.symm
         else none
+    | @TypeCode.field _ _ leftLabel _ _ present leftBody,
+        @TypeCode.field _ _ rightLabel _ rightType rightPresent rightBody =>
+        if sameLabel : rightLabel = leftLabel then do
+          let body ← leftBody.transport related rightBody
+          let combined : Equivalence ⟨layout.depth, guards⟩ _ _ :=
+            ⟨Layout.fieldView_mono present body.forward,
+              Layout.fieldView_mono present body.backward⟩
+          return combined.castRight
+            (Layout.fieldView_congr sameLabel rightPresent present rightType).symm
+        else none
     | _, _ => none
 termination_by structural left
 
@@ -448,6 +615,12 @@ mutual
             memberVariance (layout.memberSlot label present)
               lowerCode.proof upperCode.proof (fun _ _ => .native .refl)⟩
         else none
+    | @Core.Subtyping.fld _ _ _ _ label body =>
+        if present : label ∈ layout.fieldLabels then do
+          let code ← subtyping translated body
+          return ⟨_, _, .field present code.subCode, .field present code.supCode,
+            Layout.fieldView_mono present code.proof⟩
+        else none
     | .selLo member => do
         let value ← pathTyping translated member
         match value with
@@ -474,7 +647,7 @@ mutual
         let ⟨_, supCode⟩ ← encode layout sourceSup
         let replacement ← subCode.transport equalityProof supCode
         return ⟨_, _, subCode, supCode, replacement.forward⟩
-    | .fld _ | .all _ _ _ => none
+    | .all _ _ _ => none
 end
 
 def typeLabels : Typ → List Signature.TypLabel
@@ -510,28 +683,47 @@ def eventPaths (event : MemberUses.Event) : List MemberUses.PathKey :=
 def labels (events : List MemberUses.Event) : List Signature.TypLabel :=
   (events.flatMap eventLabels).eraseDups
 
+def typeFieldLabels : Typ → List Signature.TrmLabel
+  | .top | .bot => []
+  | .path (.select _ fields) _ | .sngl (.select _ fields) => fields
+  | .and left right | .all left right => typeFieldLabels left ++ typeFieldLabels right
+  | .bnd body => typeFieldLabels body
+  | .rcd (.trm label body) => label :: typeFieldLabels body
+  | .rcd (.typ _ lower upper) => typeFieldLabels lower ++ typeFieldLabels upper
+
+def eventFieldLabels (event : MemberUses.Event) : List Signature.TrmLabel :=
+  event.context.flatMap (fun binding => typeFieldLabels binding.2) ++
+    match event with
+    | .typeUse use => typeFieldLabels use.type
+    | .alias equality => equality.leftKey.fields ++ equality.rightKey.fields
+    | other => other.support.flatMap (fun key => key.path.fields)
+
+def fieldLabels (events : List MemberUses.Event) : List Signature.TrmLabel :=
+  (events.flatMap eventFieldLabels).eraseDups
+
 def paths (events : List MemberUses.Event) : List MemberUses.PathKey :=
   (events.flatMap eventPaths).eraseDups
 
 structure Key where
   path : MemberUses.PathKey
-  slot : Option Signature.TypLabel
+  slot : Slot
   deriving DecidableEq
 
-def slots (events : List MemberUses.Event) : List (Option Signature.TypLabel) :=
-  none :: (labels events).map some
+def slots (events : List MemberUses.Event) : List Slot :=
+  .payload :: ((labels events).map .member ++
+    (fieldLabels events).flatMap (fun label => [.present label, .child label]))
 
-/-- Allocate the runtime type and every member of each relevant precise row. -/
+/-- Allocate payload, members, presence flags and whole-child carriers for each relevant row. -/
 def keys (events : List MemberUses.Event) : List Key :=
   (paths events).flatMap (fun path => (slots events).map (fun slot => ⟨path, slot⟩))
 
 theorem key_present {events : List MemberUses.Event} {path : MemberUses.PathKey}
-    {slot : Option Signature.TypLabel} (pathPresent : path ∈ paths events)
+    {slot : Slot} (pathPresent : path ∈ paths events)
     (slotPresent : slot ∈ slots events) : (⟨path, slot⟩ : Key) ∈ keys events :=
   List.mem_flatMap.mpr ⟨path, pathPresent, List.mem_map.mpr ⟨slot, slotPresent, rfl⟩⟩
 
 def witnessAt (events : List MemberUses.Event) (scope : MemberUses.Scope) (path : Path)
-    (slot : Option Signature.TypLabel) : Option (WFTy (keys events).length) :=
+    (slot : Slot) : Option (WFTy (keys events).length) :=
   match path with
   | .select (.bound _) _ => none
   | .select (.free name) fields =>
@@ -544,8 +736,11 @@ def witnessAt (events : List MemberUses.Event) (scope : MemberUses.Scope) (path 
 def Layout.ofEvents (events : List MemberUses.Event) (scope : MemberUses.Scope) : Layout where
   depth := (keys events).length
   labels := CarrierTranslation.labels events
-  witness path label := witnessAt events scope path (some label)
-  payload path := witnessAt events scope path none
+  fieldLabels := CarrierTranslation.fieldLabels events
+  witness path label := witnessAt events scope path (.member label)
+  payload path := witnessAt events scope path .payload
+  fieldPresence path label := witnessAt events scope path (.present label)
+  child path label := witnessAt events scope path (.child label)
 
 theorem Layout.ofEvents_complete {events : List MemberUses.Event} {scope : MemberUses.Scope}
     {name : Var} {fields : Fields}

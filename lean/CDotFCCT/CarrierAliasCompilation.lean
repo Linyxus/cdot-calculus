@@ -51,14 +51,14 @@ structure Result (context : Ctx) (child : Var) where
   childCompilation : CompiledVariable context child childType
 
 def Result.components {context : Ctx} {child : Var} (compiled : Result context child) :
-    Option Signature.TypLabel → WFTy compiled.childCompilation.layout.depth :=
+    Slot → WFTy compiled.childCompilation.layout.depth :=
   fun slot =>
     (compiled.childCompilation.layout.component (.var child) slot).getD WFTy.top
 
 def Result.payload {context : Ctx} {child : Var} (compiled : Result context child)
     (field : FieldName) (answer : WFTy compiled.childCompilation.layout.depth) :
     WFTy compiled.childCompilation.layout.depth :=
-  objectPayload compiled.childCompilation.layout.slots none compiled.components field answer
+  objectPayload compiled.childCompilation.layout.slots Slot.payload compiled.components field answer
 
 def Result.computationType {context : Ctx} {child : Var} (compiled : Result context child)
     (field : FieldName) (answer : WFTy compiled.childCompilation.layout.depth) :
@@ -67,7 +67,7 @@ def Result.computationType {context : Ctx} {child : Var} (compiled : Result cont
 
 theorem Result.lookup {context : Ctx} {child : Var} (compiled : Result context child) :
     (compiled.childCompilation.layout.runtimeContext context).Lookup
-      (runtimeIndex context child) (compiled.components none) := by
+      (runtimeIndex context child) (compiled.components Slot.payload) := by
   simpa only [Result.components, Layout.component, compiled.childCompilation.found,
     Option.getD_some] using compiled.childCompilation.lookup
 
@@ -98,7 +98,7 @@ theorem Result.typing {context : Ctx} {child : Var} (compiled : Result context c
   exact .abstraction (.application (.native (.var _ _ _ .here))
     (aliasObjectTyping (s := ⟨compiled.childCompilation.layout.depth,
         compiled.childCompilation.guards⟩)
-      compiled.childCompilation.layout.slots none List.mem_cons_self
+      compiled.childCompilation.layout.slots Slot.payload List.mem_cons_self
       compiled.components _ answer (.there compiled.lookup)))
 
 /-- Field use returns the same payload type chosen for the original source variable. -/
@@ -117,7 +117,7 @@ theorem Result.fieldTyping {context : Ctx} {child : Var} (compiled : Result cont
       (fieldCall parent field continuation) answer := by
   apply fieldCallTyping (s := ⟨compiled.childCompilation.layout.depth,
       compiled.childCompilation.guards⟩)
-    compiled.childCompilation.layout.slots none List.mem_cons_self
+    compiled.childCompilation.layout.slots Slot.payload List.mem_cons_self
     compiled.components field answer parentTyping
   simpa only [Result.components, Layout.component, compiled.childCompilation.found,
     Option.getD_some] using continuationTyping
@@ -170,7 +170,7 @@ theorem Result.projectedTyping {context : Ctx} {child : Var} (compiled : Result 
     (.native (.var _ _ _ .here))))
       (aliasObjectTyping (s := ⟨compiled.childCompilation.layout.depth,
         compiled.childCompilation.guards⟩)
-        compiled.childCompilation.layout.slots none List.mem_cons_self
+        compiled.childCompilation.layout.slots Slot.payload List.mem_cons_self
         compiled.components _ answer (.there compiled.lookup)))
   apply compiled.fieldTyping _ answer (.native (.var _ _ _ .here))
   exact .subsumption (.native (.var _ _ _ (.there (.there .here))))

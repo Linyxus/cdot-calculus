@@ -33,9 +33,11 @@ The root `CTML.Mixed` model fixes a policy `ghost : FieldName → Bool`:
 - `MixedFieldNames` proves the default runtime allocation disjoint from all ghost carrier slots.
   The runtime names are nonempty strings of `f`; the carrier names contain only `m`.
 
-The actual partial carrier compiler now produces `Mixed` derivations. Its layout, source inputs,
-computed types and runtime terms are unchanged. `compileSubtyping` handles shared bounds,
-intersections, selections and singleton transport; `compileVariable` types its exact CPS output.
+The actual partial carrier compiler produces `Mixed` derivations. Its generated slots distinguish
+payloads, type members, field presence and child carriers. `compileSubtyping` handles shared bounds,
+field covariance, intersections, selections and singleton transport, including beneath field
+types; `compileVariable` types its exact CPS output. A field view includes a presence constraint
+in addition to its child upper bound, and an absent field cannot acquire a Top field view.
 Generated packing/opening scopes and whole-package coercions use the same mixed judgment.
 Both automatic type-only object passes also produce mixed proofs for their existing output and
 alias interfaces. No new target evidence is required from compiler callers.
@@ -109,6 +111,16 @@ existing weakening/assumption-transport theorems.
 object, exported existential package and arbitrary-parent field call are typed solely from
 the generated equations. A closed client executes to Unit. The remaining source allocation
 work is described in [the self-graph note](fcct-carrier-runtime-self.md).
+`CarrierRuntimeSelfSource.compile` now recognizes the single self-alias source constructor,
+checks its requested source result, computes its standard slots and coupled system, and returns
+a certificate for the exact `TermCPS.compile` output. A real `Core.newIntro` example is checked.
+Its output interface is the solved self schema; it is not yet a general recursive `TypeCode`.
+See [the source-entry note](fcct-self-source-entry.md).
+
+`CarrierFieldPresence` proves generation and elimination of conditional runtime bounds.
+Present fields require their actual payload shape; absent fields discharge the conditional
+bound under `Top ≤ Bottom`. A finite graph interface must carry these invariants through
+successive child openings. No unconditional runtime shape is inferred from child bounds.
 
 ## Next proof work
 

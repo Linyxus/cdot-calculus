@@ -62,7 +62,7 @@ structure CompiledVariable (context : Ctx) (name : Var) (source : Typ) where
   present : name ∈ context.map Prod.fst
 
 def Layout.valueInterface (layout : Layout) (view : WFTy layout.depth) :
-    CTML.Interface layout.depth := CarrierLayout.interface layout.slots none view
+    CTML.Interface layout.depth := CarrierLayout.interface layout.slots Slot.payload view
 
 def CompiledVariable.interface {context : Ctx} {name : Var} {source : Typ}
     (compiled : CompiledVariable context name source) : CTML.Interface compiled.layout.depth :=
@@ -75,7 +75,7 @@ def CompiledVariable.instance {context : Ctx} {name : Var} {source : Typ}
   simpa only [CompiledVariable.interface, Layout.valueInterface, Layout.component,
     compiled.found, Option.getD_some] using
     CarrierLayout.packingInstance (s := ⟨compiled.layout.depth, compiled.guards⟩)
-      compiled.layout.slots none List.mem_cons_self
+      compiled.layout.slots Slot.payload List.mem_cons_self
       (fun slot => (compiled.layout.component (.var name) slot).getD WFTy.top)
       compiled.carrier.type compiled.carrier.proof
 
@@ -124,7 +124,7 @@ theorem SubtypingResult.packageSubtype {layout : Layout}
     InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
       ((layout.valueInterface result.sub).package answer)
       ((layout.valueInterface result.sup).package answer) :=
-  CarrierLayout.packageSubtype layout.slots none result.proof answer
+  CarrierLayout.packageSubtype layout.slots Slot.payload result.proof answer
 
 theorem SubtypingResult.packageIdentityTyping {layout : Layout}
     {guards : List (WFConstraint layout.depth)} {sourceSub sourceSup : Typ}
