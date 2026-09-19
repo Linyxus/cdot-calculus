@@ -123,6 +123,10 @@ dependency directory links to the same cached packages.
 | [Carrier constructor bridge](../lean/CDotFCCT/CarrierConstructorCompilation.lean) | Derives mixed typing for the exact output and existing interfaces of both automatic type-only object passes; unifying those interfaces with carrier views remains unfinished |
 | [Native object typing step](../lean/CDotFCCT/TermCPSObjectTyping.lean) | Generates a record-guarded self equation and types the exact CPS object output in both native and mixed judgments from field/package induction hypotheses; actual compiled fields establish ordinary labels |
 | [Mixed structural packing](../lean/CDotFCCT/CTML/MixedInterfaceWeakening.lean) | Term weakening covers all recursive scope forms and allows packaging arbitrary mixed payload typings using the original runtime pack syntax |
+| [Mixed recursive field sharing](../lean/CDotFCCT/CTML/MixedFieldSharing.lean) | Accepts an arbitrary mixed payload typing, solves the existing native record equation and exports one member/row scope for head and recursive next; no supplied recursive bounds |
+| [Fixed field anchors](../lean/CDotFCCT/CTML/CarrierFieldInvariant.lean) | An anchored weak package preserves each fixed witness and can feed an ordinary continuation expecting the original payload; constructing an alias field discharges its anchor by reflexivity |
+| [Source alias-field compilation](../lean/CDotFCCT/CarrierAliasCompilation.lean) | Generates child witnesses from the source environment and types the exact CPS output of a one-field object alias; the enclosing source type is not yet translated |
+| [Compiled alias-field execution](../lean/CDotFCCT/CarrierAliasExamples.lean) | An actual source object compiles without target premises, and a closed realization of its exact runtime output projects the original child value |
 | [Native recursive field sharing](../lean/CDotFCCT/CTML/NativeFieldSharing.lean) | Constructs a package sharing one member witness across `head` and recursive `next`; the payload typing generates both witnesses and recursive bounds |
 | [Mixed record safety](../lean/CDotFCCT/CTML/MixedSafety.lean) | Proves operational safety with ordinary record guards, ghost-component inversion, arbitrary constraints, Z, and simultaneous ordinary-record or function equations |
 | [Mixed shared bounds](../lean/CDotFCCT/CTML/MixedSharedWitness.lean) | Derives both bounds on the original shared witness from exactly the original two context guards, under a policy permitting direct ordinary-record recursion |
@@ -651,8 +655,10 @@ interfaces remain distinct from the general carrier interface.
 The native constructor work remains usable independently of inversion.
 `TermCPSObjectTyping` generates the self equation from arbitrary native field types
 and proves typing of the exact CPS object syntax given the field induction hypotheses.
-`NativeFieldSharing.packTyping` uses only a payload typing to generate a shared-member
-package for a record with `head` and recursive `next`. Both witnesses and both
+`MixedFieldSharing.packTyping` now uses an arbitrary mixed payload typing to generate
+the same shared-member package for a record with `head` and recursive `next`.
+Mixed term/type weakening and native-evidence assumption transport support all of its
+scoped recursive declarations. Both witnesses and both
 recursive bounds are constructed by that theorem. General source-field compilation
 and source-to-interface alignment still have to supply the induction hypotheses.
 
@@ -996,3 +1002,41 @@ If setting up a fresh checkout, obtain the imported Mathlib cache first:
 `lake exe cache get Mathlib.Data.Finset.Basic Mathlib.Tactic`.
 The minimal FCCT library itself depends only on Lean core. cDOT, FCCT, CTML Core,
 and CTML Full use Lean 4.34.0. Both CTML manifests use the same Mathlib 4.34.0 pins.
+
+
+### Fixed field anchors and a source alias constructor
+
+`CarrierFieldInvariant` indexes a field package by one fixed outer witness vector.
+Its paired carrier guard proves each freshly opened component equivalent to the
+fixed component. `anchoredPackageSubtype` therefore lets the package return the
+original payload type to an ordinary continuation. The alias constructor chooses
+those existing witnesses and proves the anchor by reflexivity.
+
+`CarrierAliasCompilation.compile` finds the child's actual source binding and calls
+`compileVariable` to generate its witnesses and context guards. It then constructs
+the native object/field typing for the exact `TermCPS.compile` output. Its inputs
+contain no target bounds or witnesses. `CarrierAliasExamples` checks a core-DOT
+source object and a closed target realization that projects the original value.
+The constructor entry point exposes an anchored native payload, not yet the
+translation of the object's whole recursive source type. `compileProjected` also
+checks the source program `let x = new {a = child} in x.a`: it verifies agreement
+between the child's binding type and the requested result and returns the original
+standard carrier package. An equivalent but syntactically different requested result
+is rejected explicitly by this partial entry point. The exact source CPS output is
+proved well typed; no target evidence is supplied by the caller.
+
+`MixedFieldSharingExamples` gives an actual source derivation for
+`head = child; next = self`, proves its exact runtime compilation and types the
+compiled package. Its closed client reads head, follows next, reads head again at
+the same hidden member type and returns the first value, concretely Unit.
+`SelfFieldAnchor` generates the directly record-guarded equation
+`row = {a : Anchor(W[row], R)}`, exports the solved row and both equations, and
+checks a terminating self-field client. These avoid recursive ghost equations
+for the runtime construction itself.
+
+`CarrierFieldViews` checks two-way transport for visible flattened member views.
+Its whole-child slot lemma also handles an opaque scalar selected type unchanged.
+Closing the resulting recursive carrier equations remains a separate obligation;
+see the [field-invariant note](fcct-field-invariant.md), the
+[opaque-field example](fcct-field-views.md), and the
+[equation audit](fcct-carrier-equations.md).

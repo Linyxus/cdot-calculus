@@ -69,13 +69,28 @@ equations alongside the target's scalar and simultaneous record equations.
 `TermCPSObjectTyping` proves the mixed object step from field/package induction hypotheses,
 deriving its ordinary-label condition from the actual compiled fields. Mixed term
 weakening permits packing arbitrary typed payloads without changing the runtime syntax.
-`NativeFieldSharing.packTyping` generates a package sharing one member witness across
-`head` and recursive `next`. These constructor lemmas do not yet supply the general
-source-field invariant or unify alias interfaces with carrier interfaces. General
+`MixedFieldSharing.packTyping` accepts an arbitrary mixed payload typing and generates
+a package sharing one member witness across `head` and recursive `next`.
+`CarrierAliasCompilation` now generates an anchored field package from the source
+environment for a one-field object aliasing an existing variable, typing its exact
+CPS output. Its closed target client projects the original child value. The result
+exposes the anchored native payload; translating the enclosing source type remains open.
+The `compileProjected` entry point also handles constructing, binding and selecting
+that field. It checks agreement with the source result type and returns the original
+child's standard carrier package. `MixedFieldSharingExamples` separately checks the
+exact source compilation of `head = child; next = self`, with a client following
+`next` and reading both heads at the same hidden member type before returning Unit.
+`SelfFieldAnchor` constructs and exports a self-aliasing field with a directly
+record-guarded row equation; its checked client terminates.
+These constructor lemmas do not yet supply the general source-field invariant or
+unify alias interfaces with carrier interfaces. General
 paths, constructors, dependent calls and recursive opening remain unfinished.
 
 The earlier `CTML.Transparent` model and its recursive-package examples remain checked
 experiments. Their arrow-only guard is not a requirement of the intended target.
+The [field-view note](../notes/fcct-field-views.md) isolates the opaque-field case;
+the [equation audit](../notes/fcct-carrier-equations.md) specifies the recursive carrier
+and native-record equations needed by the whole-child representation.
 
 `import CDotFCCT.Baseline` loads the earlier minimal-FCCT experiments. The compatibility
 umbrella `import CDotFCCT` loads both. The implemented target calculi are local Lake

@@ -46,16 +46,42 @@ replaced the native submodule judgment.
 runtime constructor step in the mixed target from field/package induction hypotheses. It derives
 ordinary labels from the actual compiled fields under `programEnv`. Mixed term weakening also
 allows packing arbitrary typed payloads without changing the runtime syntax.
-`NativeFieldSharing.packTyping` takes
-only a payload typing and builds a package sharing its member witness across `head` and recursive
-`next`, generating recursive witnesses and bounds. Neither is a full source-object compiler yet.
+`MixedFieldSharing.packTyping` takes an arbitrary mixed payload typing and builds a package sharing
+its member witness across `head` and recursive `next`, generating witnesses and bounds. Mixed type
+weakening and native-evidence assumption transport cover every recursive scope form. Mixed
+subtyping also supports type substitution. `MixedFieldSharingExamples` checks an actual source
+object with `head = existing variable; next = self`, its exact compiled package, and a closed
+client that follows `next`, reads both heads at one hidden member type and returns Unit.
+
+`CarrierFieldInvariant` anchors a field's existential package at a fixed outer witness vector.
+Opening proves equality of fresh and fixed components; the package can return the original
+payload type directly. `CarrierAliasCompilation.compile` uses the variable compiler to generate
+these witnesses for a source object with one field aliasing an existing variable. Its proof types
+the exact CPS output with no caller-supplied target evidence. `CarrierAliasExamples` checks an
+actual source derivation and a closed target client returning the original child value.
+This pass exposes the native anchored payload; it does not yet encode the enclosing source type.
+Its `compileProjected` additionally checks `let x = new {a = child} in x.a` against the child's
+source binding type and returns that original variable's standard carrier package. Source/result
+agreement is checked by the compiler; the actual core-DOT regression generates its target proof.
+See [the field invariant](fcct-field-invariant.md) for the representation and remaining obligations.
+
+`SelfFieldAnchor` solves `row = {a : Anchor(W[row], R)}` with an ordinary RECORD as the outer
+constructor, exports the row and both equations, and types and executes a self-field call. Its object
+and computation are definitionally the exact runtime compiler output. No recursive ghost equation
+or caller-supplied field bound is needed for this runtime cycle.
+
+`CarrierFieldViews` proves two-way flattened transport for visible member shapes and whole-child
+slot transport for arbitrary opaque types. The [field-view note](fcct-field-views.md) gives the
+checked source `{a:q.X}` test and the [equation audit](fcct-carrier-equations.md) identifies the
+coupled ghost-carrier/runtime-row system a general whole-child encoding must solve.
 
 ## Next proof work
 
-1. Connect native source-field compilation to one shared carrier/payload invariant through
-   recursive self, aliases and dependent calls. Reopening independent packages loses identity.
-2. Establish that generated recursive equations satisfy the mixed guard. Pure ghost cycles are
-   still unguarded; the simultaneous mixed rule currently accepts only outer ordinary records.
+1. Derive the anchored runtime field invariant from general source field views, including opaque
+   selections such as `{a:q.X}`, and preserve it across aliases and dependent calls.
+2. Solve the generated whole-child carrier equations together with runtime payload equations.
+   Runtime self rows are already record-guarded. Pure recursive ghost rows remain outside the
+   current syntactic recursion rule; a structural semantic solver is being investigated.
 3. Unify the type-only constructor interfaces and carrier interfaces, finish all `Core.Typing`
    rules, then prove general source/target operational correspondence.
 

@@ -53,6 +53,12 @@ import CDotFCCT.CTML.MixedExamples
 import CDotFCCT.CTML.MixedSharedWitness
 import CDotFCCT.CTML.MixedFieldNames
 import CDotFCCT.CTML.MixedInterfaceWeakening
+import CDotFCCT.CTML.MixedFieldSharing
+import CDotFCCT.CarrierAliasExamples
+import CDotFCCT.CTML.MixedFieldSharingExamples
+import CDotFCCT.CTML.SelfFieldAnchor
+import CDotFCCT.CTML.CarrierFieldViews
+import CDotFCCT.CTML.MixedSubtypeSubstitution
 
 /-!
 # The core-DOT to CTML Core bridge
