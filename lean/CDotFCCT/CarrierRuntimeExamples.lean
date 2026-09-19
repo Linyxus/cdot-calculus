@@ -1,6 +1,6 @@
 import CDotFCCT.CarrierRuntime
 import CDotFCCT.CarrierCompilationExamples
-import CDotFCCT.CTML.CarrierOpening
+import CDotFCCT.CTML.MixedCarrierOpening
 
 /-!
 # Checking carrier bounds against runtime payloads
@@ -14,7 +14,7 @@ set_option autoImplicit false
 
 namespace CDotFCCT.CarrierRuntimeExamples
 
-open CDot CTMLCore CTMLCore.Syntax CTMLCore.Evaluation CTML.Transparent CarrierTranslation
+open CDot CTMLCore CTMLCore.Syntax CTMLCore.Evaluation CTML.Mixed CarrierTranslation
 
 local instance : Signature where
   TypLabel := String
@@ -28,7 +28,7 @@ def compiled : CompiledVariable CarrierCompilationExamples.aliasContext 1
 
 /-- The typing certificate covers the exact output of the existing runtime pass. -/
 theorem compiledTyping (answer : WFTy compiled.layout.depth) :
-    CTML.Transparent.HasType ⟨compiled.layout.depth, compiled.guards⟩
+    CTML.Mixed.HasType carrierPolicy ⟨compiled.layout.depth, compiled.guards⟩
       (compiled.layout.runtimeContext CarrierCompilationExamples.aliasContext)
       (TermCPS.compile (runtimeEnvironment CarrierCompilationExamples.aliasContext)
         CarrierCompilationExamples.throughAlias)
@@ -37,7 +37,7 @@ theorem compiledTyping (answer : WFTy compiled.layout.depth) :
 
 /-- Singleton replacement also acts on whole packages, under exactly the source guards. -/
 theorem replacementPackageTyping :
-    CTML.Transparent.HasType SubtypingContext.empty TypingContext.empty (.abs (.var 0))
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty (.abs (.var 0))
       (CarrierCompilationExamples.compiledReplacement.closedPackageType (WFTy.cls "Unit")) :=
   CarrierCompilationExamples.compiledReplacement.closedPackageTyping _
 
@@ -73,7 +73,7 @@ def opened : Layout := singleLayout alpha delta
 def inside : SubtypingContext := ⟨2, [guard alpha delta]⟩
 
 /-- The payload is abstract until its own carrier supplies the native record view. -/
-theorem payloadRecord : InvertingSubtype inside delta recordType := by
+theorem payloadRecord : InvertingSubtype carrierPolicy inside delta recordType := by
   apply Layout.payloadBound (layout := opened) (path := .var 0) rfl
   exact (InvertingSubtype.native
     (@CTMLCore.Subtype.hyp inside (guard alpha delta) List.mem_cons_self)).trans
@@ -89,14 +89,16 @@ def clientScope : CarrierLayout.Opening (Option String) :=
     view [] TypingContext.empty clientBody unitType
 
 theorem clientScopeTyping :
-    clientScope.Check (singleLayout (WFTy.top : WFTy 0) WFTy.top).slots none :=
+    CarrierLayout.Opening.Check carrierPolicy
+      (singleLayout (WFTy.top : WFTy 0) WFTy.top).slots none clientScope :=
   .application (.projection (.subsumption (.native (.var _ _ _ .here)) payloadRecord))
     (.native (.record .nil))
 
-theorem clientTyping : InterfaceOpened interface [] TypingContext.empty clientBody unitType :=
+theorem clientTyping :
+    InterfaceOpened carrierPolicy interface [] TypingContext.empty clientBody unitType :=
   (CarrierLayout.openComponents_iff _ _ _ _ _ _ _ _ _).mpr clientScopeTyping
 
-theorem supplied : InvertingSubtype SubtypingContext.empty
+theorem supplied : InvertingSubtype carrierPolicy SubtypingContext.empty
     (carrier WFTy.top recordType) view :=
   interIntro
     (Layout.memberView_intro (layout := singleLayout WFTy.top recordType) (path := .var 0)
@@ -104,25 +106,26 @@ theorem supplied : InvertingSubtype SubtypingContext.empty
     (Layout.runtimeView_intro (layout := singleLayout WFTy.top recordType) (path := .var 0)
       rfl (.native .refl))
 
-def suppliedInstance : InterfaceInstance SubtypingContext.empty interface recordType := by
+def suppliedInstance :
+    InterfaceInstance carrierPolicy SubtypingContext.empty interface recordType := by
   exact CarrierLayout.packingInstance (s := SubtypingContext.empty)
     (singleLayout WFTy.top recordType).slots none List.mem_cons_self
     (fun slot => ((singleLayout WFTy.top recordType).component (.var 0) slot).getD WFTy.top)
     view supplied
 
 theorem recordTyping :
-    CTML.Transparent.HasType SubtypingContext.empty TypingContext.empty record recordType :=
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty record recordType :=
   .subsumption (.record (.cons (.native (.abstraction (.var _ _ _ .here))) .nil))
     (.native .interRight)
 
 def packed : Term := CTML.packCBV record
 def program : Term := .app packed (.abs clientBody)
 
-theorem packedTyping : CTML.Transparent.HasType SubtypingContext.empty TypingContext.empty
+theorem packedTyping : CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
     packed (interface.package unitType) := interfacePackCBVTyping suppliedInstance recordTyping
 
 theorem programTyping :
-    CTML.Transparent.HasType SubtypingContext.empty TypingContext.empty program unitType :=
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty program unitType :=
   CarrierLayout.unpackTyping _ none packedTyping clientScopeTyping
 
 theorem programSafe {reached : Term} (steps : Steps program reached) :

@@ -1,13 +1,13 @@
 import CDotFCCT.CarrierTranslation
 import CDotFCCT.TermCPS
-import CDotFCCT.CTML.CarrierPackages
+import CDotFCCT.CTML.MixedCarrierPackages
 
 /-!
 # Runtime values in an opened carrier environment
 
 Every source variable has one target payload type in its precise carrier. The
 runtime environment stores a value at that type. This pass computes a CPS term
-and its experimental-target typing derivation from a supported source derivation
+and its record-guarded-target typing derivation from a supported source derivation
 whose term is a variable. It uses the exact variable case of `TermCPS.compile`.
 
 The result interface existentially binds every member witness and its payload
@@ -20,7 +20,7 @@ set_option autoImplicit false
 
 namespace CDotFCCT.CarrierTranslation
 
-open CDot CTMLCore CTML.Transparent
+open CDot CTMLCore CTML.Mixed
 
 variable [Signature]
 
@@ -70,7 +70,7 @@ def CompiledVariable.interface {context : Ctx} {name : Var} {source : Typ}
 
 def CompiledVariable.instance {context : Ctx} {name : Var} {source : Typ}
     (compiled : CompiledVariable context name source) :
-    InterfaceInstance ⟨compiled.layout.depth, compiled.guards⟩
+    InterfaceInstance carrierPolicy ⟨compiled.layout.depth, compiled.guards⟩
       compiled.interface compiled.payload := by
   simpa only [CompiledVariable.interface, Layout.valueInterface, Layout.component,
     compiled.found, Option.getD_some] using
@@ -93,7 +93,7 @@ theorem CompiledVariable.lookup {context : Ctx} {name : Var} {source : Typ}
 
 theorem CompiledVariable.typing {context : Ctx} {name : Var} {source : Typ}
     (compiled : CompiledVariable context name source) (answer : WFTy compiled.layout.depth) :
-    CTML.Transparent.HasType ⟨compiled.layout.depth, compiled.guards⟩
+    CTML.Mixed.HasType carrierPolicy ⟨compiled.layout.depth, compiled.guards⟩
       (compiled.layout.runtimeContext context) compiled.term (compiled.interface.package answer) :=
   interfacePackVariableTyping compiled.instance compiled.lookup
 
@@ -121,7 +121,7 @@ def compileVariable {context : Ctx} {name : Var} {source : Typ}
 theorem SubtypingResult.packageSubtype {layout : Layout}
     {guards : List (WFConstraint layout.depth)} {sourceSub sourceSup : Typ}
     (result : SubtypingResult layout guards sourceSub sourceSup) (answer : WFTy layout.depth) :
-    InvertingSubtype ⟨layout.depth, guards⟩
+    InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
       ((layout.valueInterface result.sub).package answer)
       ((layout.valueInterface result.sup).package answer) :=
   CarrierLayout.packageSubtype layout.slots none result.proof answer
@@ -129,7 +129,7 @@ theorem SubtypingResult.packageSubtype {layout : Layout}
 theorem SubtypingResult.packageIdentityTyping {layout : Layout}
     {guards : List (WFConstraint layout.depth)} {sourceSub sourceSup : Typ}
     (result : SubtypingResult layout guards sourceSub sourceSup) (answer : WFTy layout.depth) :
-    CTML.Transparent.HasType ⟨layout.depth, guards⟩ TypingContext.empty
+    CTML.Mixed.HasType carrierPolicy ⟨layout.depth, guards⟩ TypingContext.empty
       (.abs (.var 0)) (WFTy.arrow
         ((layout.valueInterface result.sub).package answer)
         ((layout.valueInterface result.sup).package answer)) :=
@@ -146,7 +146,7 @@ def CompiledSubtyping.closedPackageType {context : Ctx} {sourceSub sourceSup : T
 theorem CompiledSubtyping.closedPackageTyping {context : Ctx} {sourceSub sourceSup : Typ}
     (compiled : CompiledSubtyping context sourceSub sourceSup)
     (answer : WFTy compiled.layout.depth) :
-    CTML.Transparent.HasType SubtypingContext.empty TypingContext.empty (.abs (.var 0))
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty (.abs (.var 0))
       (compiled.closedPackageType answer) :=
   abstractTypes_typing
     (abstractGuards_typing compiled.guards (compiled.result.packageIdentityTyping answer))

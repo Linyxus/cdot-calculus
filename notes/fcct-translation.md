@@ -17,7 +17,8 @@ it generates recursive witnesses from source declarations and types the exact
 runtime compiler output, including declarations with unguarded alias cycles.
 **There is still no typing-preserving translation of arbitrary core DOT derivations.**
 The missing translation must construct a target term and a
-`CTMLCore.Recursive.HasType` derivation from every `Core.Typing` input.
+`CTML.Mixed.HasType carrierPolicy` derivation from every `Core.Typing` input.
+The native fragment also retains its `CTMLCore.Recursive.HasType` proofs.
 `TermCPS.compile` is the current runtime pass; a derivation-directed elaborator
 may also need to insert explicit coercions. There are no placeholder axioms or
 `sorry` proofs standing in for the general theorem.
@@ -116,13 +117,14 @@ dependency directory links to the same cached packages.
 | [Compiled carrier regressions](../lean/CDotFCCT/CarrierCompilationExamples.lean) | Automatically compiles the shared-witness counterexample, abstract bounds reached through an alias, and member variance to universally quantified constraint abstractions in the experimental target |
 | [Carrier runtime variables](../lean/CDotFCCT/CarrierRuntime.lean) | Generates the payload context, witness layout, guards and typing derivation for the exact runtime CPS output of supported source variable typings, with witnesses in an opened environment |
 | [Carrier payload execution](../lean/CDotFCCT/CarrierRuntimeExamples.lean) | Checks a source variable reached through an alias, and a closed existential package whose carrier exposes a native record field that is called and returns Unit |
-| [Generated carrier packages](../lean/CDotFCCT/CTML/CarrierPackages.lean) | Binds every member and payload witness, proves that the exported interface is independent of their concrete assignments, generates packing instances, and transports whole packages along proved carrier bounds |
-| [Generated carrier scopes](../lean/CDotFCCT/CTML/CarrierOpening.lean) | Computes the continuation's fresh types and guarded context and proves its equivalence to telescope elimination; the requested view and answer retain their outer references |
-| [Carrier recursive scopes](../lean/CDotFCCT/CTML/TransparentSystems.lean) | Solves any native simultaneous recursive function system in the transparent-record model, validates its equations, and proves that closing its scope preserves semantic typing and safety |
-| [Carrier constructor bridge](../lean/CDotFCCT/CarrierConstructorCompilation.lean) | Derives experimental typing for the exact output and existing interfaces of both automatic type-only object passes; unifying those interfaces with carrier views remains unfinished |
-| [Native object typing step](../lean/CDotFCCT/TermCPSObjectTyping.lean) | Generates a record-guarded self equation and types the exact CPS object output from field induction hypotheses and package evidence |
+| [Generated carrier packages](../lean/CDotFCCT/CTML/MixedCarrierPackages.lean) | Binds every member and payload witness, proves that the exported interface is independent of their concrete assignments, generates packing instances, and transports whole packages along proved carrier bounds |
+| [Generated carrier scopes](../lean/CDotFCCT/CTML/MixedCarrierOpening.lean) | Computes the continuation's fresh types and guarded context and proves its equivalence to telescope elimination; the requested view and answer retain their outer references |
+| [Carrier recursive scopes](../lean/CDotFCCT/CTML/MixedSystems.lean) | Solves the existing simultaneous recursive function equations in the mixed model alongside record guards; validates their equations and closing rule |
+| [Carrier constructor bridge](../lean/CDotFCCT/CarrierConstructorCompilation.lean) | Derives mixed typing for the exact output and existing interfaces of both automatic type-only object passes; unifying those interfaces with carrier views remains unfinished |
+| [Native object typing step](../lean/CDotFCCT/TermCPSObjectTyping.lean) | Generates a record-guarded self equation and types the exact CPS object output in both native and mixed judgments from field/package induction hypotheses; actual compiled fields establish ordinary labels |
+| [Mixed structural packing](../lean/CDotFCCT/CTML/MixedInterfaceWeakening.lean) | Term weakening covers all recursive scope forms and allows packaging arbitrary mixed payload typings using the original runtime pack syntax |
 | [Native recursive field sharing](../lean/CDotFCCT/CTML/NativeFieldSharing.lean) | Constructs a package sharing one member witness across `head` and recursive `next`; the payload typing generates both witnesses and recursive bounds |
-| [Mixed record safety](../lean/CDotFCCT/CTML/MixedSafety.lean) | Proves operational safety with ordinary record guards, ghost-component inversion, arbitrary constraints, Z, and simultaneous ordinary-record equations |
+| [Mixed record safety](../lean/CDotFCCT/CTML/MixedSafety.lean) | Proves operational safety with ordinary record guards, ghost-component inversion, arbitrary constraints, Z, and simultaneous ordinary-record or function equations |
 | [Mixed shared bounds](../lean/CDotFCCT/CTML/MixedSharedWitness.lean) | Derives both bounds on the original shared witness from exactly the original two context guards, under a policy permitting direct ordinary-record recursion |
 | [Mixed execution](../lean/CDotFCCT/CTML/MixedExamples.lean) | A ghost-inverting cast of a directly recursive record and a mutual-record program typecheck and reduce to Unit |
 | [Recursive carrier execution](../lean/CDotFCCT/CarrierRecursiveExamples.lean) | A native record contains a Z-defined function with two mutually recursive types; one client opens its equations and calls through both arrows, while another returns the record through the generic carrier package |
@@ -563,11 +565,11 @@ identity coercion, with witness and context constraint abstractions generated
 from the source derivation. The singleton-replacement regression checks this
 package-level coercion as well as its earlier ghost-bound coercion.
 
-`CTML/TransparentInterfaces.lean` extends the existing existential telescope lemmas
-to the experimental typing judgment. Its packing instances can use carrier-derived
+`CTML/MixedInterfaces.lean` extends the existing existential telescope lemmas
+to the record-guarded mixed typing judgment. Its packing instances can use carrier-derived
 bounds, its consumers introduce the same type and constraint abstractions, and its
 CBV packing rule evaluates the original payload before making the package.
-`CTML/CarrierOpening.lean` computes the corresponding continuation scope:
+`CTML/MixedCarrierOpening.lean` computes the corresponding continuation scope:
 fresh component types, weakened outer assumptions and term context, the carrier
 guard and one payload binding. `openComponents_iff` identifies checking this scope
 with the existing `InterfaceOpened` premise. Its scope lemmas prove that the
@@ -592,7 +594,7 @@ equations and calls through both arrows, reducing to Unit in ten steps. A second
 client uses the generic carrier interface and returns the constructed record in
 four steps, while both recursive types and their defining equations remain hidden.
 
-`CarrierConstructorCompilation.lean` derives this target's typing judgment for
+`CarrierConstructorCompilation.lean` now derives the mixed target's typing judgment for
 the two existing automatic source constructor passes. Its `carrierTargetTyping`
 theorems reuse the generated recursive systems and proved bounds, and cover the
 exact `TermCPS.compile` output. Their alias interfaces are still distinct from
@@ -601,11 +603,9 @@ translation or general constructor compilation.
 
 The general translation is still unfinished: arbitrary paths, constructors,
 dependent calls and recursive opening remain, including connecting their source
-scopes to the generated existential scopes. The extra
-inversion rules and stricter recursion guard stay in the experimental target,
-pending the target-rule decision. The current CTML Core dependency has not adopted
-them. The existing constructor passes keep their native proofs alongside the
-new experimental proofs.
+scopes to the generated existential scopes. The mixed inversion rules remain
+in the root bridge; the CTML Core dependency has not adopted them. The existing
+constructor passes keep their native proofs alongside the mixed proofs.
 
 ### Record guards with reflective ghost fields
 
@@ -622,8 +622,9 @@ guarded syntax. The scoped equations and all native typing rules, including Z,
 are covered by `Mixed.HasType.safe`. `MixedRecordSystems` additionally validates
 simultaneous groups whose components each have an outer ordinary record field.
 This rule is a sufficient formation rule; it does not yet accept every group in
-which some ordinary field appears along each cycle. The mixed judgment does not
-yet include the earlier simultaneous-arrow rule.
+which some ordinary field appears along each cycle. `MixedSystems` also validates
+the existing simultaneous function equations generated by the type-only alias compiler;
+this compatibility rule leaves ordinary records available as guards.
 
 `MixedSharedWitness` reuses the exact carrier syntax, witnesses, and two context guards
 of the original regression. It derives `Top ≤ p.A ≤ Bottom` without introducing
@@ -640,8 +641,12 @@ proves the default runtime-label allocation ordinary and disjoint from every gen
 carrier name; `carrierPolicy_names` proves all carrier slots reflective. Custom
 environments must retain that separation. The compiler must also ensure every recursive
 carrier cycle reaches an ordinary record guard or another permitted guard. Cycles
-entirely within ghost components remain unguarded. Existing `Transparent` compiler
-proofs have not all been transported to the new judgment.
+entirely within ghost components remain unguarded. The actual partial carrier compiler,
+its runtime variable pass, generated packages and whole-package coercions now produce
+mixed proofs. The port preserves source inputs, witness allocation, computed types and
+runtime syntax, without adding caller-supplied target evidence. Both existing type-only
+constructor passes also produce mixed proofs through `carrierTargetTyping`; their alias
+interfaces remain distinct from the general carrier interface.
 
 The native constructor work remains usable independently of inversion.
 `TermCPSObjectTyping` generates the self equation from arbitrary native field types

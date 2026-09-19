@@ -45,55 +45,37 @@ derivations, including field extensions. General member-bound generation and
 discharge through opaque paths remain unfinished. See the
 [translation status](../notes/fcct-translation.md) for precise coverage.
 
-The `CTML.Mixed` experiment now proves operational safety with ordinary record-guarded
+The `CTML.Mixed` target proves operational safety with ordinary record-guarded
 recursion and inversion restricted to designated ghost fields. Its fixed field-label
 policy separates those roles; arbitrary constraints and universals remain available.
-The original shared-witness regression uses exactly its original two context guards
-in this model. Checked scalar and mutual record-recursive programs reduce to Unit,
-including a program whose constraint-abstracted cast uses ghost inversion.
-This replaces the arrow-only guard as the intended direction for the carrier model.
-It does not yet port the full carrier compiler. The default runtime-label allocation
-is now proved disjoint from all carrier slots; recursion entirely within ghost
-components remains unguarded.
-`TermCPSObjectTyping` proves the general native object-constructor step from field
-induction hypotheses. `NativeFieldSharing.packTyping` constructs a package with one
-member witness shared by `head` and recursive `next`, deriving its recursive bounds
-from the payload typing. These are constructor lemmas, not the general source compiler.
+The original shared-witness regression uses exactly its original two context guards.
+Checked scalar and mutual record-recursive programs reduce to Unit, including a
+constraint-abstracted cast using ghost inversion. The default runtime-label allocation
+is proved disjoint from all carrier slots. Pure ghost cycles remain unguarded.
 
-The earlier separate `CTML.Transparent` experiment proves safety for record-subtyping
-inversion combined with recursion guarded by functions. Records retain both
-positive and negative field observations in this model; missing fields satisfy
-the negative observation. Labelled unions consequently retain each component's
-bounds, including when other components are empty. The checked carrier regression
-recovers both bounds on one `p.A` through the same abstract `q.X`, using only the
-two translated context guards. It accepts recursive
-records with suspended fields and rejects the earlier recursive-constraint
-counterexample. `CarrierTranslation.compileSubtyping` now generates a finite carrier
-layout, context guards and target derivation from an actual core-DOT subtyping
-derivation. It handles bounds, selections, intersections, variable paths,
-singleton transport and direct replacement, and rejects unsupported cases. Every
-relevant path gets a complete row of member witnesses and a payload-type witness,
-including members never directly selected. The original shared-witness regression,
-aliases, replacement inside contravariant bounds and member variance compile to
-checked universal constraint abstractions. `CarrierTranslation.compileVariable`
-additionally produces experimental typing derivations for the exact
-`TermCPS.compile` output of supported variable
-typing derivations. Its term context stores each payload at the type in its own
-carrier. The generated result package universally binds all member and payload
-witnesses; packing instantiates them with the producer's existing types. The
-requested view and answer retain their outer scope. Compiled subtyping proofs
-also produce checked identity coercions between whole packages. A closed package
-test uses the generated packing and opening operations, recovers a native record
-view, calls a field and reduces to Unit in five steps.
-The existing constructor passes retain their `CTMLCore.Recursive.HasType` proofs;
-`CarrierConstructorCompilation` also derives experimental typing for their exact
-runtime output and generated alias interfaces. Simultaneous recursive function
-equations are now covered by the experimental safety theorem. A constructor can
-hide their whole scope inside an existential package, including the generic
-carrier interface, without exporting its private equations.
-Connecting package scopes to the remaining source rules, including general fields,
-constructors and dependent calls, and unifying the constructor and carrier
-interfaces, is unfinished.
+The actual `CarrierTranslation.compileSubtyping` now produces mixed derivations for
+bounds, selections, intersections, variable paths, singleton transport and replacement.
+Every relevant path gets a complete row of member and payload witnesses, including
+members never directly selected. `compileVariable` types the exact `TermCPS.compile`
+output for supported variable derivations. Generated packages bind all member and
+payload witnesses; packing uses the producer's existing types. Whole-package identity
+coercions and the closed package example reducing to Unit use the same mixed judgment.
+Unsupported source cases still fail explicitly.
+
+`CarrierConstructorCompilation` also derives mixed typing for the exact output of
+both existing type-only constructor passes, retaining their generated alias interfaces
+and native proofs. Its compatibility rule solves their existing simultaneous function
+equations alongside the target's scalar and simultaneous record equations.
+`TermCPSObjectTyping` proves the mixed object step from field/package induction hypotheses,
+deriving its ordinary-label condition from the actual compiled fields. Mixed term
+weakening permits packing arbitrary typed payloads without changing the runtime syntax.
+`NativeFieldSharing.packTyping` generates a package sharing one member witness across
+`head` and recursive `next`. These constructor lemmas do not yet supply the general
+source-field invariant or unify alias interfaces with carrier interfaces. General
+paths, constructors, dependent calls and recursive opening remain unfinished.
+
+The earlier `CTML.Transparent` model and its recursive-package examples remain checked
+experiments. Their arrow-only guard is not a requirement of the intended target.
 
 `import CDotFCCT.Baseline` loads the earlier minimal-FCCT experiments. The compatibility
 umbrella `import CDotFCCT` loads both. The implemented target calculi are local Lake

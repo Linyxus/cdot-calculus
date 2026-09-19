@@ -4,7 +4,7 @@ import CDotFCCT.CTML.MixedCalculus
 # Safety with record-guarded recursion and ghost component inversion
 
 The fundamental lemma covers all native terms, arbitrary constraints, universals,
-Z, scalar record-guarded definitions and simultaneous ordinary-record equations.
+Z, scalar record-guarded definitions and simultaneous record or function equations.
 Only designated ghost labels admit component inversion. The runtime is unchanged.
 -/
 
@@ -72,6 +72,7 @@ mutual
     | .ifElse scrutinee sub branch => scrutinee.sound.ifElse sub branch.sound
     | .fixpoint function => function.sound.fixpoint
     | .recursive definition body => body.sound.recursive definition
+    | .recursiveSystem system body => body.sound.recursiveSystem system
     | .recursiveRecordSystem system ordinary body =>
         body.sound.recursiveRecordSystem system ordinary
 

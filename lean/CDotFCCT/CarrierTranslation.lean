@@ -1,6 +1,7 @@
 import CDotFCCT.CoreDerivation
 import CDotFCCT.MemberUses
-import CDotFCCT.CTML.CarrierLayout
+import CDotFCCT.CTML.MixedCarrierLayout
+import CDotFCCT.CTML.MixedSafety
 
 /-!
 # Derivation-directed translation of shared member bounds
@@ -21,7 +22,8 @@ set_option autoImplicit false
 
 namespace CDotFCCT.CarrierTranslation
 
-open CDot CTMLCore CTML.Transparent
+open CDot CTMLCore CTML.Mixed
+open CTML.Transparent (MemberSlot)
 
 variable [Signature]
 
@@ -182,8 +184,9 @@ theorem ContextCode.length {layout : Layout} {context : Ctx}
 
 omit [Signature] in
 theorem interIntro {s : SubtypingContext} {source left right : WFTy s.typeDepth}
-    (first : InvertingSubtype s source left) (second : InvertingSubtype s source right) :
-    InvertingSubtype s source (WFTy.intersection left right) := by
+    (first : InvertingSubtype carrierPolicy s source left)
+    (second : InvertingSubtype carrierPolicy s source right) :
+    InvertingSubtype carrierPolicy s source (WFTy.intersection left right) := by
   refine .nativeWith [WFConstraint.constr source left, WFConstraint.constr source right]
     (.leInter
       (@CTMLCore.Subtype.hyp
@@ -199,8 +202,8 @@ theorem Layout.asSlot {layout : Layout} {guards : List (WFConstraint layout.dept
     {path : Path} {label : Signature.TypLabel}
     (present : label ∈ layout.labels) {witness target : WFTy layout.depth}
     (found : layout.witness path label = some witness)
-    (typing : InvertingSubtype ⟨layout.depth, guards⟩ (layout.precise path) target) :
-    InvertingSubtype ⟨layout.depth, guards⟩
+    (typing : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ (layout.precise path) target) :
+    InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
       ((layout.memberSlot label present).precise witness
         (CarrierLayout.components layout.slots layout.slots
           (fun slot => (layout.component path slot).getD WFTy.top)))
@@ -212,10 +215,10 @@ theorem Layout.asSlot {layout : Layout} {guards : List (WFConstraint layout.dept
 theorem Layout.payloadBound {layout : Layout} {guards : List (WFConstraint layout.depth)}
     {path : Path} {payload target : WFTy layout.depth}
     (found : layout.payload path = some payload)
-    (typing : InvertingSubtype ⟨layout.depth, guards⟩
+    (typing : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
       (layout.precise path) (layout.runtimeView target)) :
-    InvertingSubtype ⟨layout.depth, guards⟩ payload target := by
-  have atSlot : InvertingSubtype ⟨layout.depth, guards⟩
+    InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ payload target := by
+  have atSlot : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
       (layout.payloadSlot.precise payload
         (CarrierLayout.components layout.slots layout.slots
           (fun slot => (layout.component path slot).getD WFTy.top)))
@@ -223,22 +226,23 @@ theorem Layout.payloadBound {layout : Layout} {guards : List (WFConstraint layou
     simpa only [Layout.precise, Layout.payloadSlot,
       CarrierLayout.precise_eq_slot (support := layout.slots) (label := none) List.mem_cons_self,
       Layout.component, found, Option.getD_some] using typing
-  exact layout.payloadSlot.upperBound (.native .refl) atSlot
+  exact memberUpperBound layout.payloadSlot (carrierPolicy_names layout.slots)
+    (.native .refl) atSlot
 
 theorem Layout.memberView_intro {layout : Layout} {guards : List (WFConstraint layout.depth)}
     {path : Path} {label : Signature.TypLabel} (present : label ∈ layout.labels)
     {witness lower upper : WFTy layout.depth}
     (found : layout.witness path label = some witness)
-    (lowerBound : InvertingSubtype ⟨layout.depth, guards⟩ lower witness)
-    (upperBound : InvertingSubtype ⟨layout.depth, guards⟩ witness upper) :
-    InvertingSubtype ⟨layout.depth, guards⟩ (layout.precise path)
+    (lowerBound : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ lower witness)
+    (upperBound : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ witness upper) :
+    InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ (layout.precise path)
       ((layout.memberSlot label present).view lower upper (fun _ => WFTy.top)) := by
-  have evidence : InvertingSubtype ⟨layout.depth, guards⟩
+  have evidence : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
       ((layout.memberSlot label present).precise witness
         (CarrierLayout.components layout.slots layout.slots
           (fun slot => (layout.component path slot).getD WFTy.top)))
       ((layout.memberSlot label present).view lower upper (fun _ => WFTy.top)) :=
-    (layout.memberSlot label present).variance lowerBound upperBound
+    memberVariance (layout.memberSlot label present) lowerBound upperBound
       (fun _ _ => .native .leTop)
   simpa only [Layout.precise, Layout.memberSlot,
     CarrierLayout.precise_eq_slot (Layout.memberPresent present), Layout.component,
@@ -247,14 +251,15 @@ theorem Layout.memberView_intro {layout : Layout} {guards : List (WFConstraint l
 theorem Layout.runtimeView_intro {layout : Layout} {guards : List (WFConstraint layout.depth)}
     {path : Path} {payload target : WFTy layout.depth}
     (found : layout.payload path = some payload)
-    (upperBound : InvertingSubtype ⟨layout.depth, guards⟩ payload target) :
-    InvertingSubtype ⟨layout.depth, guards⟩ (layout.precise path) (layout.runtimeView target) := by
-  have evidence : InvertingSubtype ⟨layout.depth, guards⟩
+    (upperBound : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ payload target) :
+    InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+      (layout.precise path) (layout.runtimeView target) := by
+  have evidence : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
       (layout.payloadSlot.precise payload
         (CarrierLayout.components layout.slots layout.slots
           (fun slot => (layout.component path slot).getD WFTy.top)))
       (layout.runtimeView target) :=
-    layout.payloadSlot.variance (.native .botLe) upperBound (fun _ _ => .native .leTop)
+    memberVariance layout.payloadSlot (.native .botLe) upperBound (fun _ _ => .native .leTop)
   simpa only [Layout.precise, Layout.payloadSlot,
     CarrierLayout.precise_eq_slot (support := layout.slots) (label := none) List.mem_cons_self,
     Layout.component, found, Option.getD_some] using evidence
@@ -265,17 +270,17 @@ structure SubtypingResult (layout : Layout) (guards : List (WFConstraint layout.
   sup : WFTy layout.depth
   subCode : TypeCode layout sourceSub sub
   supCode : TypeCode layout sourceSup sup
-  proof : InvertingSubtype ⟨layout.depth, guards⟩ sub sup
+  proof : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ sub sup
 
 structure PathResult (layout : Layout) (guards : List (WFConstraint layout.depth))
     (path : Path) (source : Typ) where
   type : WFTy layout.depth
   code : TypeCode layout source type
-  proof : InvertingSubtype ⟨layout.depth, guards⟩ (layout.precise path) type
+  proof : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ (layout.precise path) type
 
 structure Equivalence (s : SubtypingContext) (left right : WFTy s.typeDepth) : Type where
-  forward : InvertingSubtype s left right
-  backward : InvertingSubtype s right left
+  forward : InvertingSubtype carrierPolicy s left right
+  backward : InvertingSubtype carrierPolicy s right left
 
 def Equivalence.ofEq {s : SubtypingContext} {left right : WFTy s.typeDepth}
     (equal : left = right) : Equivalence s left right :=
@@ -296,7 +301,7 @@ def Equivalence.inter {s : SubtypingContext} {left₁ left₂ right₁ right₂ 
 
 def comparePaths {layout : Layout} {guards : List (WFConstraint layout.depth)}
     {original replacement : Path}
-    (related : InvertingSubtype ⟨layout.depth, guards⟩
+    (related : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
       (layout.precise original) (layout.precise replacement)) (left right : Path) :
     Option (Equivalence ⟨layout.depth, guards⟩ (layout.precise left) (layout.precise right)) :=
   if same : left = right then some (.ofEq (congrArg layout.precise same))
@@ -317,10 +322,10 @@ theorem Layout.aliasBounds {layout : Layout} {guards : List (WFConstraint layout
     {leftWitness rightWitness : WFTy layout.depth}
     (leftFound : layout.witness left label = some leftWitness)
     (rightFound : layout.witness right label = some rightWitness)
-    (related : InvertingSubtype ⟨layout.depth, guards⟩
+    (related : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
       (layout.precise left) (layout.precise right)) :
-    InvertingSubtype ⟨layout.depth, guards⟩ leftWitness rightWitness ∧
-      InvertingSubtype ⟨layout.depth, guards⟩ rightWitness leftWitness := by
+    InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ leftWitness rightWitness ∧
+      InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ rightWitness leftWitness := by
   simpa only [Layout.component, leftFound, rightFound, Option.getD_some] using
     CarrierLayout.precise_bounds (Layout.memberPresent present) related
 
@@ -328,7 +333,7 @@ theorem Layout.aliasBounds {layout : Layout} {guards : List (WFConstraint layout
 General field extensions and unsupported type constructors are rejected. -/
 def TypeCode.transport {layout : Layout} {guards : List (WFConstraint layout.depth)}
     {original replacement : Path}
-    (related : InvertingSubtype ⟨layout.depth, guards⟩
+    (related : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
       (layout.precise original) (layout.precise replacement))
     {leftSource rightSource : Typ} {leftType rightType : WFTy layout.depth}
     (left : TypeCode layout leftSource leftType) (right : TypeCode layout rightSource rightType) :
@@ -359,9 +364,9 @@ def TypeCode.transport {layout : Layout} {guards : List (WFConstraint layout.dep
           let lower ← leftLower.transport related rightLower
           let upper ← leftUpper.transport related rightUpper
           let combined : Equivalence ⟨layout.depth, guards⟩ _ _ :=
-            ⟨(layout.memberSlot _ present).variance
+            ⟨memberVariance (layout.memberSlot _ present)
                 lower.backward upper.forward (fun _ _ => .native .refl),
-              (layout.memberSlot _ present).variance
+              memberVariance (layout.memberSlot _ present)
                 lower.forward upper.backward (fun _ _ => .native .refl)⟩
           let aligned := congrArg (fun slot => slot.view rightLo rightHi (fun _ => WFTy.top))
             (Layout.memberSlot_congr sameLabel rightPresent present)
@@ -440,7 +445,7 @@ mutual
           let upperCode ← subtyping translated upper
           return ⟨_, _, .member present lowerCode.supCode upperCode.subCode,
             .member present lowerCode.subCode upperCode.supCode,
-            (layout.memberSlot label present).variance
+            memberVariance (layout.memberSlot label present)
               lowerCode.proof upperCode.proof (fun _ _ => .native .refl)⟩
         else none
     | .selLo member => do
@@ -451,8 +456,8 @@ mutual
             | none => none
             | some witness =>
                 return ⟨_, witness, lower, .selection found,
-                  (layout.memberSlot _ present).lowerBound (.native .refl)
-                    (Layout.asSlot present found proof)⟩
+                  memberLowerBound (layout.memberSlot _ present) (carrierPolicy_names layout.slots)
+                    (.native .refl) (Layout.asSlot present found proof)⟩
     | .selHi member => do
         let value ← pathTyping translated member
         match value with
@@ -461,8 +466,8 @@ mutual
             | none => none
             | some witness =>
                 return ⟨witness, _, .selection found, upper,
-                  (layout.memberSlot _ present).upperBound (.native .refl)
-                    (Layout.asSlot present found proof)⟩
+                  memberUpperBound (layout.memberSlot _ present) (carrierPolicy_names layout.slots)
+                    (.native .refl) (Layout.asSlot present found proof)⟩
     | .snglPQ equality _ _ | .snglQP equality _ _ => do
         let ⟨_, .singleton _ _, equalityProof⟩ ← pathTyping translated equality
         let ⟨_, subCode⟩ ← encode layout sourceSub
@@ -576,7 +581,7 @@ def compileSubtyping {context : Ctx} {sourceSub sourceSup : Typ}
 theorem SubtypingResult.identityTyping {layout : Layout}
     {guards : List (WFConstraint layout.depth)} {sourceSub sourceSup : Typ}
     (result : SubtypingResult layout guards sourceSub sourceSup) :
-    CTML.Transparent.HasType ⟨layout.depth, guards⟩ TypingContext.empty
+    CTML.Mixed.HasType carrierPolicy ⟨layout.depth, guards⟩ TypingContext.empty
       (.abs (.var 0)) (WFTy.arrow result.sub result.sup) :=
   .abstraction (.subsumption (.native (.var _ _ _ .here)) result.proof)
 
@@ -588,8 +593,9 @@ def abstractGuards {depth : Nat} (guards : List (WFConstraint depth))
 omit [Signature] in
 theorem abstractGuards_typing {depth : Nat} (guards : List (WFConstraint depth))
     {body : WFTy depth}
-    (typing : CTML.Transparent.HasType ⟨depth, guards⟩ TypingContext.empty (.abs (.var 0)) body) :
-    CTML.Transparent.HasType ⟨depth, []⟩ TypingContext.empty (.abs (.var 0))
+    (typing : CTML.Mixed.HasType carrierPolicy ⟨depth, guards⟩ TypingContext.empty
+      (.abs (.var 0)) body) :
+    CTML.Mixed.HasType carrierPolicy ⟨depth, []⟩ TypingContext.empty (.abs (.var 0))
       (abstractGuards guards body) :=
   match guards with
   | [] => typing
@@ -603,8 +609,9 @@ def abstractTypes : (depth : Nat) → WFTy depth → WFTy 0
 
 omit [Signature] in
 theorem abstractTypes_typing {depth : Nat} {type : WFTy depth}
-    (typing : CTML.Transparent.HasType ⟨depth, []⟩ TypingContext.empty (.abs (.var 0)) type) :
-    CTML.Transparent.HasType SubtypingContext.empty TypingContext.empty (.abs (.var 0))
+    (typing : CTML.Mixed.HasType carrierPolicy ⟨depth, []⟩ TypingContext.empty
+      (.abs (.var 0)) type) :
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty (.abs (.var 0))
       (abstractTypes depth type) :=
   match depth with
   | 0 => typing
@@ -620,7 +627,7 @@ def CompiledSubtyping.closedType {context : Ctx} {sourceSub sourceSup : Typ}
 /-- Both witness and constraint abstractions are generated from the source context. -/
 theorem CompiledSubtyping.closedTyping {context : Ctx} {sourceSub sourceSup : Typ}
     (compiled : CompiledSubtyping context sourceSub sourceSup) :
-    CTML.Transparent.HasType SubtypingContext.empty TypingContext.empty (.abs (.var 0))
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty (.abs (.var 0))
       compiled.closedType :=
   abstractTypes_typing (abstractGuards_typing compiled.guards compiled.result.identityTyping)
 

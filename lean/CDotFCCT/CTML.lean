@@ -52,6 +52,7 @@ import CDotFCCT.CTML.NativeFieldSharing
 import CDotFCCT.CTML.MixedExamples
 import CDotFCCT.CTML.MixedSharedWitness
 import CDotFCCT.CTML.MixedFieldNames
+import CDotFCCT.CTML.MixedInterfaceWeakening
 
 /-!
 # The core-DOT to CTML Core bridge
@@ -68,9 +69,10 @@ for designated ghost fields. It validates the original shared-bound regression
 and direct recursive-record programs under the same discipline. Its general source
 compiler remains unfinished. `Transparent` is the earlier all-fields-transparent
 experiment with arrow-only guards; that restriction is not the intended target.
-Its partial carrier compiler checks subtyping and
-the runtime variable case in that judgment. The existing type-only constructor
-passes also produce checked proofs in it through `carrierTargetTyping`.
+The actual partial carrier compiler now checks subtyping and the runtime variable
+case in `Mixed`, including generated existential packages and whole-package coercions.
+The existing type-only constructor passes also produce checked mixed proofs through
+`carrierTargetTyping`, reusing their generated equations and native bounds.
 Their interfaces still need to be unified with the carrier encoding; the general
 typing theorem is unfinished.
 -/

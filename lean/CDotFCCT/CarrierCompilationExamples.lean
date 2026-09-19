@@ -14,7 +14,7 @@ set_option autoImplicit false
 
 namespace CDotFCCT.CarrierCompilationExamples
 
-open CDot CTMLCore CTML.Transparent CarrierTranslation
+open CDot CTMLCore CTML.Mixed CarrierTranslation
 
 local instance : Signature where
   TypLabel := String
@@ -31,16 +31,16 @@ theorem completeRows : compiled.layout.depth = 6 := by decide +kernel
 theorem twoContextGuards : compiled.guards.length = 2 := compiled.contextCode.length
 
 theorem collapse :
-    InvertingSubtype ⟨compiled.layout.depth, compiled.guards⟩ WFTy.top WFTy.bottom :=
+    InvertingSubtype carrierPolicy ⟨compiled.layout.depth, compiled.guards⟩ WFTy.top WFTy.bottom :=
   (compiled.result.subCode.unique .top) ▸
     (compiled.result.supCode.unique .bot) ▸ compiled.result.proof
 
 theorem noValidEnvironment (env : Indexed.Environment) (index : Nat) :
-    ¬ Validates ⟨compiled.layout.depth, compiled.guards⟩ env index :=
-  fun valid => CTML.Transparent.noCollapse valid collapse
+    ¬ Validates carrierPolicy ⟨compiled.layout.depth, compiled.guards⟩ env index :=
+  fun valid => CTML.Mixed.noCollapse valid collapse
 
 /-- This checked constraint abstraction is an output of the source compiler. -/
-theorem closedTyping : CTML.Transparent.HasType SubtypingContext.empty TypingContext.empty
+theorem closedTyping : CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
     (.abs (.var 0)) compiled.closedType := compiled.closedTyping
 
 theorem closedSafe {reached : Syntax.Term}
@@ -67,7 +67,8 @@ def compiledAlias : CompiledSubtyping aliasContext (.path (.var 1) "A")
 theorem aliasOwnerAllocated : (compiledAlias.layout.witness (.var 0) "A").isSome = true := by
   decide +kernel
 
-theorem aliasClosedTyping : CTML.Transparent.HasType SubtypingContext.empty TypingContext.empty
+theorem aliasClosedTyping :
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
     (.abs (.var 0)) compiledAlias.closedType := compiledAlias.closedTyping
 
 def beforeReplacement : Typ :=
@@ -95,11 +96,11 @@ theorem replacementContextGuards : compiledReplacement.guards.length = 3 :=
   compiledReplacement.contextCode.length
 
 theorem replacementClosedTyping :
-    CTML.Transparent.HasType SubtypingContext.empty TypingContext.empty
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
       (.abs (.var 0)) compiledReplacement.closedType := compiledReplacement.closedTyping
 
 theorem reverseClosedTyping :
-    CTML.Transparent.HasType SubtypingContext.empty TypingContext.empty
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
       (.abs (.var 0)) compiledReverse.closedType := compiledReverse.closedTyping
 
 def variance : Core.Subtyping [] (.rcd (.typ "A" .top .bot))
@@ -109,7 +110,7 @@ def compiledVariance : CompiledSubtyping [] (.rcd (.typ "A" .top .bot))
     (.rcd (.typ "A" .bot .top)) := (compileSubtyping variance).get (by decide +kernel)
 
 theorem varianceClosedTyping :
-    CTML.Transparent.HasType SubtypingContext.empty TypingContext.empty
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
       (.abs (.var 0)) compiledVariance.closedType := compiledVariance.closedTyping
 
 /-- Unsupported recursive types fail at the encoder instead of receiving a dummy type. -/
