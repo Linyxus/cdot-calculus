@@ -501,7 +501,33 @@ def Equivalence.inter {s : SubtypingContext} {left₁ left₂ right₁ right₂ 
     interIntro ((InvertingSubtype.native .interLeft).trans left.backward)
       ((InvertingSubtype.native .interRight).trans right.backward)⟩
 
-def comparePaths {layout : Layout} {guards : List (WFConstraint layout.depth)}
+theorem Layout.componentBounds {layout : Layout} {guards : List (WFConstraint layout.depth)}
+    {left right : Path} {slot : Slot} (present : slot ∈ layout.slots)
+    {leftWitness rightWitness : WFTy layout.depth}
+    (leftFound : layout.component left slot = some leftWitness)
+    (rightFound : layout.component right slot = some rightWitness)
+    (related : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+      (layout.precise left) (layout.precise right)) :
+    InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ leftWitness rightWitness ∧
+      InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩ rightWitness leftWitness := by
+  simpa only [leftFound, rightFound, Option.getD_some] using
+    CarrierLayout.precise_bounds present related
+
+/-- Parent aliases identify the child components before unfolding either precise child row. -/
+def ChildLink.alias {layout : Layout} {guards : List (WFConstraint layout.depth)}
+    {left right : Path} {label : Signature.TrmLabel} (present : label ∈ layout.fieldLabels)
+    (leftChild : ChildLink layout guards left label)
+    (rightChild : ChildLink layout guards right label)
+    (related : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+      (layout.precise left) (layout.precise right)) :
+    Equivalence ⟨layout.depth, guards⟩
+      (layout.precise (left.selectField label)) (layout.precise (right.selectField label)) :=
+  let bounds := Layout.componentBounds (Layout.fieldPresent present)
+    leftChild.found rightChild.found related
+  ⟨leftChild.fold.trans (bounds.1.trans rightChild.unfold),
+    rightChild.fold.trans (bounds.2.trans leftChild.unfold)⟩
+
+private def compareDirectPaths {layout : Layout} {guards : List (WFConstraint layout.depth)}
     {original replacement : Path}
     (related : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
       (layout.precise original) (layout.precise replacement)) (left right : Path) :
@@ -518,7 +544,73 @@ def comparePaths {layout : Layout} {guards : List (WFConstraint layout.depth)}
         first.symm ▸ second.symm ▸ related⟩
     else none
   else none
+private def comparePathsAux {layout : Layout} {guards : List (WFConstraint layout.depth)}
+    {original replacement : Path} (children : ChildLinks layout guards)
+    (related : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+      (layout.precise original) (layout.precise replacement)) :
+    (fuel : Nat) → (left right : Path) →
+      Option (Equivalence ⟨layout.depth, guards⟩ (layout.precise left) (layout.precise right))
+  | fuel, left, right =>
+      match compareDirectPaths related left right with
+      | some result => some result
+      | none =>
+          match fuel, left, right with
+          | more + 1, .select leftRoot (leftLabel :: leftFields),
+              .select rightRoot (rightLabel :: rightFields) =>
+              if same : rightLabel = leftLabel then
+                if present : leftLabel ∈ layout.fieldLabels then do
+                  let parents ← comparePathsAux children related more
+                    (.select leftRoot leftFields) (.select rightRoot rightFields)
+                  let leftChild ← children (.select leftRoot leftFields) leftLabel
+                  let rightChild ← children (.select rightRoot rightFields) leftLabel
+                  let result := ChildLink.alias present leftChild rightChild parents.forward
+                  return result.castRight
+                    (congrArg (fun label =>
+                      layout.precise (.select rightRoot (label :: rightFields))) same).symm
+                else none
+              else none
+          | _, _, _ => none
 
+/-- Peel a common field suffix using the generated equations at every demanded child. -/
+def comparePaths {layout : Layout} {guards : List (WFConstraint layout.depth)}
+    {original replacement : Path} (children : ChildLinks layout guards)
+    (related : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+      (layout.precise original) (layout.precise replacement)) (left right : Path) :
+    Option (Equivalence ⟨layout.depth, guards⟩ (layout.precise left) (layout.precise right)) :=
+  match left with
+  | .select root fields =>
+      comparePathsAux children related fields.length (.select root fields) right
+
+/-- The parent's precise row transports the selected field's presence flag. -/
+def EdgePresence.alias {layout : Layout} {guards : List (WFConstraint layout.depth)}
+    {left right : Path} {label : Signature.TrmLabel} (present : label ∈ layout.fieldLabels)
+    (related : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
+      (layout.precise left) (layout.precise right))
+    {presence : WFTy layout.depth} (found : layout.fieldPresence left label = some presence)
+    (edge : EdgePresence layout guards right label) : EdgePresence layout guards left label :=
+  let bounds := Layout.componentBounds (Layout.presencePresent present) found edge.found related
+  ⟨presence, found, edge.proof.trans bounds.2⟩
+
+/-- Keep the left path's existing prefixes and append the transported final-edge evidence. -/
+def PathResult.pathElim {layout : Layout} {guards : List (WFConstraint layout.depth)}
+    {left right : Path} {label : Signature.TrmLabel} {source : Typ}
+    (children : ChildLinks layout guards)
+    (equality : PathResult layout guards left (.sngl right))
+    (field : PathResult layout guards (right.selectField label) source) :
+    Option (PathResult layout guards (left.selectField label) (.sngl (right.selectField label))) :=
+  match equality with
+  | ⟨_, .singleton _ _, related, leftExists⟩ =>
+      if present : label ∈ layout.fieldLabels then do
+        let leftChild ← children left label
+        let rightChild ← children right label
+        let ⟨_, .singleton named complete⟩ ← encode layout (.sngl (right.selectField label))
+        match found : layout.fieldPresence left label with
+        | none => none
+        | some _ =>
+            return ⟨_, .singleton named complete,
+              (ChildLink.alias present leftChild rightChild related).forward,
+              .field leftExists (EdgePresence.alias present related found field.present.last)⟩
+      else none
 theorem Layout.aliasBounds {layout : Layout} {guards : List (WFConstraint layout.depth)}
     {left right : Path} {label : Signature.TypLabel} (present : label ∈ layout.labels)
     {leftWitness rightWitness : WFTy layout.depth}
@@ -532,9 +624,10 @@ theorem Layout.aliasBounds {layout : Layout} {guards : List (WFConstraint layout
     CarrierLayout.precise_bounds (Layout.memberPresent present) related
 
 /-- Check replacement structurally, deriving witness equalities from the alias row.
-General field extensions and unsupported type constructors are rejected. -/
+Demanded field suffixes use generated child equations; unsupported type
+constructors are rejected. -/
 def TypeCode.transport {layout : Layout} {guards : List (WFConstraint layout.depth)}
-    {original replacement : Path}
+    {original replacement : Path} (children : ChildLinks layout guards)
     (related : InvertingSubtype carrierPolicy ⟨layout.depth, guards⟩
       (layout.precise original) (layout.precise replacement))
     {leftSource rightSource : Typ} {leftType rightType : WFTy layout.depth}
@@ -548,23 +641,23 @@ def TypeCode.transport {layout : Layout} {guards : List (WFConstraint layout.dep
         @TypeCode.selection _ _ rightPath rightLabel _ rightFound =>
         if sameLabel : rightLabel = leftLabel then
           if present : leftLabel ∈ layout.labels then do
-            let paths ← comparePaths related leftPath rightPath
+            let paths ← comparePaths children related leftPath rightPath
             let bounds := Layout.aliasBounds present leftFound
               (sameLabel ▸ rightFound) paths.forward
             return ⟨bounds.1, bounds.2⟩
           else none
         else none
     | @TypeCode.singleton _ _ leftPath _ _, @TypeCode.singleton _ _ rightPath _ _ =>
-        comparePaths related leftPath rightPath
+        comparePaths children related leftPath rightPath
     | .inter left₁ right₁, .inter left₂ right₂ => do
-        let lower ← left₁.transport related left₂
-        let upper ← right₁.transport related right₂
+        let lower ← left₁.transport children related left₂
+        let upper ← right₁.transport children related right₂
         return lower.inter upper
     | @TypeCode.member _ _ leftLabel _ _ _ _ present leftLower leftUpper,
         @TypeCode.member _ _ rightLabel _ _ rightLo rightHi rightPresent rightLower rightUpper =>
         if sameLabel : rightLabel = leftLabel then do
-          let lower ← leftLower.transport related rightLower
-          let upper ← leftUpper.transport related rightUpper
+          let lower ← leftLower.transport children related rightLower
+          let upper ← leftUpper.transport children related rightUpper
           let combined : Equivalence ⟨layout.depth, guards⟩ _ _ :=
             ⟨memberVariance (layout.memberSlot _ present)
                 lower.backward upper.forward (fun _ _ => .native .refl),
@@ -577,7 +670,7 @@ def TypeCode.transport {layout : Layout} {guards : List (WFConstraint layout.dep
     | @TypeCode.field _ _ leftLabel _ _ present leftBody,
         @TypeCode.field _ _ rightLabel _ rightType rightPresent rightBody =>
         if sameLabel : rightLabel = leftLabel then do
-          let body ← leftBody.transport related rightBody
+          let body ← leftBody.transport children related rightBody
           let combined : Equivalence ⟨layout.depth, guards⟩ _ _ :=
             ⟨Layout.fieldView_mono present body.forward,
               Layout.fieldView_mono present body.backward⟩
@@ -639,7 +732,11 @@ mutual
             Layout.fieldView_intro present existsField.found link.found existsField.proof
               (link.unfold.trans child.proof), child.present.parent⟩
         else none
-    | .pathElim _ _ | .recIntro _ | .recElim _ => none
+    | .pathElim equality field => do
+        let original ← pathTyping translated equations children equality
+        let selected ← pathTyping translated equations children field
+        original.pathElim children selected
+    | .recIntro _ | .recElim _ => none
 
   /-- Translate the bound-related cases of the actual core-DOT subtyping derivation. -/
   def subtyping {layout : Layout} {context : Ctx}
@@ -716,7 +813,7 @@ mutual
           pathTyping translated equations children equality
         let ⟨_, subCode⟩ ← encode layout sourceSub
         let ⟨_, supCode⟩ ← encode layout sourceSup
-        let replacement ← subCode.transport equalityProof supCode
+        let replacement ← subCode.transport children equalityProof supCode
         return ⟨_, _, subCode, supCode, replacement.forward⟩
     | .all _ _ _ => none
 end

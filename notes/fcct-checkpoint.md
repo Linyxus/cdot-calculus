@@ -50,6 +50,11 @@ whose satisfiability and non-collapse are proved. Nested `p.a.b.A` selection and
 introduction compile automatically. Runtime variable packaging remains exact; a general runtime
 projection pass is still missing.
 
+`pathElim` and singleton replacement through arbitrary demanded common field suffixes are now
+handled by the source compiler. Parent carrier equality transports both child identity and field
+presence. Regressions check two-field replacements in both directions and two nested path-alias
+steps followed by two field introductions, including the exact runtime variable CPS package.
+
 The older `Transparent` model remains checked prior work. Its arrow-only rule is not a limitation
 on DOT or on native CTML recursion. The mixed relation remains in the root bridge; it has not
 replaced the native submodule judgment.
@@ -147,10 +152,29 @@ the unchanged membership test cannot support a complete such dictionary. Correla
 explicit runtime coercion evidence are being investigated. See
 [the recursive-bound obligation](fcct-recursive-bound-obligation.md).
 
+`MemberDictionaryPrototype` checks a native record package with explicit member-bound and
+field-to-member identity coercions; opening and calling them returns the original arbitrary
+value. `MemberDictionaryFusion` checks its limitation: separate existential upper views still
+lose member identity, even when the owner type is hidden once and every cast is an identity.
+The same closed package admits both views, while value-preserving shared-witness fusion is
+impossible. This branch does not replace the shared-carrier representation.
+
+`OptionalProductObstruction` proves that optional paired record products also lose the relation
+with unrestricted bipolar witnesses, even if contradictory candidates are excluded. The new
+positive result is `ComplementedProduct.characterizes`: with the existing guards
+`Top ≤ A ∪ ¬A` and `Top ≤ C ∪ ¬C`, one uniform, existentially encoded scalar bound on the product
+characterizes `C ≤ A`. Its concrete type uses only universals, negation and constraints; the
+interpretation equation is checked. This restricts ghost TYPE CODES, not runtime payloads.
+It is semantic feasibility, not yet a source compiler or native subtyping reflection rule.
+See [the product obstruction](fcct-optional-product-obstruction.md) and
+[the complemented-product construction](fcct-complemented-product.md).
+
 ## Next proof work
 
-1. Resolve first-class recursive bounds without losing relationships between an unknown object's
-   own components. A finite graph for named paths does not by itself solve this issue.
+1. Extend the complemented-code construction to generated source type codes: establish its guards,
+   preserve them under recursion, separate unrestricted runtime payloads, and obtain checked
+   subtyping derivations for recursive views. The two-component semantic theorem is not yet a
+   general solution. A finite graph for named paths does not by itself solve this issue.
 2. Derive the anchored runtime field invariant from general source field views, including opaque
    selections such as `{a:q.X}`, and preserve it across aliases and dependent calls.
 3. Generate the finite coupled carrier/runtime graphs from arbitrary source definitions and

@@ -185,6 +185,63 @@ theorem graphAliasClosedTyping :
     CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
       (.abs (.var 0)) compiledGraphAlias.closedType := compiledGraphAlias.closedTyping
 
+def suffixBody : Typ := .rcd (.trm "a" (.rcd (.trm "b" graphMember)))
+def suffixContext : Ctx := [(0, .sngl (.var 1)), (1, suffixBody)]
+def suffixOriginal : Core.Typing suffixContext (.var 1) suffixBody :=
+  .var (.there (by decide) .here)
+def suffixEquality : Core.Typing suffixContext (.var 0) (.sngl (.var 1)) := .var .here
+
+def suffixFirstField : Core.Typing suffixContext (.path ((.var 1 : Path).selectField "a"))
+    (.rcd (.trm "b" graphMember)) := .newElim suffixOriginal
+
+def suffixSecondField :
+    Core.Typing suffixContext (.path ((.var 1 : Path).selectFields ["b", "a"]))
+      graphMember := .newElim suffixFirstField
+
+def suffixFirstAlias : Core.Typing suffixContext (.path ((.var 0 : Path).selectField "a"))
+    (.sngl ((.var 1 : Path).selectField "a")) := .pathElim suffixEquality suffixFirstField
+
+/-- A second path-elimination step retains the first transported presence flag. -/
+def suffixSecondAlias :
+    Core.Typing suffixContext (.path ((.var 0 : Path).selectFields ["b", "a"]))
+      (.sngl ((.var 1 : Path).selectFields ["b", "a"])) :=
+  .pathElim suffixFirstAlias suffixSecondField
+
+def suffixSecondTyped :
+    Core.Typing suffixContext (.path ((.var 0 : Path).selectFields ["b", "a"]))
+      graphMember := .sngl suffixSecondAlias suffixSecondField
+
+def suffixIntroduction : Core.Typing suffixContext (.var 0) suffixBody :=
+  .rcdIntro (.rcdIntro suffixSecondTyped)
+
+def suffixForward : Core.Subtyping suffixContext
+    (.path ((.var 0 : Path).selectFields ["b", "a"]) "A")
+    (.path ((.var 1 : Path).selectFields ["b", "a"]) "A") :=
+  .snglPQ suffixEquality suffixOriginal (.path (fields := ["b", "a"]))
+
+def suffixReverse : Core.Subtyping suffixContext
+    (.path ((.var 1 : Path).selectFields ["b", "a"]) "A")
+    (.path ((.var 0 : Path).selectFields ["b", "a"]) "A") :=
+  .snglQP suffixEquality suffixOriginal (.path (fields := ["b", "a"]))
+
+def compiledSuffixForward : CompiledSubtyping suffixContext
+    (.path ((.var 0 : Path).selectFields ["b", "a"]) "A")
+    (.path ((.var 1 : Path).selectFields ["b", "a"]) "A") :=
+  (compileSubtyping suffixForward).get (by decide +kernel)
+
+def compiledSuffixReverse : CompiledSubtyping suffixContext
+    (.path ((.var 1 : Path).selectFields ["b", "a"]) "A")
+    (.path ((.var 0 : Path).selectFields ["b", "a"]) "A") :=
+  (compileSubtyping suffixReverse).get (by decide +kernel)
+
+theorem suffixForwardClosedTyping :
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
+      (.abs (.var 0)) compiledSuffixForward.closedType := compiledSuffixForward.closedTyping
+
+theorem suffixReverseClosedTyping :
+    CTML.Mixed.HasType carrierPolicy SubtypingContext.empty TypingContext.empty
+      (.abs (.var 0)) compiledSuffixReverse.closedType := compiledSuffixReverse.closedTyping
+
 /-- Unsupported recursive types fail at the encoder instead of receiving a dummy type. -/
 theorem rejectsRecursive :
     (compileSubtyping (Core.Subtyping.refl : Core.Subtyping [] (.bnd .top) (.bnd .top))).isNone =

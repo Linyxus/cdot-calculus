@@ -63,6 +63,22 @@ theorem fieldIntroductionTyping (answer : WFTy compiledFieldIntroduction.layout.
   compiledFieldIntroduction.runtime_eq CarrierCompilationExamples.graphAliasIntroduction ▸
     compiledFieldIntroduction.typing answer
 
+def compiledSuffixIntroduction :
+    CompiledVariable CarrierCompilationExamples.suffixContext 0
+      CarrierCompilationExamples.suffixBody :=
+  (compileVariable CarrierCompilationExamples.suffixIntroduction).get (by decide +kernel)
+
+/-- Nested alias elimination supplies the flags needed to reintroduce both parent fields. -/
+theorem suffixIntroductionTyping (answer : WFTy compiledSuffixIntroduction.layout.depth) :
+    CTML.Mixed.HasType carrierPolicy
+      ⟨compiledSuffixIntroduction.layout.depth, compiledSuffixIntroduction.guards⟩
+      (compiledSuffixIntroduction.layout.runtimeContext CarrierCompilationExamples.suffixContext)
+      (TermCPS.compile (runtimeEnvironment CarrierCompilationExamples.suffixContext)
+        CarrierCompilationExamples.suffixIntroduction)
+      (compiledSuffixIntroduction.interface.package answer) :=
+  compiledSuffixIntroduction.runtime_eq CarrierCompilationExamples.suffixIntroduction ▸
+    compiledSuffixIntroduction.typing answer
+
 def unit : Term := .record "Unit" .nil
 def identity : Term := .abs (.var 0)
 def unitType {depth : Nat} : WFTy depth := WFTy.cls "Unit"
