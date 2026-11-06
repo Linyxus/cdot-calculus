@@ -73,6 +73,11 @@ import CDotFCCT.CTML.MemberDictionaryPrototype
 import CDotFCCT.CTML.MemberDictionaryFusion
 import CDotFCCT.CTML.OptionalProductObstruction
 import CDotFCCT.CTML.ComplementedProduct
+import CDotFCCT.CTML.ComplementedGhostCodes
+import CDotFCCT.CTML.ComplementedCarrierAssumptions
+import CDotFCCT.CTML.CarrierRelationSlots
+import CDotFCCT.CTML.SplitCodeRuntimeAnchor
+import CDotFCCT.CarrierPathRuntime
 
 /-!
 # The core-DOT to CTML Core bridge

@@ -47,13 +47,19 @@ prefixes. The compiler uses its solved child equations for actual `Core.newElim`
 derivations. `PathPresence` retains each edge's source-derived presence evidence through aliases.
 `ContextCode` still has one guard per source binding; `Allocation.equations` is a separate prefix
 whose satisfiability and non-collapse are proved. Nested `p.a.b.A` selection and alias-based field
-introduction compile automatically. Runtime variable packaging remains exact; a general runtime
-projection pass is still missing.
+introduction compile automatically. Runtime variable packaging remains exact.
 
 `pathElim` and singleton replacement through arbitrary demanded common field suffixes are now
 handled by the source compiler. Parent carrier equality transports both child identity and field
 presence. Regressions check two-field replacements in both directions and two nested path-alias
 steps followed by two field introductions, including the exact runtime variable CPS package.
+
+`CarrierPathRuntime.compilePath` now handles the exact CPS runtime for supported path derivations,
+including arbitrary-length projections. It computes separate runtime representation guards for
+visited edges and uses source presence proofs to activate them. Its input is only the source
+derivation; the target context explicitly includes those generated guarantees. The `p.a.b`
+regression has one source guard and two runtime guards. General constructors still need to
+produce these guarantees, and the output is not yet a whole-graph first-class export.
 
 The older `Transparent` model remains checked prior work. Its arrow-only rule is not a limitation
 on DOT or on native CTML recursion. The mixed relation remains in the root bridge; it has not
@@ -168,6 +174,24 @@ interpretation equation is checked. This restricts ghost TYPE CODES, not runtime
 It is semantic feasibility, not yet a source compiler or native subtyping reflection rule.
 See [the product obstruction](fcct-optional-product-obstruction.md) and
 [the complemented-product construction](fcct-complemented-product.md).
+
+`ComplementedGhostCodes` now proves that the existing pure record-equation solver preserves
+complemented codes, including negative recursive references. Requirements concern only occurring
+outer leaves, through the current observation index. `ComplementedCarrierAssumptions.guard`
+derives the same semantic property in ANY environment satisfying the actual equation guards.
+The negative cycle `P={code:¬P}` is checked. See [the closure note](fcct-complemented-ghost-codes.md).
+
+`CarrierRelationSlots` provides a syntactic route: add a COMPUTED slot `¬child ∪ member` to the
+existing carrier. With child-code completeness, native Boolean reasoning and existing ghost
+inversion characterize `child ≤ member` using a fixed view of that slot. Both valid diagonals
+are accepted and the invalid crossed tuple is rejected. The slot is pure Boolean syntax and its
+record-guarded equation compiles exactly to this carrier. No new inference rule was added.
+See [the relation-slot note](fcct-carrier-relation-slots.md).
+
+`SplitCodeRuntimeAnchor` separately packages code membership and full witness identity. Packing
+generates the full anchor by reflexivity; opening recovers the same unrestricted runtime type D
+and code witnesses. Its completeness guards mention only codes. Code membership by itself cannot
+recover an unknown child's runtime identity; a producer must establish that association.
 
 ## Next proof work
 
