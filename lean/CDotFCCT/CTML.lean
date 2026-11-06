@@ -78,6 +78,9 @@ import CDotFCCT.CTML.ComplementedCarrierAssumptions
 import CDotFCCT.CTML.CarrierRelationSlots
 import CDotFCCT.CTML.SplitCodeRuntimeAnchor
 import CDotFCCT.CarrierPathRuntime
+import CDotFCCT.CTML.CodeCompleteness
+import CDotFCCT.CTML.CodeCompletenessBinding
+import CDotFCCT.CarrierRelationalRegression
 
 /-!
 # The core-DOT to CTML Core bridge

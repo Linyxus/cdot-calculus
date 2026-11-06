@@ -1,5 +1,7 @@
 # Development workflow
 
+- When resuming, default to one subagent. Add a second only for a clearly independent, bounded
+  task; do not automatically fill every available agent slot.
 - Use parallel subagents for independent proof, implementation, and review tasks. Give each a
   bounded objective and disjoint file ownership, and exchange compact handoffs to avoid repeatedly
   reloading the whole development. Keep integration and final verification coordinated.

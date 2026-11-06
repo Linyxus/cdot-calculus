@@ -3,6 +3,28 @@
 Read this first when continuing. The full derivation-to-derivation translation is still open.
 The detailed inventory and older experiments are in [fcct-translation.md](fcct-translation.md).
 
+## Resume checkpoint — 2026-11-06
+
+Work is paused at the user's request after finishing the in-flight proof tasks and committing
+their checked results. Resume with one subagent by default; use a second only for clearly
+independent bounded work, as recorded in `AGENTS.md`.
+
+Validation at this checkpoint: the full `CDot`, `CDotFCCT`, `FCCT` and `CTMLCore` builds pass
+with cached dependencies; 951 translation and 23 baseline axiom reports use only standard Lean
+axioms. The submodule has no pending changes.
+
+The current direction is complemented ghost type codes with computed Boolean relation slots,
+plus separate identity anchors for unrestricted runtime payloads. Record guards remain supported.
+The actual path compiler is checked under explicit generated runtime invariants; arbitrary
+objects, recursive type views, dependent functions and the full preservation theorem remain open.
+
+The next concrete task is to connect the finite `CodeCompleteness.Schema` certificate to the
+mixed subtyping calculus. Its requirements and soundness are checked, but no `pureCode` inference
+constructor has been added. Follow [the certificate note](fcct-code-completeness.md); retain
+arbitrary-environment soundness and all assumption/weakening/substitution transport. Then generate
+these certificates and correlated slots from source types, rather than assuming code completeness
+or adding the desired source relation as a target premise.
+
 ## Working requirements
 
 - Target native CTML records, unions/intersections, arbitrary constraints, Z and RECORD-guarded
@@ -192,6 +214,21 @@ See [the relation-slot note](fcct-carrier-relation-slots.md).
 generates the full anchor by reflexivity; opening recovers the same unrestricted runtime type D
 and code witnesses. Its completeness guards mention only codes. Code membership by itself cannot
 recover an unknown child's runtime identity; a producer must establish that association.
+
+`CodeCompleteness.Schema` is a finite syntactic certificate with guarded pure bodies and arbitrary
+ambient names. It computes every equation and occurring-leaf completeness requirement; its
+soundness theorem establishes the named code's completeness from exactly those requirements.
+The pure syntax now imports base layout syntax directly, keeping this certificate independent of
+`MixedInversion`. `CodeCompletenessBinding` transports the schema under arbitrary type insertion
+and substitution: its requirements and conclusion are exactly the corresponding mapped originals.
+No calculus rule has been added yet.
+
+`CarrierRelationalRegression` revisits the actual `q.X` recursive-upper-bound source derivation.
+Its target proof obtains the unknown subject's `child ≤ member` and field presence from exactly
+the two source-binding guards, a generated pure equation `R=¬child ∪ member`, and separate code
+completeness metadata. It never assumes the sought relation. `diagonalBindings` discharges both
+source guards for arbitrary member with child=member and presence=Top, using only the code and
+equation scope. This is a checked representation regression, not general recursive type coverage.
 
 ## Next proof work
 

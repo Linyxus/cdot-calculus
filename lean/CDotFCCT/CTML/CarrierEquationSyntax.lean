@@ -1,4 +1,5 @@
-import CDotFCCT.CTML.MixedCarrierLayout
+import CDotFCCT.CTML.CarrierLayout
+import CDotFCCT.CTML.MixedRows
 
 /-!
 # Finite pure carrier equations
@@ -13,7 +14,7 @@ set_option autoImplicit false
 
 namespace CDotFCCT.CTML.Mixed.CarrierEquation
 
-open CTMLCore CTMLCore.Syntax
+open CTMLCore CTMLCore.Syntax Transparent
 
 /-- The pure part of a carrier equation, with an independent outer type at each leaf. -/
 inductive Expr (ghost : FieldName → Bool) (depth size : Nat) where
@@ -68,7 +69,8 @@ def row (labels : List FieldName) (marked : ∀ field ∈ labels, ghost field = 
       (row rest (fun found member => marked found (List.mem_cons_of_mem field member)) entries)
 
 theorem row_guarded (labels : List FieldName)
-    (marked : ∀ field ∈ labels, ghost field = true) (entries : FieldName → Expr ghost depth size) :
+    (marked : ∀ field ∈ labels, ghost field = true)
+    (entries : FieldName → Expr ghost depth size) :
     (row labels marked entries).Guarded :=
   match labels with
   | [] => trivial
@@ -77,7 +79,8 @@ theorem row_guarded (labels : List FieldName)
         entries⟩
 
 theorem compile_row (labels : List FieldName)
-    (marked : ∀ field ∈ labels, ghost field = true) (entries : FieldName → Expr ghost depth size) :
+    (marked : ∀ field ∈ labels, ghost field = true)
+    (entries : FieldName → Expr ghost depth size) :
     (row labels marked entries).compile =
       Mixed.row labels (fun field => (entries field).compile) :=
   match labels with
